@@ -589,6 +589,11 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
     setCopied(token)
     setTimeout(() => setCopied(null), 1800)
   }
+  async function remove(id: string) {
+    if (!window.confirm('¿Borrar este enlace? El cliente ya no podrá completarlo.')) return
+    await supabase.from('client_intake').delete().eq('id', id)
+    load()
+  }
 
   return (
     <div className="space-y-6">
@@ -665,7 +670,7 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
               return (
                 <li key={f.id} className="rounded-xl border border-slate-200 p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       {isDone ? (
                         <Badge tone="green"><Check className="mr-1 inline h-3 w-3" /> Completado</Badge>
                       ) : (
@@ -674,6 +679,9 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
                       {isDone && s.name && (
                         <span className="text-sm font-medium text-slate-700">{s.name}</span>
                       )}
+                      <span className="text-xs text-slate-400">
+                        Generado el {fmtDateTime(f.created_at)}
+                      </span>
                     </div>
                     <div className="flex gap-2">
                       {isDone ? (
@@ -690,6 +698,9 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
                           </a>
                         </>
                       )}
+                      <button onClick={() => remove(f.id)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label="Borrar enlace">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
@@ -732,6 +743,16 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
       </SectionCard>
     </div>
   )
+}
+
+function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function Row({ label, value }: { label: string; value?: string }) {
