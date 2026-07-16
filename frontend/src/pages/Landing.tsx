@@ -14,6 +14,7 @@ import {
   User,
   Sparkles,
   ShieldCheck,
+  Fingerprint,
 } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { HeroMockup } from '../components/HeroMockup'
@@ -109,8 +110,6 @@ export default function Landing() {
     if (error) setError(traducir(error))
     setBusy(false)
   }
-
-  const taxLabel = tipo === 'empresa' ? 'CIF' : 'NIF'
 
   return (
     <div className="blueprint min-h-screen bg-gradient-to-b from-white via-brand-50/40 to-slate-100">
@@ -296,16 +295,10 @@ export default function Landing() {
                     )}
 
                     <label className="field">
-                      <span className="w-4 text-center text-xs font-bold text-slate-400">
-                        {taxLabel}
-                      </span>
+                      <Fingerprint className="h-4 w-4 text-slate-400" />
                       <input
                         type="text"
-                        placeholder={
-                          tipo === 'empresa'
-                            ? 'CIF de la empresa'
-                            : 'NIF (DNI con letra)'
-                        }
+                        placeholder="CIF / NIF"
                         value={taxId}
                         onChange={(e) => setTaxId(e.target.value)}
                         required
