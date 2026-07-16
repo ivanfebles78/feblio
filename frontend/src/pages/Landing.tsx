@@ -15,9 +15,9 @@ import { HeroScene } from '../components/HeroScene'
 import { useAuth } from '../context/AuthContext'
 
 const DEMO = [
-  { label: 'Admin', email: 'ivan@feblio.app' },
-  { label: 'Empresa', email: 'ralm@feblio.app' },
-  { label: 'Cliente', email: 'casachona@feblio.app' },
+  { label: 'Admin', email: 'ivan@feblio.app', tone: 'bg-gradient-to-br from-slate-700 to-slate-900' },
+  { label: 'Empresa', email: 'ralm@feblio.app', tone: 'bg-gradient-to-br from-brand-600 to-indigo-700' },
+  { label: 'Cliente', email: 'casachona@feblio.app', tone: 'bg-gradient-to-br from-teal-600 to-emerald-700' },
 ]
 const DEMO_PASSWORD = 'Feblio2026!'
 
@@ -84,13 +84,17 @@ export default function Landing() {
       <HeroScene />
 
       {/* Panel de acceso compacto */}
-      <section className="flex items-center justify-center px-6 py-12 sm:px-10">
+      <section className="relative flex items-center justify-center bg-gradient-to-b from-white via-white to-brand-50/60 px-6 py-12 sm:px-10">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-fuchsia-500 to-cyan-400 lg:hidden" />
         <div className="w-full max-w-sm">
           <div className="mb-7 text-center lg:hidden">
             <Logo size={34} />
           </div>
 
-          <h2 className="text-xl font-bold text-slate-900">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-100">
+            {tab === 'login' ? '👋 Te estábamos esperando' : '🚀 Únete a Feblio'}
+          </span>
+          <h2 className="mt-3 text-2xl font-bold text-slate-900">
             {tab === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
@@ -221,7 +225,7 @@ export default function Landing() {
                   key={d.email}
                   onClick={() => quickLogin(d.email)}
                   disabled={busy}
-                  className="rounded-xl border border-slate-200 px-2 py-2 text-xs font-semibold text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 disabled:opacity-60"
+                  className={`rounded-xl px-2 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[.98] disabled:opacity-60 ${d.tone}`}
                 >
                   {d.label}
                 </button>
