@@ -65,6 +65,11 @@ body {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 0.9; }
 }
+@keyframes orbit-spin { to { transform: rotate(360deg); } }
+@keyframes orbit-spin-rev { to { transform: rotate(-360deg); } }
+
+.orbit { animation: orbit-spin 26s linear infinite; }
+.orbit-item { animation: orbit-spin-rev 26s linear infinite; }
 
 .animate-floaty { animation: floaty 6s ease-in-out infinite; }
 .animate-glow { animation: glow 5s ease-in-out infinite; }
@@ -77,5 +82,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-floaty,
   .animate-glow,
+  .orbit,
+  .orbit-item,
   .reveal { animation: none; opacity: 1; }
 }

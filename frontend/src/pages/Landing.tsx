@@ -48,7 +48,7 @@ export default function Landing() {
       const { error } = await signIn(email.trim(), password)
       if (error) setError(traducir(error))
     } else {
-      const { error } = await signUp({
+      const { error, needsConfirmation } = await signUp({
         email: email.trim(),
         password,
         fullName: name.trim(),
@@ -57,9 +57,14 @@ export default function Landing() {
         taxId: taxId.trim(),
       })
       if (error) setError(traducir(error))
-      else {
-        setNotice('Cuenta creada. Ya puedes iniciar sesión.')
+      else if (needsConfirmation) {
+        setNotice(
+          'Cuenta creada. Te hemos enviado un email de confirmación; ábrelo para activar tu cuenta.',
+        )
         setTab('login')
+      } else {
+        setNotice('Cuenta creada. Entrando…')
+        // La sesión activa redirige automáticamente al dashboard.
       }
     }
     setBusy(false)

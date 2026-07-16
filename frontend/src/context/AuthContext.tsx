@@ -25,7 +25,9 @@ interface AuthState {
   profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (params: SignUpParams) => Promise<{ error: string | null }>
+  signUp: (
+    params: SignUpParams,
+  ) => Promise<{ error: string | null; needsConfirmation: boolean }>
   signOut: () => Promise<void>
 }
 
@@ -80,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signUp(params: SignUpParams) {
     const { email, password, fullName, role, companyName, taxType, taxId } = params
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -93,7 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     })
-    return { error: error ? error.message : null }
+    if (error) return { error: error.message, needsConfirmation: false }
+    // Sin sesión => el proyecto exige confirmación por email.
+    return { error: null, needsConfirmation: !data.session }
   }
 
   async function signOut() {
