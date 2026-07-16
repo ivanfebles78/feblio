@@ -1,0 +1,9 @@
+# Configuración de build/serve para Railway (Nixpacks)
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
