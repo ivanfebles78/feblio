@@ -5,6 +5,7 @@ import Landing from './pages/Landing'
 import AdminDashboard from './pages/AdminDashboard'
 import EmpresaDashboard from './pages/EmpresaDashboard'
 import ClienteDashboard from './pages/ClienteDashboard'
+import PublicIntakeForm from './pages/PublicIntakeForm'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/form/:token" element={<PublicIntakeForm />} />
           <Route
             path="/admin"
             element={

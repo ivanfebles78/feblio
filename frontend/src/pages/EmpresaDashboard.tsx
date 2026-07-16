@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { DashboardLayout, type NavItem } from '../components/DashboardLayout'
 import { Badge, EmptyState, SectionCard, StatCard } from '../components/ui'
+import { PlantillasSection } from '../sections/PlantillasSection'
+import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import {
   formatEUR,
@@ -32,6 +34,8 @@ interface Template {
 }
 
 export default function EmpresaDashboard() {
+  const { profile } = useAuth()
+  const empresaId = profile?.empresa_id ?? null
   const [active, setActive] = useState('Dashboard')
   const [projects, setProjects] = useState<Project[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -67,7 +71,13 @@ export default function EmpresaDashboard() {
 
   return (
     <DashboardLayout role="empresa" nav={NAV} active={active} onNavigate={setActive}>
-      {loading ? (
+      {active === 'Plantillas' ? (
+        empresaId ? (
+          <PlantillasSection empresaId={empresaId} />
+        ) : (
+          <p className="text-slate-400">No hay empresa asociada a tu cuenta.</p>
+        )
+      ) : loading ? (
         <p className="text-slate-400">Cargando datos…</p>
       ) : (
         <div className="space-y-6">
