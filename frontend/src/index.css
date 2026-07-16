@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: light;
+  --grid: rgba(37, 99, 235, 0.07);
 }
 
 html,
@@ -16,19 +17,21 @@ body {
   margin: 0;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  background: #f6f8fc;
   color: #0f172a;
+  background: #f4f7fe;
 }
 
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3
-      font-semibold text-white transition hover:bg-brand-700 active:scale-[.99]
+      font-semibold text-white shadow-[0_10px_25px_-8px_rgba(37,99,235,.6)] transition
+      hover:bg-brand-700 hover:shadow-[0_14px_30px_-8px_rgba(37,99,235,.7)] active:scale-[.99]
       focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:opacity-60;
   }
   .field {
-    @apply flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3
-      transition focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100;
+    @apply flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3
+      transition focus-within:border-brand-400 focus-within:bg-white
+      focus-within:ring-4 focus-within:ring-brand-100;
   }
   .field input {
     @apply w-full bg-transparent text-slate-800 placeholder:text-slate-400 focus:outline-none;
@@ -36,4 +39,43 @@ body {
   .surface {
     @apply rounded-2xl border border-slate-200/80 bg-white shadow-card;
   }
+  .glass {
+    @apply rounded-2xl border border-white/60 bg-white/70 backdrop-blur-xl;
+  }
+}
+
+/* Rejilla tipo plano de obra */
+.blueprint {
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Animaciones */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+
+.animate-floaty { animation: floaty 6s ease-in-out infinite; }
+.animate-glow { animation: glow 5s ease-in-out infinite; }
+.reveal { opacity: 0; animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.reveal-1 { animation-delay: 0.05s; }
+.reveal-2 { animation-delay: 0.15s; }
+.reveal-3 { animation-delay: 0.25s; }
+.reveal-4 { animation-delay: 0.35s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-floaty,
+  .animate-glow,
+  .reveal { animation: none; opacity: 1; }
 }

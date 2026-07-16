@@ -10,17 +10,22 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type { Profile, UserRole } from '../lib/types'
 
+export interface SignUpParams {
+  email: string
+  password: string
+  fullName: string
+  role: UserRole
+  companyName?: string
+  taxType?: 'CIF' | 'NIF'
+  taxId?: string
+}
+
 interface AuthState {
   session: Session | null
   profile: Profile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (
-    email: string,
-    password: string,
-    fullName: string,
-    role: UserRole,
-  ) => Promise<{ error: string | null }>
+  signUp: (params: SignUpParams) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -73,16 +78,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? error.message : null }
   }
 
-  async function signUp(
-    email: string,
-    password: string,
-    fullName: string,
-    role: UserRole,
-  ) {
+  async function signUp(params: SignUpParams) {
+    const { email, password, fullName, role, companyName, taxType, taxId } = params
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, role } },
+      options: {
+        data: {
+          full_name: fullName,
+          role,
+          company_name: companyName ?? '',
+          tax_type: taxType ?? '',
+          tax_id: taxId ?? '',
+        },
+      },
     })
     return { error: error ? error.message : null }
   }
