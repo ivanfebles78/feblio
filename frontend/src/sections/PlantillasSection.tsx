@@ -517,20 +517,64 @@ function TplTextarea({ label, value, onChange }: { label: string; value: string;
 /* ------------------------------------------------------------------ */
 /* Formulario de clientes                                              */
 /* ------------------------------------------------------------------ */
+interface Submitted {
+  name?: string
+  email?: string
+  phone?: string
+  cif?: string
+  address?: string
+  project_type?: string
+  description?: string
+  files?: { name: string; url: string }[]
+}
+
 function FormularioClientes({ empresaId }: { empresaId: string }) {
   const [items, setItems] = useState<ClientIntake[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  // Config de tipos de proyecto
+  const [types, setTypes] = useState<string[]>([])
+  const [newType, setNewType] = useState('')
+  const [savingCfg, setSavingCfg] = useState(false)
+  const [cfgSaved, setCfgSaved] = useState(false)
 
   async function load() {
-    const { data } = await supabase.from('client_intake').select('*').order('created_at', { ascending: false })
-    setItems((data as ClientIntake[]) ?? [])
+    const [i, e] = await Promise.all([
+      supabase.from('client_intake').select('*').order('created_at', { ascending: false }),
+      supabase.from('empresas').select('intake_config').eq('id', empresaId).single(),
+    ])
+    setItems((i.data as ClientIntake[]) ?? [])
+    const cfg = (e.data as { intake_config?: { project_types?: string[] } } | null)?.intake_config
+    setTypes(cfg?.project_types ?? [])
     setLoading(false)
   }
   useEffect(() => {
     load()
-  }, [])
+  }, []) // eslint-disable-line
+
+  function addType() {
+    const v = newType.trim()
+    if (!v || types.includes(v)) return
+    setTypes([...types, v])
+    setNewType('')
+    setCfgSaved(false)
+  }
+  function removeType(t: string) {
+    setTypes(types.filter((x) => x !== t))
+    setCfgSaved(false)
+  }
+  async function saveCfg() {
+    setSavingCfg(true)
+    await supabase
+      .from('empresas')
+      .update({ intake_config: { project_types: types } })
+      .eq('id', empresaId)
+    setSavingCfg(false)
+    setCfgSaved(true)
+  }
 
   async function generar() {
     setCreating(true)
@@ -547,55 +591,155 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
   }
 
   return (
-    <SectionCard
-      title="Formulario de contacto para clientes"
-      action={
-        <button onClick={generar} disabled={creating} className="btn-primary !px-3 !py-2 text-sm">
-          <Plus className="h-4 w-4" /> {creating ? 'Generando…' : 'Generar enlace'}
-        </button>
-      }
-    >
-      <p className="mb-4 text-sm text-slate-500">
-        Genera un enlace y envíalo a tu cliente. Cuando lo complete, se creará automáticamente en tu cartera de clientes.
-      </p>
-      {loading ? (
-        <p className="text-slate-400">Cargando…</p>
-      ) : items.length === 0 ? (
-        <EmptyState text="Aún no has generado ningún formulario." />
-      ) : (
-        <ul className="space-y-3">
-          {items.map((f) => {
-            const link = linkFor(f.token)
-            const submitted = (f.submitted ?? {}) as Record<string, string>
-            const mailto = `mailto:${f.client_email ?? ''}?subject=${encodeURIComponent('Completa tus datos')}&body=${encodeURIComponent('Hola, por favor completa tus datos aquí: ' + link)}`
-            return (
-              <li key={f.id} className="rounded-xl border border-slate-200 p-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {f.status === 'completado' ? (
-                      <Badge tone="green"><Check className="mr-1 inline h-3 w-3" /> Completado</Badge>
-                    ) : (
-                      <Badge tone="amber"><Clock className="mr-1 inline h-3 w-3" /> Pendiente</Badge>
-                    )}
-                    {f.status === 'completado' && submitted.name && (
-                      <span className="text-sm font-medium text-slate-700">{submitted.name}</span>
-                    )}
+    <div className="space-y-6">
+      {/* Configuración: tipos de proyecto del desplegable */}
+      <SectionCard title="Configuración del formulario">
+        <p className="mb-3 text-sm text-slate-500">
+          Define las opciones del desplegable "Tipo de proyecto" que verá tu cliente.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {types.map((t) => (
+            <span
+              key={t}
+              className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 ring-1 ring-brand-100"
+            >
+              {t}
+              <button onClick={() => removeType(t)} className="text-brand-400 hover:text-red-500" aria-label="Quitar">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+          {types.length === 0 && (
+            <span className="text-sm text-slate-400">Sin opciones todavía.</span>
+          )}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <input
+            value={newType}
+            onChange={(e) => setNewType(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addType())}
+            placeholder="Ej: Reforma integral, Baño, Cocina…"
+            className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
+          />
+          <button onClick={addType} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-4 flex items-center gap-3">
+          <button onClick={saveCfg} disabled={savingCfg} className="btn-primary !px-4 !py-2 text-sm">
+            <Save className="h-4 w-4" /> {savingCfg ? 'Guardando…' : 'Guardar opciones'}
+          </button>
+          {cfgSaved && (
+            <span className="flex items-center gap-1 text-sm font-medium text-emerald-600">
+              <Check className="h-4 w-4" /> Guardado
+            </span>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* Enlaces generados + respuestas */}
+      <SectionCard
+        title="Enlaces para clientes"
+        action={
+          <button onClick={generar} disabled={creating} className="btn-primary !px-3 !py-2 text-sm">
+            <Plus className="h-4 w-4" /> {creating ? 'Generando…' : 'Generar enlace'}
+          </button>
+        }
+      >
+        <p className="mb-4 text-sm text-slate-500">
+          Envía el enlace a tu cliente. Al completarlo (con su descripción y archivos), se creará
+          en tu cartera de clientes.
+        </p>
+        {loading ? (
+          <p className="text-slate-400">Cargando…</p>
+        ) : items.length === 0 ? (
+          <EmptyState text="Aún no has generado ningún formulario." />
+        ) : (
+          <ul className="space-y-3">
+            {items.map((f) => {
+              const link = linkFor(f.token)
+              const s = (f.submitted ?? {}) as Submitted
+              const isDone = f.status === 'completado'
+              const open = expanded === f.id
+              const mailto = `mailto:${f.client_email ?? ''}?subject=${encodeURIComponent('Completa tus datos')}&body=${encodeURIComponent('Hola, por favor completa tus datos aquí: ' + link)}`
+              return (
+                <li key={f.id} className="rounded-xl border border-slate-200 p-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {isDone ? (
+                        <Badge tone="green"><Check className="mr-1 inline h-3 w-3" /> Completado</Badge>
+                      ) : (
+                        <Badge tone="amber"><Clock className="mr-1 inline h-3 w-3" /> Pendiente</Badge>
+                      )}
+                      {isDone && s.name && (
+                        <span className="text-sm font-medium text-slate-700">{s.name}</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {isDone ? (
+                        <button onClick={() => setExpanded(open ? null : f.id)} className="flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100">
+                          <Eye className="h-3.5 w-3.5" /> {open ? 'Ocultar' : 'Ver respuesta'}
+                        </button>
+                      ) : (
+                        <>
+                          <button onClick={() => copy(f.token)} className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                            {copied === f.token ? (<><Check className="h-3.5 w-3.5 text-emerald-600" /> Copiado</>) : (<><Copy className="h-3.5 w-3.5" /> Copiar enlace</>)}
+                          </button>
+                          <a href={mailto} className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                            <Mail className="h-3.5 w-3.5" /> Enviar por email
+                          </a>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => copy(f.token)} className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
-                      {copied === f.token ? (<><Check className="h-3.5 w-3.5 text-emerald-600" /> Copiado</>) : (<><Copy className="h-3.5 w-3.5" /> Copiar enlace</>)}
-                    </button>
-                    <a href={mailto} className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
-                      <Mail className="h-3.5 w-3.5" /> Enviar por email
-                    </a>
-                  </div>
-                </div>
-                <p className="mt-2 truncate text-xs text-slate-400">{link}</p>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </SectionCard>
+
+                  {!isDone && <p className="mt-2 truncate text-xs text-slate-400">{link}</p>}
+
+                  {isDone && open && (
+                    <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 text-sm">
+                      <Row label="Email" value={s.email} />
+                      <Row label="Teléfono" value={s.phone} />
+                      <Row label="CIF / NIF" value={s.cif} />
+                      <Row label="Dirección" value={s.address} />
+                      <Row label="Tipo de proyecto" value={s.project_type} />
+                      {s.description && (
+                        <div>
+                          <p className="text-xs font-medium text-slate-400">Descripción</p>
+                          <p className="whitespace-pre-line text-slate-700">{s.description}</p>
+                        </div>
+                      )}
+                      {s.files && s.files.length > 0 && (
+                        <div>
+                          <p className="text-xs font-medium text-slate-400">Archivos adjuntos</p>
+                          <ul className="mt-1 space-y-1">
+                            {s.files.map((file) => (
+                              <li key={file.url}>
+                                <a href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-brand-600 hover:underline">
+                                  <FileText className="h-3.5 w-3.5" /> {file.name}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </SectionCard>
+    </div>
+  )
+}
+
+function Row({ label, value }: { label: string; value?: string }) {
+  if (!value) return null
+  return (
+    <div className="flex gap-2">
+      <span className="w-28 shrink-0 text-xs font-medium text-slate-400">{label}</span>
+      <span className="text-slate-700">{value}</span>
+    </div>
   )
 }

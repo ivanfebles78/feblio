@@ -30,6 +30,7 @@ export interface Empresa {
   website: string | null
   iban: string | null
   disclosures: string | null
+  intake_config: { project_types?: string[] } | null
   created_at: string
 }
 
