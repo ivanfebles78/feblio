@@ -11,8 +11,11 @@ import {
   AlertTriangle,
   CircleDot,
   Circle,
+  Eye,
+  Download,
+  type LucideIcon,
 } from 'lucide-react'
-import { StatCard, SectionCard, Badge, EmptyState } from '../components/ui'
+import { SectionCard, Badge, EmptyState } from '../components/ui'
 import { supabase } from '../lib/supabase'
 import {
   formatEUR,
@@ -102,20 +105,27 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Saludo */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">
-          Hola, {empresaName || 'empresa'} 👋
-        </h2>
-        <p className="text-sm text-slate-500">Este es el resumen de tu actividad.</p>
+      {/* Banner de bienvenida */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-indigo-600 to-violet-700 p-6 text-white shadow-float sm:p-8">
+        <div className="blueprint absolute inset-0 opacity-10" />
+        <div className="animate-glow pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <p className="text-sm text-brand-100">Bienvenido de nuevo</p>
+          <h2 className="mt-1 text-2xl font-bold sm:text-3xl">
+            Hola, {empresaName || 'empresa'} 👋
+          </h2>
+          <p className="mt-1 text-sm text-brand-100">
+            Este es el resumen de tu actividad.
+          </p>
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* Métricas */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Proyectos" value={String(projects.length)} hint={`${projects.filter((p) => p.status === 'en_progreso').length} en progreso`} />
-        <StatCard label="Clientes" value={String(clientesCount)} />
-        <StatCard label="Facturado" value={formatEUR(invoiced)} />
-        <StatCard label="Pendientes" value={String(tasks.length)} accent />
+        <MetricCard icon={FolderKanban} label="Proyectos" value={String(projects.length)} hint={`${projects.filter((p) => p.status === 'en_progreso').length} en progreso`} grad="from-blue-500 to-brand-600" />
+        <MetricCard icon={Users} label="Clientes" value={String(clientesCount)} grad="from-emerald-500 to-teal-600" />
+        <MetricCard icon={Wallet} label="Facturado" value={formatEUR(invoiced)} grad="from-violet-500 to-purple-600" />
+        <MetricCard icon={ListTodo} label="Pendientes" value={String(tasks.length)} hint={tasks.length ? 'requieren atención' : 'todo al día'} grad="from-amber-500 to-orange-600" />
       </div>
 
       {/* Pendientes */}
@@ -229,9 +239,10 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
                                       key={d.id}
                                       className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-100"
                                     >
-                                      <FileText className="h-3.5 w-3.5 text-brand-500" />
+                                      <FileText className="h-3.5 w-3.5 shrink-0 text-brand-500" />
                                       <span className="min-w-0 flex-1 truncate text-slate-700">{d.name}</span>
                                       {d.status && <Badge tone="slate">{d.status}</Badge>}
+                                      <DocActions path={d.storage_path} />
                                     </li>
                                   ))}
                                 </ul>
@@ -249,5 +260,78 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
         )}
       </SectionCard>
     </div>
+  )
+}
+
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  grad,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  hint?: string
+  grad: string
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <p className="mt-1.5 text-3xl font-extrabold tracking-tight text-slate-900">
+            {value}
+          </p>
+          {hint && <p className="mt-0.5 text-xs text-slate-400">{hint}</p>}
+        </div>
+        <span
+          className={`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${grad} text-white shadow-lg`}
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+      <div
+        className={`pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-gradient-to-br ${grad} opacity-[0.08] transition group-hover:opacity-[0.15]`}
+      />
+    </div>
+  )
+}
+
+function DocActions({ path }: { path: string | null }) {
+  const url = path && /^https?:\/\//.test(path) ? path : null
+  const base = 'grid h-7 w-7 place-items-center rounded-md transition'
+  if (!url)
+    return (
+      <span className="flex gap-1" title="Documento de ejemplo (sin archivo todavía)">
+        <span className={`${base} text-slate-300`}>
+          <Eye className="h-3.5 w-3.5" />
+        </span>
+        <span className={`${base} text-slate-300`}>
+          <Download className="h-3.5 w-3.5" />
+        </span>
+      </span>
+    )
+  return (
+    <span className="flex gap-1">
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        title="Ver"
+        className={`${base} text-slate-500 hover:bg-brand-50 hover:text-brand-600`}
+      >
+        <Eye className="h-3.5 w-3.5" />
+      </a>
+      <a
+        href={url}
+        download
+        title="Descargar"
+        className={`${base} text-slate-500 hover:bg-brand-50 hover:text-brand-600`}
+      >
+        <Download className="h-3.5 w-3.5" />
+      </a>
+    </span>
   )
 }

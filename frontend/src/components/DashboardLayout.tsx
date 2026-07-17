@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { ChevronDown, LogOut, Mail, ShieldCheck } from 'lucide-react'
 import { Logo } from './Logo'
 import { useAuth } from '../context/AuthContext'
 import { ROLE_LABEL, type UserRole } from '../lib/types'
@@ -29,6 +30,7 @@ export function DashboardLayout({
 }) {
   const { profile, signOut } = useAuth()
   const [open, setOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   const initials = (profile?.full_name ?? profile?.email ?? '?')
     .split(' ')
     .map((s) => s[0])
@@ -97,22 +99,66 @@ export function DashboardLayout({
             </button>
             <h1 className="text-base font-semibold text-slate-800">{active}</h1>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold text-slate-800">
-                {profile?.full_name}
-              </p>
-              <p className="text-xs text-slate-400">{ROLE_LABEL[role]}</p>
-            </div>
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-brand-600 text-sm font-bold text-white">
-              {initials}
-            </div>
+          {/* Menú de cuenta */}
+          <div className="relative">
             <button
-              onClick={signOut}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-2.5 transition hover:border-brand-300 hover:shadow-sm"
             >
-              Salir
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 text-sm font-bold text-white">
+                {initials}
+              </span>
+              <span className="hidden text-left sm:block">
+                <span className="block text-sm font-semibold leading-tight text-slate-800">
+                  {profile?.full_name}
+                </span>
+                <span className="block text-xs leading-tight text-slate-400">
+                  {ROLE_LABEL[role]}
+                </span>
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 text-slate-400 transition ${menuOpen ? 'rotate-180' : ''}`}
+              />
             </button>
+
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 z-20 mt-2 w-64 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-float">
+                  <div className="bg-gradient-to-br from-brand-600 to-indigo-700 p-4 text-white">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/20 text-base font-bold">
+                        {initials}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold">{profile?.full_name}</p>
+                        <p className="truncate text-xs text-brand-100">{profile?.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1 p-2 text-sm">
+                    <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-600">
+                      <ShieldCheck className="h-4 w-4 text-brand-500" />
+                      <span>Rol:</span>
+                      <span className="ml-auto font-medium text-slate-800">
+                        {ROLE_LABEL[role]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-600">
+                      <Mail className="h-4 w-4 text-brand-500" />
+                      <span className="truncate">{profile?.email}</span>
+                    </div>
+                    <div className="my-1 border-t border-slate-100" />
+                    <button
+                      onClick={signOut}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 font-medium text-red-600 transition hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4" /> Cerrar sesión
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </header>
 

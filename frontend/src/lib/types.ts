@@ -106,6 +106,7 @@ export interface DocumentRow {
   name: string
   amount: number | null
   status: string | null
+  storage_path: string | null
   created_at: string
 }
 
