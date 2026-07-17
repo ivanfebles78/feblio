@@ -541,14 +541,20 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
   const [savingCfg, setSavingCfg] = useState(false)
   const [cfgSaved, setCfgSaved] = useState(false)
 
+  // Auto-email
+  const [clientEmail, setClientEmail] = useState('')
+  const [empresaName, setEmpresaName] = useState('')
+  const [sendMsg, setSendMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
   async function load() {
     const [i, e] = await Promise.all([
       supabase.from('client_intake').select('*').order('created_at', { ascending: false }),
-      supabase.from('empresas').select('intake_config').eq('id', empresaId).single(),
+      supabase.from('empresas').select('name, intake_config').eq('id', empresaId).single(),
     ])
     setItems((i.data as ClientIntake[]) ?? [])
-    const cfg = (e.data as { intake_config?: { project_types?: string[] } } | null)?.intake_config
-    setTypes(cfg?.project_types ?? [])
+    const emp = e.data as { name?: string; intake_config?: { project_types?: string[] } } | null
+    setTypes(emp?.intake_config?.project_types ?? [])
+    setEmpresaName(emp?.name ?? '')
     setLoading(false)
   }
   useEffect(() => {
@@ -578,7 +584,31 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
 
   async function generar() {
     setCreating(true)
-    await supabase.from('client_intake').insert({ empresa_id: empresaId })
+    setSendMsg(null)
+    const email = clientEmail.trim()
+    const { data, error } = await supabase
+      .from('client_intake')
+      .insert({ empresa_id: empresaId, client_email: email || null })
+      .select('token')
+      .single()
+
+    if (!error && data && email) {
+      const link = linkFor((data as { token: string }).token)
+      const { data: res, error: fnErr } = await supabase.functions.invoke('send-intake-email', {
+        body: { to: email, link, empresa: empresaName },
+      })
+      if (fnErr || !(res as { ok?: boolean })?.ok) {
+        setSendMsg({
+          ok: false,
+          text:
+            (res as { error?: string })?.error ??
+            'Enlace creado, pero no se pudo enviar el email (¿falta configurar Resend?). Puedes copiarlo abajo.',
+        })
+      } else {
+        setSendMsg({ ok: true, text: `Email enviado a ${email}.` })
+      }
+    }
+    setClientEmail('')
     setCreating(false)
     load()
   }
@@ -643,18 +673,42 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
       </SectionCard>
 
       {/* Enlaces generados + respuestas */}
-      <SectionCard
-        title="Enlaces para clientes"
-        action={
-          <button onClick={generar} disabled={creating} className="btn-primary !px-3 !py-2 text-sm">
-            <Plus className="h-4 w-4" /> {creating ? 'Generando…' : 'Generar enlace'}
-          </button>
-        }
-      >
-        <p className="mb-4 text-sm text-slate-500">
-          Envía el enlace a tu cliente. Al completarlo (con su descripción y archivos), se creará
-          en tu cartera de clientes.
+      <SectionCard title="Enlaces para clientes">
+        <p className="mb-3 text-sm text-slate-500">
+          Escribe el email del cliente y pulsa enviar: le llegará el enlace por correo. También
+          puedes generar un enlace sin email para copiarlo tú.
         </p>
+        <div className="mb-2 flex flex-col gap-2 sm:flex-row">
+          <input
+            type="email"
+            value={clientEmail}
+            onChange={(e) => setClientEmail(e.target.value)}
+            placeholder="Email del cliente (opcional)"
+            className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
+          />
+          <button onClick={generar} disabled={creating} className="btn-primary shrink-0">
+            {creating ? (
+              'Un momento…'
+            ) : clientEmail.trim() ? (
+              <>
+                <Mail className="h-4 w-4" /> Generar y enviar
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" /> Generar enlace
+              </>
+            )}
+          </button>
+        </div>
+        {sendMsg && (
+          <p
+            className={`mb-3 rounded-lg px-3 py-2 text-sm ${
+              sendMsg.ok ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-700'
+            }`}
+          >
+            {sendMsg.text}
+          </p>
+        )}
         {loading ? (
           <p className="text-slate-400">Cargando…</p>
         ) : items.length === 0 ? (
