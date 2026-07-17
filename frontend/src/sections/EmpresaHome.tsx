@@ -13,18 +13,28 @@ import {
   Circle,
   Eye,
   Download,
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Save,
   type LucideIcon,
 } from 'lucide-react'
 import { SectionCard, Badge, EmptyState } from '../components/ui'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
 import {
   formatEUR,
   STATUS_LABEL,
+  type Cliente,
   type DocumentRow,
   type Project,
+  type ProjectStatus,
   type Task,
   type DocumentType,
 } from '../lib/types'
+
+const STATUS_OPTIONS: ProjectStatus[] = ['borrador', 'en_progreso', 'completado', 'cancelado']
 
 const STATUS_TONE: Record<string, string> = {
   en_progreso: 'blue',
@@ -55,33 +65,45 @@ function diasDesde(iso: string): string {
 }
 
 export function EmpresaHome({ empresaName }: { empresaName: string }) {
+  const { profile } = useAuth()
+  const empresaId = profile?.empresa_id ?? ''
   const [projects, setProjects] = useState<Project[]>([])
-  const [clientesCount, setClientesCount] = useState(0)
+  const [clientes, setClientes] = useState<Cliente[]>([])
   const [documents, setDocuments] = useState<DocumentRow[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState<Set<string>>(new Set())
+  const [editing, setEditing] = useState<Project | 'new' | null>(null)
 
+  async function load() {
+    const [p, c, d, t] = await Promise.all([
+      supabase.from('projects').select('*').order('created_at', { ascending: false }),
+      supabase.from('clientes').select('*'),
+      supabase.from('documents').select('*').order('created_at', { ascending: false }),
+      supabase
+        .from('tasks')
+        .select('*')
+        .eq('status', 'pendiente')
+        .order('priority', { ascending: true })
+        .order('created_at', { ascending: true }),
+    ])
+    setProjects((p.data as Project[]) ?? [])
+    setClientes((c.data as Cliente[]) ?? [])
+    setDocuments((d.data as DocumentRow[]) ?? [])
+    setTasks((t.data as Task[]) ?? [])
+    setLoading(false)
+  }
   useEffect(() => {
-    ;(async () => {
-      const [p, c, d, t] = await Promise.all([
-        supabase.from('projects').select('*').order('created_at', { ascending: false }),
-        supabase.from('clientes').select('id'),
-        supabase.from('documents').select('*').order('created_at', { ascending: false }),
-        supabase
-          .from('tasks')
-          .select('*')
-          .eq('status', 'pendiente')
-          .order('priority', { ascending: true })
-          .order('created_at', { ascending: true }),
-      ])
-      setProjects((p.data as Project[]) ?? [])
-      setClientesCount((c.data as unknown[])?.length ?? 0)
-      setDocuments((d.data as DocumentRow[]) ?? [])
-      setTasks((t.data as Task[]) ?? [])
-      setLoading(false)
-    })()
-  }, [])
+    load()
+  }, []) // eslint-disable-line
+
+  const clientesCount = clientes.length
+
+  async function deleteProject(id: string) {
+    if (!window.confirm('¿Borrar este proyecto y todos sus documentos?')) return
+    await supabase.from('projects').delete().eq('id', id)
+    load()
+  }
 
   function toggle(id: string) {
     setOpen((prev) => {
@@ -175,7 +197,17 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
       </SectionCard>
 
       {/* Proyectos desplegables */}
-      <SectionCard title="Tus proyectos" action={<Badge tone="blue">{projects.length}</Badge>}>
+      <SectionCard
+        title="Tus proyectos"
+        action={
+          <div className="flex items-center gap-2">
+            <Badge tone="blue">{projects.length}</Badge>
+            <button onClick={() => setEditing('new')} className="btn-primary !px-3 !py-2 text-sm">
+              <Plus className="h-4 w-4" /> Nuevo proyecto
+            </button>
+          </div>
+        }
+      >
         {projects.length === 0 ? (
           <EmptyState text="Aún no tienes proyectos." />
         ) : (
@@ -205,6 +237,21 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
 
                   {isOpen && (
                     <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-4">
+                      {/* Acciones */}
+                      <div className="mb-4 flex justify-end gap-2">
+                        <button
+                          onClick={() => setEditing(p)}
+                          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Editar
+                        </button>
+                        <button
+                          onClick={() => deleteProject(p.id)}
+                          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Borrar
+                        </button>
+                      </div>
                       {/* Cifras */}
                       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                         {[
@@ -259,6 +306,185 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
           </ul>
         )}
       </SectionCard>
+
+      {editing && (
+        <ProjectForm
+          project={editing === 'new' ? null : editing}
+          clientes={clientes}
+          empresaId={empresaId}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null)
+            load()
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+const NUM_FIELDS: { key: keyof Project; label: string }[] = [
+  { key: 'budget_total', label: 'Presupuesto total' },
+  { key: 'invoiced', label: 'Facturado' },
+  { key: 'provision_funds', label: 'Provisión de fondos' },
+  { key: 'pending_payments', label: 'Pagos pendientes' },
+]
+
+function ProjectForm({
+  project,
+  clientes,
+  empresaId,
+  onClose,
+  onSaved,
+}: {
+  project: Project | null
+  clientes: Cliente[]
+  empresaId: string
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [form, setForm] = useState({
+    name: project?.name ?? '',
+    cliente_id: project?.cliente_id ?? '',
+    status: (project?.status ?? 'borrador') as ProjectStatus,
+    budget_total: String(project?.budget_total ?? 0),
+    invoiced: String(project?.invoiced ?? 0),
+    provision_funds: String(project?.provision_funds ?? 0),
+    pending_payments: String(project?.pending_payments ?? 0),
+    progress: String(project?.progress ?? 0),
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.name.trim()) return
+    setSaving(true)
+    setError(null)
+    const payload = {
+      empresa_id: empresaId,
+      name: form.name.trim(),
+      cliente_id: form.cliente_id || null,
+      status: form.status,
+      budget_total: Number(form.budget_total) || 0,
+      invoiced: Number(form.invoiced) || 0,
+      provision_funds: Number(form.provision_funds) || 0,
+      pending_payments: Number(form.pending_payments) || 0,
+      progress: Math.min(100, Math.max(0, Number(form.progress) || 0)),
+    }
+    const { error } = project
+      ? await supabase.from('projects').update(payload).eq('id', project.id)
+      : await supabase.from('projects').insert(payload)
+    setSaving(false)
+    if (error) setError(error.message)
+    else onSaved()
+  }
+
+  const inputCls =
+    'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100'
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4" onClick={onClose}>
+      <div
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-float"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+          <p className="font-semibold text-slate-800">
+            {project ? 'Editar proyecto' : 'Nuevo proyecto'}
+          </p>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <form onSubmit={save} className="space-y-3 p-5">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-slate-500">Nombre del proyecto</span>
+            <input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Reforma Integral Edificio Central"
+              className={inputCls}
+              required
+            />
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-slate-500">Cliente</span>
+              <select
+                value={form.cliente_id}
+                onChange={(e) => setForm({ ...form, cliente_id: e.target.value })}
+                className={inputCls}
+              >
+                <option value="">Sin cliente</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-slate-500">Estado</span>
+              <select
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value as ProjectStatus })}
+                className={inputCls}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {NUM_FIELDS.map((f) => (
+              <label key={f.key} className="block">
+                <span className="mb-1 block text-xs font-medium text-slate-500">{f.label} (€)</span>
+                <input
+                  type="number"
+                  value={form[f.key as keyof typeof form] as string}
+                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
+                  className={inputCls}
+                />
+              </label>
+            ))}
+          </div>
+
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-slate-500">
+              Progreso: {form.progress}%
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={form.progress}
+              onChange={(e) => setForm({ ...form, progress: e.target.value })}
+              className="w-full accent-brand-600"
+            />
+          </label>
+
+          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+
+          <div className="flex gap-2 pt-1">
+            <button type="submit" disabled={saving} className="btn-primary">
+              <Save className="h-4 w-4" /> {saving ? 'Guardando…' : 'Guardar proyecto'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
