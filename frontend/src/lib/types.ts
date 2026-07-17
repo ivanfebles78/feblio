@@ -56,6 +56,19 @@ export interface ClientIntake {
   completed_at: string | null
 }
 
+export interface Task {
+  id: string
+  empresa_id: string
+  type: string
+  title: string
+  detail: string | null
+  priority: number
+  status: 'pendiente' | 'resuelto'
+  related_id: string | null
+  created_at: string
+  resolved_at: string | null
+}
+
 export const TEMPLATE_TABS: { type: DocumentType; label: string }[] = [
   { type: 'presupuesto', label: 'Presupuestos' },
   { type: 'provision', label: 'Provisiones de fondos' },
