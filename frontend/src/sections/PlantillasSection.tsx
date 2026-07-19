@@ -13,7 +13,9 @@ import {
   Check,
   Clock,
   Eye,
+  EyeOff,
   X,
+  Star,
 } from 'lucide-react'
 import { SectionCard, Badge, EmptyState } from '../components/ui'
 import { supabase } from '../lib/supabase'
@@ -153,32 +155,24 @@ function DatosEmpresa({ empresaId }: { empresaId: string }) {
     setSaved(true)
   }
 
-  if (loading) return <SectionCard title="Datos de tu empresa"><p className="text-slate-400">Cargando…</p></SectionCard>
-
-  const F = ({ label, k, placeholder, wide }: { label: string; k: keyof Empresa; placeholder?: string; wide?: boolean }) => (
-    <label className={wide ? 'sm:col-span-2' : ''}>
-      <span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>
-      <input
-        type="text"
-        value={(form[k] as string) ?? ''}
-        placeholder={placeholder}
-        onChange={(e) => set(k, e.target.value)}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
-      />
-    </label>
-  )
+  if (loading)
+    return (
+      <SectionCard title="Datos de tu empresa">
+        <p className="text-slate-400">Cargando…</p>
+      </SectionCard>
+    )
 
   return (
     <SectionCard title="Datos de tu empresa (se replican en cada documento)">
       <div className="grid gap-4 sm:grid-cols-2">
-        <F label="Nombre / razón social" k="name" placeholder="Reformas del Sur SL" />
-        <F label="CIF / NIF" k="cif" placeholder="B12345678" />
-        <F label="Email" k="email" placeholder="hola@empresa.com" />
-        <F label="Teléfono" k="phone" placeholder="+34 600 000 000" />
-        <F label="Dirección" k="address" placeholder="Calle…" wide />
-        <F label="Web" k="website" placeholder="www.empresa.com" />
-        <F label="IBAN (para cobros)" k="iban" placeholder="ES00 0000 0000 0000" />
-        <F label="URL del logo" k="logo_url" placeholder="https://…/logo.png" wide />
+        <DatoField label="Nombre / razón social" value={form.name ?? ''} onChange={(v) => set('name', v)} placeholder="Reformas del Sur SL" />
+        <DatoField label="CIF / NIF" value={form.cif ?? ''} onChange={(v) => set('cif', v)} placeholder="B12345678" />
+        <DatoField label="Email" value={form.email ?? ''} onChange={(v) => set('email', v)} placeholder="hola@empresa.com" />
+        <DatoField label="Teléfono" value={form.phone ?? ''} onChange={(v) => set('phone', v)} placeholder="+34 600 000 000" />
+        <DatoField label="Dirección" value={form.address ?? ''} onChange={(v) => set('address', v)} placeholder="Calle…" wide />
+        <DatoField label="Web" value={form.website ?? ''} onChange={(v) => set('website', v)} placeholder="www.empresa.com" />
+        <MaskedField label="IBAN (para cobros)" value={form.iban ?? ''} onChange={(v) => set('iban', v)} placeholder="ES00 0000 0000 0000" />
+        <DatoField label="URL del logo" value={form.logo_url ?? ''} onChange={(v) => set('logo_url', v)} placeholder="https://…/logo.png" wide />
         <label className="sm:col-span-2">
           <span className="mb-1 block text-xs font-medium text-slate-500">
             Disclosures / textos legales (pie de tus documentos)
@@ -207,6 +201,83 @@ function DatosEmpresa({ empresaId }: { empresaId: string }) {
         )}
       </div>
     </SectionCard>
+  )
+}
+
+/* Campos estables (definidos fuera del render → no pierden el foco) */
+const DATO_INPUT =
+  'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100'
+
+function DatoField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  wide,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  wide?: boolean
+}) {
+  return (
+    <label className={wide ? 'sm:col-span-2' : ''}>
+      <span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className={DATO_INPUT}
+      />
+    </label>
+  )
+}
+
+function maskValue(v: string): string {
+  const clean = v.trim()
+  if (!clean) return ''
+  if (clean.length <= 4) return '•'.repeat(clean.length)
+  return '•'.repeat(clean.length - 4) + clean.slice(-4)
+}
+
+function MaskedField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  wide,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  wide?: boolean
+}) {
+  const [show, setShow] = useState(false)
+  return (
+    <label className={wide ? 'sm:col-span-2' : ''}>
+      <span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>
+      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 focus-within:border-brand-400 focus-within:ring-4 focus-within:ring-brand-100">
+        <input
+          type="text"
+          value={show ? value : maskValue(value)}
+          readOnly={!show}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-sm tracking-wide text-slate-800 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          className="shrink-0 text-slate-400 hover:text-slate-600"
+          aria-label={show ? 'Ocultar' : 'Mostrar'}
+        >
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </label>
   )
 }
 
@@ -290,6 +361,13 @@ function TemplatesPanel({ empresaId, type }: { empresaId: string; type: Document
     load()
   }
 
+  async function setDefault(id: string, current: boolean) {
+    // Solo una por defecto por tipo: primero desmarca todas, luego marca ésta
+    await supabase.from('document_templates').update({ is_default: false }).eq('type', type)
+    if (!current) await supabase.from('document_templates').update({ is_default: true }).eq('id', id)
+    load()
+  }
+
   const label = SUBTABS.find((s) => s.key === type)?.label ?? 'Plantillas'
 
   return (
@@ -346,15 +424,33 @@ function TemplatesPanel({ empresaId, type }: { empresaId: string; type: Document
           {items.map((t) => {
             const c = t.content as Record<string, unknown>
             return (
-              <li key={t.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium text-slate-800">{t.name}</p>
+              <li key={t.id} className="flex items-center justify-between gap-2 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-slate-800">{t.name}</p>
+                    {t.is_default && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600 ring-1 ring-amber-200">
+                        <Star className="h-3 w-3" fill="currentColor" /> Por defecto
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-400">
                     {String(c.impuesto ?? 'IGIC')} {String(c.tasa ?? '')}% · {String(c.moneda ?? 'EUR')}
                     {type === 'presupuesto' && c.validez ? ` · validez ${String(c.validez)}d` : ''}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    onClick={() => setDefault(t.id, t.is_default)}
+                    title={t.is_default ? 'Quitar por defecto' : 'Marcar por defecto'}
+                    className={`grid h-8 w-8 place-items-center rounded-lg border transition ${
+                      t.is_default
+                        ? 'border-amber-200 bg-amber-50 text-amber-500'
+                        : 'border-slate-200 text-slate-300 hover:text-amber-400'
+                    }`}
+                  >
+                    <Star className="h-4 w-4" fill={t.is_default ? 'currentColor' : 'none'} />
+                  </button>
                   <button onClick={() => setPreview(t)} className="flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100">
                     <Eye className="h-3.5 w-3.5" /> Ver
                   </button>
@@ -572,14 +668,17 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
     setTypes(types.filter((x) => x !== t))
     setCfgSaved(false)
   }
+  const [cfgError, setCfgError] = useState<string | null>(null)
   async function saveCfg() {
     setSavingCfg(true)
-    await supabase
+    setCfgError(null)
+    const { error } = await supabase
       .from('empresas')
       .update({ intake_config: { project_types: types } })
       .eq('id', empresaId)
     setSavingCfg(false)
-    setCfgSaved(true)
+    if (error) setCfgError(`No se pudo guardar: ${error.message}`)
+    else setCfgSaved(true)
   }
 
   async function generar() {
@@ -592,7 +691,13 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
       .select('token')
       .single()
 
-    if (!error && data && email) {
+    if (error) {
+      setSendMsg({ ok: false, text: `No se pudo crear el enlace: ${error.message}` })
+      setCreating(false)
+      return
+    }
+
+    if (data && email) {
       const link = linkFor((data as { token: string }).token)
       const { data: res, error: fnErr } = await supabase.functions.invoke('send-intake-email', {
         body: { to: email, link, empresa: empresaName },
@@ -664,7 +769,8 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
           <button onClick={saveCfg} disabled={savingCfg} className="btn-primary !px-4 !py-2 text-sm">
             <Save className="h-4 w-4" /> {savingCfg ? 'Guardando…' : 'Guardar opciones'}
           </button>
-          {cfgSaved && (
+          {cfgError && <span className="text-sm font-medium text-red-600">{cfgError}</span>}
+          {cfgSaved && !cfgError && (
             <span className="flex items-center gap-1 text-sm font-medium text-emerald-600">
               <Check className="h-4 w-4" /> Guardado
             </span>
