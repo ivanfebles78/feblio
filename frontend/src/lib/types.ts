@@ -9,6 +9,19 @@ export type DocumentType =
   | 'contrato'
   | 'otro'
 
+export type EntityType = 'company' | 'self_employed'
+export type TaxType = 'CIF' | 'NIF'
+
+export const ENTITY_TYPE_LABEL: Record<EntityType, string> = {
+  company: 'Empresa',
+  self_employed: 'Autónomo o profesional',
+}
+
+/** Compatibilidad: tax_type sigue usándose en empresas.tax_type. */
+export function taxTypeForEntity(entity: EntityType): TaxType {
+  return entity === 'company' ? 'CIF' : 'NIF'
+}
+
 export interface Profile {
   id: string
   email: string
@@ -16,22 +29,47 @@ export interface Profile {
   role: UserRole
   empresa_id: string | null
   cliente_id: string | null
+  contact_email?: string | null
+  phone?: string | null
+  job_title?: string | null
+  is_onboarding_owner?: boolean
 }
+
+export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed' | 'requires_attention'
 
 export interface Empresa {
   id: string
   name: string
   cif: string | null
   tax_type: string | null
+  entity_type?: EntityType | null
+  trade_name?: string | null
   logo_url: string | null
   address: string | null
+  country?: string
+  province?: string | null
+  city?: string | null
+  postal_code?: string | null
+  timezone?: string
+  language?: string
+  currency?: string
+  primary_color?: string | null
   phone: string | null
   email: string | null
   website: string | null
   iban: string | null
   disclosures: string | null
   intake_config: { project_types?: string[] } | null
+  email_verified?: boolean
+  trial_ends_at?: string | null
+  subscription_status?: string
+  onboarding_status?: OnboardingStatus
+  onboarding_current_step?: string | null
+  onboarding_started_at?: string | null
+  onboarding_completed_at?: string | null
+  onboarding_version?: number
   created_at: string
+  updated_at?: string
 }
 
 export interface Template {
@@ -52,6 +90,10 @@ export interface ClientIntake {
   client_email: string | null
   submitted: Record<string, unknown> | null
   cliente_id: string | null
+  form_template_id?: string | null
+  channel?: string | null
+  expires_at?: string | null
+  is_test?: boolean
   created_at: string
   completed_at: string | null
 }

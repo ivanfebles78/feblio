@@ -26,6 +26,7 @@ import {
   type Template,
   type ClientIntake,
 } from '../lib/types'
+import { createIntakeSignedUrl, intakeFilePath, type IntakeFileRef } from '../lib/intakeFiles'
 
 /* Colores por pestaña */
 const SUBTABS = [
@@ -621,7 +622,7 @@ interface Submitted {
   address?: string
   project_type?: string
   description?: string
-  files?: { name: string; url: string }[]
+  files?: IntakeFileRef[]
 }
 
 function FormularioClientes({ empresaId }: { empresaId: string }) {
@@ -642,15 +643,23 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
   const [empresaName, setEmpresaName] = useState('')
   const [sendMsg, setSendMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
+  // Plantillas de formulario (migración 0009). Si no existen, se usa el formulario básico.
+  const [formTemplates, setFormTemplates] = useState<{ id: string; name: string; is_default: boolean; link_expiry_days: number }[]>([])
+  const [formTemplateId, setFormTemplateId] = useState('')
+
   async function load() {
-    const [i, e] = await Promise.all([
+    const [i, e, t] = await Promise.all([
       supabase.from('client_intake').select('*').order('created_at', { ascending: false }),
       supabase.from('empresas').select('name, intake_config').eq('id', empresaId).single(),
+      supabase.from('intake_form_templates').select('id, name, is_default, link_expiry_days').eq('is_active', true).order('created_at'),
     ])
     setItems((i.data as ClientIntake[]) ?? [])
     const emp = e.data as { name?: string; intake_config?: { project_types?: string[] } } | null
     setTypes(emp?.intake_config?.project_types ?? [])
     setEmpresaName(emp?.name ?? '')
+    const tpls = (t.data as { id: string; name: string; is_default: boolean; link_expiry_days: number }[] | null) ?? []
+    setFormTemplates(tpls)
+    setFormTemplateId((prev) => prev || tpls.find((x) => x.is_default)?.id || '')
     setLoading(false)
   }
   useEffect(() => {
@@ -685,11 +694,14 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
     setCreating(true)
     setSendMsg(null)
     const email = clientEmail.trim()
-    const { data, error } = await supabase
-      .from('client_intake')
-      .insert({ empresa_id: empresaId, client_email: email || null })
-      .select('token')
-      .single()
+    const tpl = formTemplates.find((x) => x.id === formTemplateId)
+    const payload: Record<string, unknown> = { empresa_id: empresaId, client_email: email || null }
+    if (tpl) {
+      payload.form_template_id = tpl.id
+      payload.channel = 'public_form'
+      payload.expires_at = new Date(Date.now() + tpl.link_expiry_days * 86400000).toISOString()
+    }
+    const { data, error } = await supabase.from('client_intake').insert(payload).select('token').single()
 
     if (error) {
       setSendMsg({ ok: false, text: `No se pudo crear el enlace: ${error.message}` })
@@ -785,13 +797,34 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
           puedes generar un enlace sin email para copiarlo tú.
         </p>
         <div className="mb-2 flex flex-col gap-2 sm:flex-row">
-          <input
-            type="email"
-            value={clientEmail}
-            onChange={(e) => setClientEmail(e.target.value)}
-            placeholder="Email del cliente (opcional)"
-            className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
-          />
+          {formTemplates.length > 0 && (
+            <label className="sm:w-56">
+              <span className="sr-only">Plantilla de formulario</span>
+              <select
+                value={formTemplateId}
+                onChange={(e) => setFormTemplateId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
+              >
+                <option value="">Formulario básico</option>
+                {formTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                    {t.is_default ? ' (predeterminado)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="flex-1">
+            <span className="sr-only">Email del cliente (opcional)</span>
+            <input
+              type="email"
+              value={clientEmail}
+              onChange={(e) => setClientEmail(e.target.value)}
+              placeholder="Email del cliente (opcional)"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
+            />
+          </label>
           <button onClick={generar} disabled={creating} className="btn-primary shrink-0">
             {creating ? (
               'Un momento…'
@@ -883,11 +916,9 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
                         <div>
                           <p className="text-xs font-medium text-slate-400">Archivos adjuntos</p>
                           <ul className="mt-1 space-y-1">
-                            {s.files.map((file) => (
-                              <li key={file.url}>
-                                <a href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-brand-600 hover:underline">
-                                  <FileText className="h-3.5 w-3.5" /> {file.name}
-                                </a>
+                            {s.files.map((file, i) => (
+                              <li key={file.path ?? file.url ?? i}>
+                                <IntakeFileLink file={file} />
                               </li>
                             ))}
                           </ul>
@@ -902,6 +933,35 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
         )}
       </SectionCard>
     </div>
+  )
+}
+
+/** Enlace a un adjunto del bucket privado: genera una URL firmada (10 min) al pulsar. */
+function IntakeFileLink({ file }: { file: IntakeFileRef }) {
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const path = intakeFilePath(file)
+  async function open() {
+    if (!path) return
+    setBusy(true)
+    setErr(null)
+    const { url, error } = await createIntakeSignedUrl(path)
+    setBusy(false)
+    if (!url) {
+      setErr(error ?? 'No se pudo generar el enlace.')
+      return
+    }
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+  if (!path) return <span className="text-slate-400">{file.name} (no disponible)</span>
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      <button type="button" onClick={open} disabled={busy} className="inline-flex items-center gap-1.5 text-brand-600 hover:underline disabled:opacity-60">
+        <FileText className="h-3.5 w-3.5" aria-hidden="true" /> {file.name}
+        {busy && <span className="text-xs text-slate-400">(generando enlace…)</span>}
+      </button>
+      {err && <span className="text-xs text-red-600" role="alert">{err}</span>}
+    </span>
   )
 }
 
