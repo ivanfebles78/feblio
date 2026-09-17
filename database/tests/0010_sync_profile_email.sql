@@ -13,7 +13,7 @@
 begin;
 
 create temp table _t (name text, ok boolean) on commit drop;
-grant all on _t to authenticated;
+grant insert on table pg_temp._t to authenticated;   -- solo lo necesario mientras se simula ese rol
 
 do $$
 declare
@@ -38,18 +38,18 @@ begin
   update auth.users set email = 'nuevo@example.invalid', updated_at = now() where id = v_u;
 
   select email, role::text, empresa_id, cliente_id into v_email, v_role, v_emp, v_cli_id from public.profiles where id = v_u;
-  insert into _t values ('T1 profiles.email sincronizado', v_email = 'nuevo@example.invalid');
-  insert into _t values ('T2 role/empresa_id/cliente_id intactos', v_role = 'cliente' and v_emp = v_e and v_cli_id = v_cli);
+  insert into pg_temp._t values ('T1 profiles.email sincronizado', v_email = 'nuevo@example.invalid');
+  insert into pg_temp._t values ('T2 role/empresa_id/cliente_id intactos', v_role = 'cliente' and v_emp = v_e and v_cli_id = v_cli);
   select email into v_cli_email from public.clientes where id = v_cli;
-  insert into _t values ('T3 clientes.email sincronizado', v_cli_email = 'nuevo@example.invalid');
+  insert into pg_temp._t values ('T3 clientes.email sincronizado', v_cli_email = 'nuevo@example.invalid');
 
   -- Un update sin cambio de email no toca el perfil
   update auth.users set updated_at = now() where id = v_other;
   select email into v_email from public.profiles where id = v_other;
-  insert into _t values ('T4 update sin cambio de email no altera profiles', v_email = 'otro@example.invalid');
+  insert into pg_temp._t values ('T4 update sin cambio de email no altera profiles', v_email = 'otro@example.invalid');
 
   -- authenticated no puede ejecutar la función del trigger
-  insert into _t values ('T5 authenticated sin EXECUTE sobre handle_user_email_change',
+  insert into pg_temp._t values ('T5 authenticated sin EXECUTE sobre handle_user_email_change',
     not has_function_privilege('authenticated', 'public.handle_user_email_change()', 'EXECUTE'));
 
   -- Un usuario autenticado no puede cambiar emails de perfiles (ni el suyo ni el de otros)
@@ -62,19 +62,21 @@ begin
     v_ok := false;
   exception when others then v_ok := true;
   end;
-  insert into _t values ('T6 un usuario no cambia su email de perfil', v_ok);
+  insert into pg_temp._t values ('T6 un usuario no cambia su email de perfil', v_ok);
   update public.profiles set email = 'hack@example.invalid' where id = v_other;   -- RLS: 0 filas afectadas
   reset role;
   select email into v_email from public.profiles where id = v_other;
-  insert into _t values ('T6b un usuario no cambia el email de otro perfil', v_email = 'otro@example.invalid');
+  insert into pg_temp._t values ('T6b un usuario no cambia el email de otro perfil', v_email = 'otro@example.invalid');
 end $$;
 
-select name, case when ok then 'OK' else 'FALLO' end as resultado from _t order by name;
+reset role;   -- garantía: ningún cambio de rol sobrevive al bloque de pruebas
+
+select name, case when ok then 'OK' else 'FALLO' end as resultado from pg_temp._t order by name;
 
 do $$
 declare failed int;
 begin
-  select count(*) into failed from _t where not ok;
+  select count(*) into failed from pg_temp._t where not ok;
   if failed > 0 then raise exception 'Han fallado % comprobaciones del trigger de sincronización', failed; end if;
   raise notice 'Sincronización de email: todas las comprobaciones han pasado';
 end $$;

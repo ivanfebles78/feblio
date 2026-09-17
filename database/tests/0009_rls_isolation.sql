@@ -11,7 +11,7 @@
 begin;
 
 create temp table _t (name text, ok boolean) on commit drop;
-grant all on _t to authenticated;
+grant insert on table pg_temp._t to authenticated;   -- solo lo necesario mientras se simula ese rol
 
 do $$
 declare
@@ -54,11 +54,11 @@ begin
 
   -- T1: A no puede leer el onboarding de B (RLS)
   select count(*) into n from public.onboarding_steps where empresa_id = v_e_b;
-  insert into _t values ('T1 A no lee pasos de B', n = 0);
+  insert into pg_temp._t values ('T1 A no lee pasos de B', n = 0);
   select count(*) into n from public.integration_connections where empresa_id = v_e_b;
-  insert into _t values ('T1b A no lee integraciones de B', n = 0);
+  insert into pg_temp._t values ('T1b A no lee integraciones de B', n = 0);
   select count(*) into n from public.onboarding_steps where empresa_id = v_e_a;
-  insert into _t values ('T1c A sí lee sus pasos', n = 10);
+  insert into pg_temp._t values ('T1c A sí lee sus pasos', n = 10);
 
   -- T2: A no puede modificar integraciones de B (RPC con empresa explícita)
   begin
@@ -66,20 +66,20 @@ begin
     v_ok := false;
   exception when others then v_ok := true;
   end;
-  insert into _t values ('T2 A no modifica integraciones de B', v_ok);
+  insert into pg_temp._t values ('T2 A no modifica integraciones de B', v_ok);
   begin
     perform public.save_onboarding_step('email', '{"x":1}'::jsonb, v_e_b);
     v_ok := false;
   exception when others then v_ok := true;
   end;
-  insert into _t values ('T2b A no guarda pasos de B', v_ok);
+  insert into pg_temp._t values ('T2b A no guarda pasos de B', v_ok);
 
   -- T3: guardar y reanudar (persistencia por pasos)
   perform public.save_onboarding_step('email', '{"provider":"feblio_inbox"}'::jsonb);
   select onboarding_current_step into v_err from public.empresas where id = v_e_a;
-  insert into _t values ('T3 el paso actual se persiste', v_err = 'email');
+  insert into pg_temp._t values ('T3 el paso actual se persiste', v_err = 'email');
   select data->>'provider' into v_err from public.onboarding_steps where empresa_id = v_e_a and step_key = 'email';
-  insert into _t values ('T3b los datos del paso se persisten', v_err = 'feblio_inbox');
+  insert into pg_temp._t values ('T3b los datos del paso se persisten', v_err = 'feblio_inbox');
 
   -- T4: no se puede guardar un secreto en data
   begin
@@ -87,7 +87,7 @@ begin
     v_ok := false;
   exception when others then v_ok := true;
   end;
-  insert into _t values ('T4 no se guardan secretos en data', v_ok);
+  insert into pg_temp._t values ('T4 no se guardan secretos en data', v_ok);
 
   -- T5: una integración externa no puede marcarse connected sin prueba real
   begin
@@ -95,10 +95,10 @@ begin
     v_ok := false;
   exception when others then v_ok := true;
   end;
-  insert into _t values ('T5 gmail no puede ser connected desde el cliente', v_ok);
+  insert into pg_temp._t values ('T5 gmail no puede ser connected desde el cliente', v_ok);
   -- pero el almacenamiento interno sí
   v_json := public.upsert_integration_connection('document_repository', 'feblio_storage', 'connected', '{}'::jsonb);
-  insert into _t values ('T5b feblio_storage connected', v_json->>'status' = 'connected');
+  insert into pg_temp._t values ('T5b feblio_storage connected', v_json->>'status' = 'connected');
 
   -- T6: la empresa no puede tocar sus columnas de onboarding directamente
   begin
@@ -106,19 +106,19 @@ begin
     v_ok := false;
   exception when others then v_ok := true;
   end;
-  insert into _t values ('T6 onboarding_status protegido por trigger', v_ok);
+  insert into pg_temp._t values ('T6 onboarding_status protegido por trigger', v_ok);
 
   -- T7: activación bloqueada sin método de solicitudes; desbloqueada al completar formularios
   v_json := public.activate_onboarding();
-  insert into _t values ('T7 activación bloqueada', (v_json->>'ok')::boolean = false and jsonb_array_length(v_json->'blockers') > 0);
+  insert into pg_temp._t values ('T7 activación bloqueada', (v_json->>'ok')::boolean = false and jsonb_array_length(v_json->'blockers') > 0);
   perform public.complete_onboarding_step('forms');
   perform public.complete_onboarding_step('company');
   v_json := public.activate_onboarding();
-  insert into _t values ('T7b activación correcta', (v_json->>'ok')::boolean = true);
+  insert into pg_temp._t values ('T7b activación correcta', (v_json->>'ok')::boolean = true);
   select onboarding_status into v_err from public.empresas where id = v_e_a;
-  insert into _t values ('T7c estado completed', v_err = 'completed');
+  insert into pg_temp._t values ('T7c estado completed', v_err = 'completed');
   select count(*) into n from public.audit_events where empresa_id = v_e_a and action = 'onboarding.activated';
-  insert into _t values ('T7d auditoría de activación', n = 1);
+  insert into pg_temp._t values ('T7d auditoría de activación', n = 1);
 
   -- T8: credenciales cifradas inaccesibles para authenticated
   begin
@@ -126,15 +126,15 @@ begin
     v_ok := false;
   exception when others then v_ok := true;
   end;
-  insert into _t values ('T8 integration_credentials inaccesible', v_ok);
+  insert into pg_temp._t values ('T8 integration_credentials inaccesible', v_ok);
 
   -- T9: prueba guiada crea datos marcados y la limpieza los borra
   v_json := public.run_onboarding_test();
   select count(*) into n from public.projects where empresa_id = v_e_a and is_test;
-  insert into _t values ('T9 prueba crea proyecto sandbox', n = 1);
+  insert into pg_temp._t values ('T9 prueba crea proyecto sandbox', n = 1);
   v_json := public.cleanup_onboarding_test_data();
   select count(*) into n from public.projects where empresa_id = v_e_a and is_test;
-  insert into _t values ('T9b limpieza borra sandbox', n = 0);
+  insert into pg_temp._t values ('T9b limpieza borra sandbox', n = 0);
 
   -- ---------- Como cliente final C ----------
   reset role;
@@ -146,9 +146,9 @@ begin
     v_ok := false;
   exception when others then v_ok := true;
   end;
-  insert into _t values ('T10 un cliente final no accede al onboarding', v_ok);
+  insert into pg_temp._t values ('T10 un cliente final no accede al onboarding', v_ok);
   select count(*) into n from public.onboarding_steps;
-  insert into _t values ('T10b cliente no lee pasos', n = 0);
+  insert into pg_temp._t values ('T10b cliente no lee pasos', n = 0);
 
   -- ---------- Como admin ----------
   reset role;
@@ -156,19 +156,21 @@ begin
   perform set_config('request.jwt.claim.sub', v_u_admin::text, true);
   set local role authenticated;
   v_json := public.get_onboarding(v_e_b);
-  insert into _t values ('T11 admin consulta el onboarding de cualquier empresa', v_json ? 'steps');
+  insert into pg_temp._t values ('T11 admin consulta el onboarding de cualquier empresa', v_json ? 'steps');
   select count(*) into n from public.audit_events where empresa_id in (v_e_a, v_e_b);
-  insert into _t values ('T11b admin lee auditoría', n > 0);
+  insert into pg_temp._t values ('T11b admin lee auditoría', n > 0);
 
   reset role;
 end $$;
 
-select name, case when ok then 'OK' else 'FALLO' end as resultado from _t order by name;
+reset role;   -- garantía: ningún cambio de rol sobrevive al bloque de pruebas
+
+select name, case when ok then 'OK' else 'FALLO' end as resultado from pg_temp._t order by name;
 
 do $$
 declare failed int;
 begin
-  select count(*) into failed from _t where not ok;
+  select count(*) into failed from pg_temp._t where not ok;
   if failed > 0 then raise exception 'Han fallado % comprobaciones de aislamiento/permisos', failed; end if;
   raise notice 'Todas las comprobaciones de aislamiento y permisos han pasado';
 end $$;

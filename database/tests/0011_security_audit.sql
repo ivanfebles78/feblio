@@ -17,7 +17,7 @@
 
 begin;
 create temp table _t (name text, ok boolean) on commit drop;
-grant all on _t to anon, authenticated;
+grant insert on table pg_temp._t to anon, authenticated;   -- solo lo necesario mientras se simula ese rol
 
 do $$
 declare
@@ -48,7 +48,7 @@ begin
 
   -- ---------- S7a: bucket privado ----------
   select public into v_public from storage.buckets where id = 'intake-files';
-  insert into _t values ('S7a intake-files es privado', v_public = false);
+  insert into pg_temp._t values ('S7a intake-files es privado', v_public = false);
 
   -- ---------- Como anon ----------
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
@@ -59,49 +59,49 @@ begin
   -- Nota: las políticas RLS usan helpers revocados a anon (0003), por lo que anon recibe
   -- "permission denied" en vez de 0 filas. Ambos resultados significan acceso denegado.
   begin select count(*) into n from public.onboarding_steps; v_ok := n = 0; exception when others then v_ok := true; end;
-  insert into _t values ('S1a anon no lee onboarding_steps', v_ok);
+  insert into pg_temp._t values ('S1a anon no lee onboarding_steps', v_ok);
   begin select count(*) into n from public.integration_connections; v_ok := n = 0; exception when others then v_ok := true; end;
-  insert into _t values ('S1b anon no lee integration_connections', v_ok);
+  insert into pg_temp._t values ('S1b anon no lee integration_connections', v_ok);
   begin select count(*) into n from public.billing_settings; v_ok := n = 0; exception when others then v_ok := true; end;
-  insert into _t values ('S1c anon no lee billing_settings', v_ok);
+  insert into pg_temp._t values ('S1c anon no lee billing_settings', v_ok);
   begin select count(*) into n from public.automation_settings; v_ok := n = 0; exception when others then v_ok := true; end;
-  insert into _t values ('S1d anon no lee automation_settings', v_ok);
+  insert into pg_temp._t values ('S1d anon no lee automation_settings', v_ok);
   begin select count(*) into n from public.audit_events; v_ok := n = 0; exception when others then v_ok := true; end;
-  insert into _t values ('S1e anon no lee audit_events', v_ok);
+  insert into pg_temp._t values ('S1e anon no lee audit_events', v_ok);
   begin
     select count(*) into n from public.integration_credentials; v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S1f anon: integration_credentials denegado', v_ok);
+  insert into pg_temp._t values ('S1f anon: integration_credentials denegado', v_ok);
 
   begin perform public.get_onboarding(); v_ok := false; exception when others then v_ok := true; end;
-  insert into _t values ('S2a anon no ejecuta get_onboarding', v_ok);
+  insert into pg_temp._t values ('S2a anon no ejecuta get_onboarding', v_ok);
   begin perform public.verify_email_otp('000000'); v_ok := false; exception when others then v_ok := true; end;
-  insert into _t values ('S2b anon no ejecuta verify_email_otp', v_ok);
+  insert into pg_temp._t values ('S2b anon no ejecuta verify_email_otp', v_ok);
   begin perform public.feblio_trusted(); v_ok := false; exception when others then v_ok := true; end;
-  insert into _t values ('S2c anon no ejecuta feblio_trusted', v_ok);
+  insert into pg_temp._t values ('S2c anon no ejecuta feblio_trusted', v_ok);
   begin perform public.audit_log_internal(v_e_a, null, 'x.y', null, null, 'ok', '{}'); v_ok := false; exception when others then v_ok := true; end;
-  insert into _t values ('S2d anon no ejecuta audit_log_internal', v_ok);
+  insert into pg_temp._t values ('S2d anon no ejecuta audit_log_internal', v_ok);
   -- feblio_trusted() no debe considerar confiable a anon aunque intente escribir en empresas (RLS lo impide igualmente)
   begin update public.empresas set email_verified = false where id = v_e_a; exception when others then null; end;
   reset role;
   select email_verified into v_ok from public.empresas where id = v_e_a;
-  insert into _t values ('S4c anon no altera email_verified', v_ok = true);
+  insert into pg_temp._t values ('S4c anon no altera email_verified', v_ok = true);
 
   -- S7b: anon sube bajo token válido; no bajo token ajeno/inválido; no lee
   set local role anon;
   begin
     insert into storage.objects (bucket_id, name) values ('intake-files', v_tok_a::text || '/doc.pdf'); v_ok := true;
   exception when others then v_ok := false; end;
-  insert into _t values ('S7b anon sube bajo un token pendiente válido', v_ok);
+  insert into pg_temp._t values ('S7b anon sube bajo un token pendiente válido', v_ok);
   begin
     insert into storage.objects (bucket_id, name) values ('intake-files', gen_random_uuid()::text || '/doc.pdf'); v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S7c anon no sube bajo un token inexistente', v_ok);
+  insert into pg_temp._t values ('S7c anon no sube bajo un token inexistente', v_ok);
   begin
     insert into storage.objects (bucket_id, name) values ('intake-files', v_tok_a::text || '/sub/doc.pdf'); v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S7d anon no crea subcarpetas', v_ok);
-  select count(*) into n from storage.objects where bucket_id = 'intake-files'; insert into _t values ('S7e anon no lista adjuntos', n = 0);
+  insert into pg_temp._t values ('S7d anon no crea subcarpetas', v_ok);
+  select count(*) into n from storage.objects where bucket_id = 'intake-files'; insert into pg_temp._t values ('S7e anon no lista adjuntos', n = 0);
   reset role;
 
   -- Token caducado: no admite subidas
@@ -110,7 +110,7 @@ begin
   begin
     insert into storage.objects (bucket_id, name) values ('intake-files', v_tok_b::text || '/doc.pdf'); v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S7f anon no sube bajo un token caducado', v_ok);
+  insert into pg_temp._t values ('S7f anon no sube bajo un token caducado', v_ok);
   reset role;
   update public.client_intake set expires_at = now() + interval '1 day' where token = v_tok_b;
   insert into storage.objects (bucket_id, name) values ('intake-files', v_tok_b::text || '/doc-b.pdf');
@@ -123,7 +123,7 @@ begin
     jsonb_build_object('name', 'trav.pdf', 'path', v_tok_a::text || '/../x'))));
   reset role;
   select jsonb_array_length(submitted->'files') into n from public.client_intake where token = v_tok_a;
-  insert into _t values ('S8 submit conserva solo adjuntos del propio token', (v_json->>'ok')::boolean and n = 1);
+  insert into pg_temp._t values ('S8 submit conserva solo adjuntos del propio token', (v_json->>'ok')::boolean and n = 1);
 
   -- ---------- Como empresa A ----------
   perform set_config('request.jwt.claims', json_build_object('sub', v_u_a, 'role', 'authenticated')::text, true);
@@ -135,52 +135,52 @@ begin
   begin
     insert into public.audit_events (empresa_id, user_id, action) values (v_e_a, v_u_a, 'hack.insert'); v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S3a empresa no inserta en audit_events', v_ok);
+  insert into pg_temp._t values ('S3a empresa no inserta en audit_events', v_ok);
   update public.audit_events set action = 'hack.update' where empresa_id = v_e_a;
   delete from public.audit_events where empresa_id = v_e_a;
   reset role;
   select count(*) into n from public.audit_events where empresa_id = v_e_a and action = 'seed.event';
-  insert into _t values ('S3b empresa no modifica ni borra audit_events', n = 1 and n_before >= 1);
+  insert into pg_temp._t values ('S3b empresa no modifica ni borra audit_events', n = 1 and n_before >= 1);
   set local role authenticated;
 
   begin
     update public.empresas set email_verified = false where id = v_e_a; v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S4a empresa no cambia email_verified', v_ok);
+  insert into pg_temp._t values ('S4a empresa no cambia email_verified', v_ok);
   begin
     update public.empresas set onboarding_status = 'completed' where id = v_e_a; v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S4b empresa no cambia onboarding_status', v_ok);
+  insert into pg_temp._t values ('S4b empresa no cambia onboarding_status', v_ok);
 
   begin
     select count(*) into n from public.integration_credentials; v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S6a empresa: integration_credentials denegado', v_ok);
+  insert into pg_temp._t values ('S6a empresa: integration_credentials denegado', v_ok);
 
   -- Storage: A lee su adjunto, no el de B; no borra el de B
   select count(*) into n from storage.objects where bucket_id = 'intake-files' and name like v_tok_a::text || '/%';
-  insert into _t values ('S7g empresa A lee sus adjuntos', n = 1);
+  insert into pg_temp._t values ('S7g empresa A lee sus adjuntos', n = 1);
   select count(*) into n from storage.objects where bucket_id = 'intake-files' and name like v_tok_b::text || '/%';
-  insert into _t values ('S7h empresa A no lee adjuntos de B', n = 0);
+  insert into pg_temp._t values ('S7h empresa A no lee adjuntos de B', n = 0);
   delete from storage.objects where bucket_id = 'intake-files' and name like v_tok_b::text || '/%';
   reset role;
   select count(*) into n from storage.objects where bucket_id = 'intake-files' and name like v_tok_b::text || '/%';
-  insert into _t values ('S7i empresa A no borra adjuntos de B', n = 1);
+  insert into pg_temp._t values ('S7i empresa A no borra adjuntos de B', n = 1);
 
   -- ---------- Como cliente final C ----------
   perform set_config('request.jwt.claims', json_build_object('sub', v_u_c, 'role', 'authenticated')::text, true);
   perform set_config('request.jwt.claim.sub', v_u_c::text, true);
   set local role authenticated;
-  select count(*) into n from public.integration_connections; insert into _t values ('S5a cliente no lee integraciones', n = 0);
-  select count(*) into n from public.billing_settings; insert into _t values ('S5b cliente no lee facturación', n = 0);
-  select count(*) into n from public.onboarding_steps; insert into _t values ('S5c cliente no lee pasos', n = 0);
-  select count(*) into n from storage.objects where bucket_id = 'intake-files'; insert into _t values ('S7j cliente no lee adjuntos', n = 0);
+  select count(*) into n from public.integration_connections; insert into pg_temp._t values ('S5a cliente no lee integraciones', n = 0);
+  select count(*) into n from public.billing_settings; insert into pg_temp._t values ('S5b cliente no lee facturación', n = 0);
+  select count(*) into n from public.onboarding_steps; insert into pg_temp._t values ('S5c cliente no lee pasos', n = 0);
+  select count(*) into n from storage.objects where bucket_id = 'intake-files'; insert into pg_temp._t values ('S7j cliente no lee adjuntos', n = 0);
   begin
     select count(*) into n from public.integration_credentials; v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('S6b cliente: integration_credentials denegado', v_ok);
+  insert into pg_temp._t values ('S6b cliente: integration_credentials denegado', v_ok);
   begin perform public.log_audit_event('hack.event'); v_ok := false; exception when others then v_ok := true; end;
-  insert into _t values ('S10 log_audit_event rechaza a clientes', v_ok);
+  insert into pg_temp._t values ('S10 log_audit_event rechaza a clientes', v_ok);
   reset role;
 
   -- ---------- S9: signup público no puede ser admin (requiere poder simular supabase_auth_admin) ----------
@@ -192,19 +192,21 @@ begin
             '{"full_name":"X","role":"admin"}', '', '', '', '', '', '', '', '');
     execute 'reset session authorization';
     select role::text into v_text from public.profiles where email = 'wannabe-admin@example.invalid';
-    insert into _t values ('S9 el signup público no puede auto-asignarse admin', v_text = 'cliente');
+    insert into pg_temp._t values ('S9 el signup público no puede auto-asignarse admin', v_text = 'cliente');
   exception when others then
     execute 'reset session authorization';
-    insert into _t values ('S9 (omitida: no se puede simular supabase_auth_admin aquí)', true);
+    insert into pg_temp._t values ('S9 (omitida: no se puede simular supabase_auth_admin aquí)', true);
   end;
 end $$;
 
-select name, case when ok then 'OK' else 'FALLO' end as resultado from _t order by name;
+reset role;   -- garantía: ningún cambio de rol sobrevive al bloque de pruebas
+
+select name, case when ok then 'OK' else 'FALLO' end as resultado from pg_temp._t order by name;
 
 do $$
 declare failed int;
 begin
-  select count(*) into failed from _t where not ok;
+  select count(*) into failed from pg_temp._t where not ok;
   if failed > 0 then raise exception 'Han fallado % comprobaciones de seguridad', failed; end if;
   raise notice 'Auditoría de seguridad: todas las comprobaciones han pasado';
 end $$;

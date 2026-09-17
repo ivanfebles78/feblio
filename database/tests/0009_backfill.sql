@@ -11,7 +11,7 @@
 
 begin;
 create temp table _t (name text, ok boolean) on commit drop;
-grant all on _t to authenticated;
+grant insert on table pg_temp._t to authenticated;   -- solo lo necesario mientras se simula ese rol
 
 do $$
 declare v_old uuid; v_new uuid; v_u uuid := gen_random_uuid(); r record; n int; v_ok boolean;
@@ -23,16 +23,16 @@ begin
 
   perform public.onboarding_backfill_existing();
   select onboarding_status, onboarding_started_at, onboarding_completed_at, created_at into r from public.empresas where id = v_old;
-  insert into _t values ('B1a empresa existente → completed', r.onboarding_status = 'completed');
-  insert into _t values ('B1b completed_at establecido', r.onboarding_completed_at is not null);
-  insert into _t values ('B1c started_at coherente (= created_at, anterior a completed_at)', r.onboarding_started_at = r.created_at and r.onboarding_started_at <= r.onboarding_completed_at);
-  insert into _t values ('B1d marca onboarding_backfill_done registrada', exists (select 1 from public.platform_settings where key = 'onboarding_backfill_done'));
+  insert into pg_temp._t values ('B1a empresa existente → completed', r.onboarding_status = 'completed');
+  insert into pg_temp._t values ('B1b completed_at establecido', r.onboarding_completed_at is not null);
+  insert into pg_temp._t values ('B1c started_at coherente (= created_at, anterior a completed_at)', r.onboarding_started_at = r.created_at and r.onboarding_started_at <= r.onboarding_completed_at);
+  insert into pg_temp._t values ('B1d marca onboarding_backfill_done registrada', exists (select 1 from public.platform_settings where key = 'onboarding_backfill_done'));
 
   -- Empresa nueva (registro posterior): no debe completarse aunque se reejecute la migración
   insert into public.empresas (name, cif) values ('NUEVA', 'B98765432') returning id into v_new;
   perform public.onboarding_backfill_existing();
   select onboarding_status into r from public.empresas where id = v_new;
-  insert into _t values ('B2 empresa nueva sigue not_started tras repetir el backfill', r.onboarding_status = 'not_started');
+  insert into pg_temp._t values ('B2 empresa nueva sigue not_started tras repetir el backfill', r.onboarding_status = 'not_started');
 
   -- Usuario empresa autenticado: no puede tocar onboarding_status ni ejecutar el backfill
   insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
@@ -46,27 +46,29 @@ begin
   begin
     update public.empresas set onboarding_status = 'completed' where id = v_new; v_ok := false;
   exception when others then v_ok := true; end;
-  insert into _t values ('B3 empresa autenticada no modifica onboarding_status', v_ok);
+  insert into pg_temp._t values ('B3 empresa autenticada no modifica onboarding_status', v_ok);
   begin perform public.onboarding_backfill_existing(); v_ok := false; exception when others then v_ok := true; end;
-  insert into _t values ('B4 authenticated no ejecuta onboarding_backfill_existing', v_ok);
+  insert into pg_temp._t values ('B4 authenticated no ejecuta onboarding_backfill_existing', v_ok);
   reset role;
   select onboarding_status into r from public.empresas where id = v_new;
-  insert into _t values ('B3b onboarding_status intacto', r.onboarding_status = 'not_started');
+  insert into pg_temp._t values ('B3b onboarding_status intacto', r.onboarding_status = 'not_started');
 
   -- Sin dependencia de GUC personalizados en funciones de public (cuerpo ni cláusula SET)
   select count(*) into n
     from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
    where ns.nspname = 'public'
      and (p.prosrc ilike '%feblio.trusted%' or p.prosrc ilike '%feblio.allow%' or coalesce(array_to_string(p.proconfig, ','), '') ilike '%feblio.%');
-  insert into _t values ('B5 ninguna función depende de un GUC feblio.*', n = 0);
+  insert into pg_temp._t values ('B5 ninguna función depende de un GUC feblio.*', n = 0);
 end $$;
 
-select name, case when ok then 'OK' else 'FALLO' end as resultado from _t order by name;
+reset role;   -- garantía: ningún cambio de rol sobrevive al bloque de pruebas
+
+select name, case when ok then 'OK' else 'FALLO' end as resultado from pg_temp._t order by name;
 
 do $$
 declare failed int;
 begin
-  select count(*) into failed from _t where not ok;
+  select count(*) into failed from pg_temp._t where not ok;
   if failed > 0 then raise exception 'Han fallado % comprobaciones del backfill', failed; end if;
   raise notice 'Backfill del onboarding: todas las comprobaciones han pasado';
 end $$;
