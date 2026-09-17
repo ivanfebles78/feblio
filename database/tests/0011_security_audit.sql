@@ -10,7 +10,8 @@
 --   S5  el cliente final no lee integraciones, facturación ni pasos
 --   S6  integration_credentials es ilegible para empresa y cliente
 --   S7  intake-files es privado; anon solo sube bajo un token pendiente válido;
---       solo la empresa dueña lee/borra sus adjuntos; otra empresa no
+--       solo la empresa dueña lee sus adjuntos; otra empresa no los lee ni logra borrarlos
+--       (el DELETE directo puede ser bloqueado por RLS o por storage.protect_delete() en Supabase alojado)
 --   S8  submit_intake_form descarta rutas de adjuntos fuera del prefijo del token
 --   S9  el signup público no puede auto-asignarse 'admin' (si el entorno permite simularlo)
 --   S10 log_audit_event rechaza a clientes finales
@@ -162,10 +163,18 @@ begin
   insert into pg_temp._t values ('S7g empresa A lee sus adjuntos', n = 1);
   select count(*) into n from storage.objects where bucket_id = 'intake-files' and name like v_tok_b::text || '/%';
   insert into pg_temp._t values ('S7h empresa A no lee adjuntos de B', n = 0);
-  delete from storage.objects where bucket_id = 'intake-files' and name like v_tok_b::text || '/%';
+  -- Intento de borrado como empresa A. En Supabase alojado, storage.protect_delete() impide el
+  -- DELETE directo sobre storage.objects (SQLSTATE 42501, "use the Storage API"); en un entorno sin
+  -- esa protección, RLS deja el DELETE en 0 filas. Solo se admite ese error de permisos: cualquier
+  -- otro error sigue deteniendo el test. Lo que se demuestra es que el objeto de B sobrevive.
+  begin
+    delete from storage.objects where bucket_id = 'intake-files' and name like v_tok_b::text || '/%';
+  exception
+    when insufficient_privilege then null;   -- 42501: protección de Storage alojado o permiso denegado
+  end;
   reset role;
   select count(*) into n from storage.objects where bucket_id = 'intake-files' and name like v_tok_b::text || '/%';
-  insert into pg_temp._t values ('S7i empresa A no borra adjuntos de B', n = 1);
+  insert into pg_temp._t values ('S7i empresa A no logra borrar adjuntos de B', n = 1);
 
   -- ---------- Como cliente final C ----------
   perform set_config('request.jwt.claims', json_build_object('sub', v_u_c, 'role', 'authenticated')::text, true);
