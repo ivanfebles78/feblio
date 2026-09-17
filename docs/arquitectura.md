@@ -61,12 +61,12 @@ Cada tabla tiene Row Level Security. Las políticas usan funciones `SECURITY DEF
   `empresas.onboarding_*`, `email_verified`, `subscription_status`, el rol/empresa/email del perfil y el estado
   `connected` de proveedores externos.
 - `integration_credentials` no tiene políticas y tiene los privilegios revocados: solo la Edge Function (service role).
-- `feblio_trusted()` (marca para triggers de guarda) solo es cierta sin JWT (SQL Editor, GoTrue, seeds) o con
-  `service_role`; una petición `anon` de PostgREST nunca es confiable. Los RPCs la activan con `set feblio.trusted`
-  en su cabecera, por lo que se restaura al salir de la función.
+- `feblio_trusted()` (marca para triggers de guarda) no usa GUC personalizados (Supabase alojado no permite
+  `set_config` de parámetros propios): es cierta cuando `current_user` no es `anon`/`authenticated` (RPCs
+  `SECURITY DEFINER`, SQL Editor, migraciones, seeds, trigger de GoTrue) o con `service_role`.
 - El signup público no puede auto-asignarse el rol `admin`: `handle_new_user` solo acepta `admin` desde una sesión
   administrativa directa (no `supabase_auth_admin`/PostgREST) **y** con opt-in explícito
-  `set_config('feblio.allow_admin_signup','on')`; en cualquier otro caso degrada a `cliente` y audita
+  una fila `platform_settings.allow_admin_signup = true` (tabla solo-admin); en cualquier otro caso degrada a `cliente` y audita
   `security.admin_signup_blocked`. `empresa` y `cliente` se respetan tal cual.
 - Helpers internos (`audit_log_internal`, `onboarding_target_empresa`, `ensure_onboarding_defaults`, `onboarding_blockers`,
   `feblio_trusted`, `request_ip`, …) tienen `EXECUTE` revocado a `public`, `anon` y `authenticated`.

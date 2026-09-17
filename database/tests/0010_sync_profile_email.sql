@@ -22,7 +22,6 @@ declare
   v_e uuid; v_cli uuid;
   v_role text; v_email text; v_cli_email text; v_emp uuid; v_cli_id uuid; v_ok boolean;
 begin
-  perform set_config('feblio.trusted', 'on', true);
   insert into public.empresas (name, cif, entity_type, email_verified, onboarding_status)
   values ('TEST_SYNC', 'B12345674', 'company', true, 'completed') returning id into v_e;
 
@@ -34,7 +33,6 @@ begin
 
   insert into public.clientes (empresa_id, name, email, linked_profile_id) values (v_e, 'Casa Chona', 'antiguo@example.invalid', v_u) returning id into v_cli;
   update public.profiles set empresa_id = v_e, cliente_id = v_cli where id = v_u;
-  perform set_config('feblio.trusted', 'off', true);
 
   -- Simula el cambio desde Supabase Authentication (panel / Admin API)
   update auth.users set email = 'nuevo@example.invalid', updated_at = now() where id = v_u;

@@ -23,7 +23,6 @@ declare
   n int; v_json jsonb; v_ok boolean; v_err text;
 begin
   -- ---------- Datos de prueba (como service role) ----------
-  perform set_config('feblio.trusted', 'on', true);
   insert into public.empresas (name, cif, entity_type, email_verified, onboarding_status) values ('TEST_RALM', 'B12345674', 'company', true, 'in_progress') returning id into v_e_a;
   insert into public.empresas (name, cif, entity_type, email_verified, onboarding_status) values ('TEST_OTRA', 'B98765432', 'company', true, 'in_progress') returning id into v_e_b;
 
@@ -46,7 +45,6 @@ begin
 
   perform public.ensure_onboarding_defaults(v_e_a);
   perform public.ensure_onboarding_defaults(v_e_b);
-  perform set_config('feblio.trusted', 'off', true);
 
   -- ---------- Como usuario A ----------
   perform set_config('request.jwt.claims', json_build_object('sub', v_u_a, 'role', 'authenticated')::text, true);

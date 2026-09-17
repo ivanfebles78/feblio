@@ -61,7 +61,7 @@ Diagnóstico del entorno actual: el proyecto `feblio` estaba **pausado** al impl
 - `empresas.onboarding_status` (`not_started | in_progress | completed | requires_attention`), `onboarding_current_step`, `onboarding_started_at`, `onboarding_completed_at`, `onboarding_version`.
   Estas columnas (y `email_verified`, `subscription_status`, `trial_ends_at`) solo cambian a través de RPCs: el trigger `empresas_guard_onboarding` rechaza cualquier otra escritura.
 - `onboarding_steps` (una fila por paso y empresa): `status` (`pending | in_progress | completed | skipped | error | requires_attention`), `data` JSONB (sin secretos: el RPC rechaza claves `token/secret/password/api_key`), `errors`, fechas, `skipped_reason`, `updated_by`.
-- Las empresas creadas **antes** de la migración se marcan `completed` (backfill) para no forzarlas al wizard; pueden reabrirlo desde Configuración.
+- Las empresas creadas **antes** de la migración se marcan `completed` una sola vez (`onboarding_backfill_existing()`, función interna no invocable por usuarios, ejecutada antes de instalar el trigger de guarda y marcada en `platform_settings.onboarding_backfill_done`) para no forzarlas al wizard; pueden reabrirlo desde Configuración. Las empresas nuevas empiezan en `not_started`.
 
 ### Pasos
 
@@ -137,7 +137,7 @@ Los accesos rápidos solo aparecen con `VITE_DEMO_MODE=true` y `VITE_DEMO_ACCOUN
 
 1. Crea una rama en Supabase (o usa un proyecto de desarrollo).
 2. SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql` → Run (idempotentes, en orden).
-3. Ejecuta `database/tests/0009_rls_isolation.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql` y `0011_signup_roles.sql` (hacen `rollback`; deben terminar con «… han pasado»).
+3. Ejecuta `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql` y `0011_signup_roles.sql` (hacen `rollback`; deben terminar con «… han pasado»).
 4. Opcional: `database/seed/0003_seed_onboarding_ralm.sql` en desarrollo.
 5. Despliega las Edge Functions: `supabase functions deploy integrations` y `supabase functions deploy integrations-oauth-callback --no-verify-jwt`; configura los secrets (ver `docs/integraciones.md`).
 6. Fusiona la rama / repite en producción.

@@ -18,8 +18,7 @@ begin
   end if;
   select id into v_owner from public.profiles where empresa_id = v_empresa and role = 'empresa' order by created_at limit 1;
 
-  -- Permite escribir columnas protegidas por el trigger de guarda
-  perform set_config('feblio.trusted', 'on', true);
+  -- (La sesión del SQL Editor es confiable para el trigger de guarda: current_user ≠ anon/authenticated.)
 
   update public.empresas
      set name = 'RALM, S.L.', trade_name = 'RALM', entity_type = 'company', tax_type = 'CIF',

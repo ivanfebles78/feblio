@@ -2,7 +2,6 @@
 -- Contraseña de prueba: NO está en el repositorio. Antes de ejecutar este seed
 -- define la variable de sesión (solo en tu sesión SQL, nunca en git):
 --   select set_config('app.seed_password', 'una-contraseña-segura', false);
---   select set_config('feblio.allow_admin_signup', 'on', false);  -- necesario (0011) para crear la cuenta admin
 -- Si no está definida, el seed aborta. Rota estas cuentas tras cualquier exposición.
 --   admin    -> ivan.febles@gmail.com
 --   empresa  -> ivan.feblestrujillo@gmail.com
@@ -22,8 +21,12 @@ begin
   if v_password is null or length(v_password) < 8 then
     raise exception 'Define app.seed_password (>= 8 caracteres) con set_config antes de ejecutar el seed';
   end if;
-  -- Autoriza la creación de la cuenta admin en esta sesión (ver 0011 · handle_new_user)
-  perform set_config('feblio.allow_admin_signup', 'on', true);
+  -- Autoriza la creación de la cuenta admin (0011 · handle_new_user) mediante una fila
+  -- temporal en platform_settings (si la tabla ya existe); se elimina al final del seed.
+  if to_regclass('public.platform_settings') is not null then
+    insert into public.platform_settings (key, value) values ('allow_admin_signup', 'true'::jsonb)
+    on conflict (key) do update set value = 'true'::jsonb;
+  end if;
 
   -- Empresa (tenant)
   insert into public.empresas(id, name, cif) values (v_empresa, 'Ralm', 'B00000000');
@@ -96,4 +99,9 @@ begin
     (v_empresa, 'presupuesto', 'Plantilla presupuesto estándar', '{"iva":21,"moneda":"EUR"}'::jsonb),
     (v_empresa, 'provision',   'Plantilla provisión de fondos',  '{"moneda":"EUR"}'::jsonb),
     (v_empresa, 'factura',     'Plantilla factura estándar',     '{"iva":21,"moneda":"EUR"}'::jsonb);
+
+  -- Retira la autorización temporal de creación de admins
+  if to_regclass('public.platform_settings') is not null then
+    delete from public.platform_settings where key = 'allow_admin_signup';
+  end if;
 end $$;

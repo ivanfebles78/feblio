@@ -5,7 +5,7 @@
 -- Idempotente. Aplicar DESPUÉS de 0009.
 
 create or replace function public.handle_user_email_change()
-returns trigger language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns trigger language plpgsql security definer set search_path = public as $$
 begin
   if new.email is distinct from old.email then
     update public.profiles set email = new.email where id = new.id and email is distinct from new.email;
@@ -21,8 +21,9 @@ create trigger on_auth_user_email_updated
   after update of email on auth.users
   for each row execute function public.handle_user_email_change();
 
--- Backfill: cuentas cuyo email ya se cambió en Auth antes de instalar el trigger
-select set_config('feblio.trusted', 'on', false);
+-- Backfill: cuentas cuyo email ya se cambió en Auth antes de instalar el trigger.
+-- (Se ejecuta como la sesión administrativa del SQL Editor: el trigger de guarda de
+--  profiles lo permite porque current_user no es 'anon'/'authenticated'.)
 update public.profiles p
    set email = u.email
   from auth.users u
@@ -31,4 +32,3 @@ update public.clientes c
    set email = u.email
   from auth.users u
  where c.linked_profile_id = u.id and c.email is distinct from u.email;
-select set_config('feblio.trusted', 'off', false);

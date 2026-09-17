@@ -1,10 +1,10 @@
 -- Feblio · 0011 · Endurecimiento de seguridad tras la auditoría del onboarding
 --
 -- Idempotente. Aplicar DESPUÉS de 0010. Cambios:
---   A) feblio_trusted(): la marca de confianza solo aplica sin JWT (SQL Editor, GoTrue, seeds)
---      o con service_role; una petición 'anon' de PostgREST nunca es confiable.
+--   A) feblio_trusted(): sin GUC personalizados (no permitidos en Supabase alojado). Confiable =
+--      current_user distinto de 'anon'/'authenticated' (RPCs definer, SQL Editor, GoTrue) o service_role.
 --   B) handle_new_user(): el rol 'admin' no puede auto-asignarse desde el signup público
---      (requiere sesión administrativa Y opt-in explícito feblio.allow_admin_signup);
+--      (requiere sesión administrativa Y opt-in explícito: fila platform_settings.allow_admin_signup);
 --      'empresa' y 'cliente' se respetan tal cual.
 --   C) EXECUTE explícitamente revocado en helpers internos y en verify_email_otp para anon.
 --   D) log_audit_event(): solo cuentas empresa/admin; clientes finales no escriben auditoría.
@@ -19,11 +19,11 @@
 -- ===========================================================================
 create or replace function public.feblio_trusted()
 returns boolean language sql stable as $$
-  select coalesce(current_setting('feblio.trusted', true), '') = 'on'
-      or coalesce(auth.role(), '') = 'service_role'
-      -- Sin JWT (SQL Editor, migraciones, seeds, triggers de GoTrue). Una petición anónima
-      -- de PostgREST lleva role='anon' y NO entra aquí.
-      or nullif(auth.role(), '') is null;
+  -- Sin GUC personalizados. PostgREST ejecuta las peticiones de usuario como 'anon' o
+  -- 'authenticated' (nunca confiables). Los RPCs SECURITY DEFINER (propietario postgres),
+  -- el SQL Editor, las migraciones, los seeds y el trigger de GoTrue tienen otro current_user.
+  select current_user not in ('anon', 'authenticated')
+      or coalesce(auth.role(), '') = 'service_role';
 $$;
 revoke all on function public.feblio_trusted() from public, anon, authenticated;
 revoke all on function public.request_ip() from public, anon, authenticated;
@@ -57,12 +57,13 @@ begin
   -- Roles admitidos desde el signup: 'empresa' y 'cliente' pasan tal cual (no se degradan).
   -- 'admin' SOLO se admite cuando se cumplen DOS condiciones independientes:
   --   (a) la sesión no es la de Supabase Auth (supabase_auth_admin/authenticator) ni una de PostgREST, y
-  --   (b) el operador lo ha autorizado explícitamente en su sesión SQL:
-  --       select set_config('feblio.allow_admin_signup', 'on', false);   -- (seed 0002 lo hace)
+  --   (b) el operador lo ha autorizado explícitamente con una fila (solo admin puede escribirla):
+  --       insert into public.platform_settings (key, value) values ('allow_admin_signup', 'true');
+  --       (el seed 0002 la crea y la borra; sin GUC personalizados)
   -- Cualquier otro intento se degrada a 'cliente' y queda auditado.
   if v_role_raw = 'admin' then
     if session_user in ('supabase_auth_admin', 'authenticator', 'anon', 'authenticated', 'service_role')
-       or coalesce(current_setting('feblio.allow_admin_signup', true), '') <> 'on' then
+       or not exists (select 1 from public.platform_settings where key = 'allow_admin_signup' and value = 'true'::jsonb) then
       v_role_raw := 'cliente';
       v_admin_blocked := true;
     end if;

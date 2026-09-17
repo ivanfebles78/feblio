@@ -17,16 +17,17 @@ begin
   return new;
 end $$;
 
--- Marca "confiable" para escrituras que solo deben venir de RPCs SECURITY DEFINER.
--- Los RPCs la activan con `set feblio.trusted = 'on'` en su cabecera, de modo que
--- Postgres la restaura al salir de la función (no queda activa en la transacción).
+-- ¿La escritura procede de un contexto "confiable"? Sin GUC personalizados (no
+-- permitidos en Supabase alojado): se basa en current_user.
+--   · Peticiones directas de PostgREST se ejecutan como 'anon' o 'authenticated' → NO confiable.
+--   · RPCs SECURITY DEFINER (propietario postgres), SQL Editor, migraciones, seeds y el
+--     trigger de GoTrue (supabase_auth_admin) → confiable.
+--   · service_role (Edge Functions) → confiable.
 -- Los triggers de guarda la consultan.
 create or replace function public.feblio_trusted()
 returns boolean language sql stable as $$
-  select coalesce(current_setting('feblio.trusted', true), '') = 'on'
-      or coalesce(auth.role(), '') = 'service_role'
-      -- Sesiones sin JWT (SQL Editor, migraciones, seeds) son privilegiadas por definición
-      or auth.uid() is null;
+  select current_user not in ('anon', 'authenticated')
+      or coalesce(auth.role(), '') = 'service_role';
 $$;
 
 -- IP / user-agent de la petición actual (PostgREST expone request.headers)
@@ -108,6 +109,30 @@ where entity_type is null and tax_type in ('CIF', 'NIF');
 drop trigger if exists empresas_set_updated_at on public.empresas;
 create trigger empresas_set_updated_at before update on public.empresas
   for each row execute function public.set_updated_at();
+
+-- Backfill (una sola vez, ANTES de instalar el trigger de guarda): las empresas que ya
+-- existían al instalar el onboarding no se ven forzadas al wizard. Se ejecuta mediante una
+-- función interna SECURITY DEFINER no invocable por usuarios y se marca en platform_settings
+-- para que reejecutar la migración (idempotente) nunca complete empresas nuevas.
+create or replace function public.onboarding_backfill_existing()
+returns int language plpgsql security definer set search_path = public as $$
+declare n int := 0;
+begin
+  if exists (select 1 from public.platform_settings where key = 'onboarding_backfill_done') then
+    return 0;
+  end if;
+  update public.empresas
+     set onboarding_status = 'completed',
+         onboarding_completed_at = coalesce(onboarding_completed_at, now()),
+         onboarding_started_at = coalesce(onboarding_started_at, created_at)
+   where onboarding_status = 'not_started';
+  get diagnostics n = row_count;
+  insert into public.platform_settings (key, value)
+  values ('onboarding_backfill_done', jsonb_build_object('at', now(), 'empresas', n));
+  return n;
+end $$;
+revoke all on function public.onboarding_backfill_existing() from public, anon, authenticated;
+select public.onboarding_backfill_existing();
 
 -- Guarda: las columnas onboarding_* solo cambian a través de los RPCs.
 create or replace function public.guard_empresa_onboarding_columns()
@@ -708,7 +733,7 @@ grant execute on function public.get_verification_state() to authenticated;
 -- Si la plataforma usa la confirmación nativa de Supabase, reconocerla como verificación
 -- (evita pedir un OTP adicional). Solo actúa en modo 'native'.
 create or replace function public.claim_native_email_verification()
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid := public.current_empresa_id(); v_mode text; v_confirmed timestamptz;
 begin
   if auth.uid() is null then raise exception 'No autenticado' using errcode = '42501'; end if;
@@ -728,7 +753,7 @@ grant execute on function public.claim_native_email_verification() to authentica
 
 -- verify_email_otp: igual que 0008 + marca de confianza + auditoría
 create or replace function public.verify_email_otp(p_code text)
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid; v_otp public.email_otps;
 begin
   select empresa_id into v_empresa from public.profiles where id = auth.uid();
@@ -888,7 +913,7 @@ grant execute on function public.get_onboarding(uuid) to authenticated;
 
 -- Guardar datos de un paso (autoguardado). No cambia a completed.
 create or replace function public.save_onboarding_step(p_step_key text, p_data jsonb, p_empresa_id uuid default null)
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid := public.onboarding_target_empresa(p_empresa_id); v_row public.onboarding_steps;
 begin
   if p_data is null or jsonb_typeof(p_data) <> 'object' then raise exception 'Datos del paso no válidos'; end if;
@@ -918,7 +943,7 @@ revoke all on function public.save_onboarding_step(text, jsonb, uuid) from publi
 grant execute on function public.save_onboarding_step(text, jsonb, uuid) to authenticated;
 
 create or replace function public.complete_onboarding_step(p_step_key text, p_data jsonb default null, p_empresa_id uuid default null)
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid := public.onboarding_target_empresa(p_empresa_id); v_row public.onboarding_steps;
 begin
   perform public.ensure_onboarding_defaults(v_empresa);
@@ -942,7 +967,7 @@ revoke all on function public.complete_onboarding_step(text, jsonb, uuid) from p
 grant execute on function public.complete_onboarding_step(text, jsonb, uuid) to authenticated;
 
 create or replace function public.skip_onboarding_step(p_step_key text, p_reason text default null, p_empresa_id uuid default null)
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid := public.onboarding_target_empresa(p_empresa_id); v_row public.onboarding_steps;
 begin
   if p_step_key in ('company', 'billing', 'review') then
@@ -966,7 +991,7 @@ revoke all on function public.skip_onboarding_step(text, text, uuid) from public
 grant execute on function public.skip_onboarding_step(text, text, uuid) to authenticated;
 
 create or replace function public.reopen_onboarding_step(p_step_key text, p_empresa_id uuid default null)
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid := public.onboarding_target_empresa(p_empresa_id); v_row public.onboarding_steps;
 begin
     update public.onboarding_steps
@@ -984,7 +1009,7 @@ grant execute on function public.reopen_onboarding_step(text, uuid) to authentic
 
 -- Marca un paso con error / requiere atención (p. ej. tras una prueba fallida)
 create or replace function public.flag_onboarding_step(p_step_key text, p_status text, p_errors jsonb default '[]'::jsonb, p_empresa_id uuid default null)
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid := public.onboarding_target_empresa(p_empresa_id); v_row public.onboarding_steps;
 begin
   if p_status not in ('error', 'requires_attention', 'in_progress') then raise exception 'Estado no permitido'; end if;
@@ -1000,7 +1025,7 @@ grant execute on function public.flag_onboarding_step(text, text, jsonb, uuid) t
 
 -- Reabrir la configuración inicial completa desde Configuración
 create or replace function public.reopen_onboarding(p_empresa_id uuid default null)
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid := public.onboarding_target_empresa(p_empresa_id);
 begin
     update public.empresas
@@ -1071,7 +1096,7 @@ revoke all on function public.get_onboarding_blockers(uuid) from public, anon;
 grant execute on function public.get_onboarding_blockers(uuid) to authenticated;
 
 create or replace function public.activate_onboarding(p_empresa_id uuid default null)
-returns jsonb language plpgsql security definer set search_path = public set feblio.trusted = 'on' as $$
+returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_empresa uuid := public.onboarding_target_empresa(p_empresa_id); v_b jsonb; v_level int;
 begin
   v_b := public.onboarding_blockers(v_empresa);
@@ -1432,16 +1457,3 @@ drop policy if exists empresa_docs_delete on storage.objects;
 create policy empresa_docs_delete on storage.objects for delete to authenticated
   using (bucket_id = 'empresa-docs' and (public.is_admin() or (public.current_role_name() = 'empresa'
          and (storage.foldername(name))[1] = public.current_empresa_id()::text)));
-
--- ===========================================================================
--- 26) Backfill: empresas ya existentes no se ven forzadas al wizard.
---     Podrán reabrirlo desde Configuración → Reabrir configuración inicial.
--- ===========================================================================
-select set_config('feblio.trusted', 'on', false);   -- permite el backfill pese al trigger de guarda
-update public.empresas
-   set onboarding_status = 'completed', onboarding_completed_at = coalesce(onboarding_completed_at, now()),
-       onboarding_started_at = coalesce(onboarding_started_at, created_at)
- where onboarding_status = 'not_started' and created_at < now() - interval '1 minute';
-
--- Restaura la marca de confianza de la sesión
-select set_config('feblio.trusted', 'off', false);

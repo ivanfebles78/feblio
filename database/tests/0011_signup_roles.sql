@@ -82,14 +82,14 @@ begin
   insert into _t values ('R3b cliente: no crea empresa', (select empresa_id from public.profiles where id = v_cli) is null and not exists (select 1 from public.empresas where name = 'Casa Chona'));
 
   -- R4/R5: sesión administrativa directa (seed), con y sin opt-in
-  perform set_config('feblio.allow_admin_signup', 'on', true);
+  insert into public.platform_settings (key, value) values ('allow_admin_signup', 'true'::jsonb) on conflict (key) do update set value = 'true'::jsonb;
   insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
                           confirmation_token, recovery_token, email_change_token_new, email_change, email_change_token_current, phone_change, phone_change_token, reauthentication_token)
   values ('00000000-0000-0000-0000-000000000000', v_seed, 'authenticated', 'authenticated', 'seed-admin@example.invalid', '', now(), now(), now(), '{}', '{"full_name":"Seed","role":"admin"}', '', '', '', '', '', '', '', '');
   select role::text into v_text from public.profiles where id = v_seed;
   insert into _t values (case when session_user in ('postgres') or v_simulated then 'R4 seed con opt-in: crea admin' else 'R4 seed con opt-in (sesión no administrativa): degradado' end,
                          case when session_user in ('supabase_auth_admin', 'authenticator', 'anon', 'authenticated', 'service_role') then v_text = 'cliente' else v_text = 'admin' end);
-  perform set_config('feblio.allow_admin_signup', 'off', true);
+  delete from public.platform_settings where key = 'allow_admin_signup';
   insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
                           confirmation_token, recovery_token, email_change_token_new, email_change, email_change_token_current, phone_change, phone_change_token, reauthentication_token)
   values ('00000000-0000-0000-0000-000000000000', v_seed2, 'authenticated', 'authenticated', 'seed-admin2@example.invalid', '', now(), now(), now(), '{}', '{"full_name":"Seed2","role":"admin"}', '', '', '', '', '', '', '', '');
