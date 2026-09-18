@@ -80,3 +80,26 @@ jobs:
       - run: npm ci
       # Sin variables VITE_*: el build no las necesita (se inyectan en Railway) y la CI no toca Supabase.
       - run: npm run build
+
+  edge-security:
+    name: edge-security (deno test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: supabase/functions
+    env:
+      # Clave de PRUEBA (fixture pública, no es un secreto): solo sirve para derivar la
+      # clave AES del test. El test no se conecta a Supabase ni a ningún servicio externo.
+      APP_ENCRYPTION_KEY: ci-test-key-not-a-secret-0123456789
+    steps:
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      # Permisos mínimos: solo lectura de la variable de entorno APP_ENCRYPTION_KEY.
+      # --node-modules-dir=auto instala únicamente @types/node (lo exige el .d.ts de
+      # supabase-js al comprobar tipos); no hay --allow-net ni --allow-all.
+      - run: deno test --node-modules-dir=auto --allow-env=APP_ENCRYPTION_KEY _shared/integrations/security.test.ts

@@ -76,7 +76,7 @@ Tras intercambiar el código, la función redirige a `${APP_URL}/integraciones/c
 (sin tokens en la URL).
 
 Código compartido en `supabase/functions/_shared/integrations/` (`crypto.ts`, `db.ts`, `settings.ts`, `providers/*`).
-Pruebas: `_shared/integrations/security.test.ts` (`deno test --allow-env`).
+Pruebas: `_shared/integrations/security.test.ts` (`deno test --node-modules-dir=auto --allow-env=APP_ENCRYPTION_KEY`); se ejecutan en CI en el job `edge-security` sin red ni conexión a Supabase.
 
 Secrets: `supabase secrets set APP_ENCRYPTION_KEY=… APP_URL=https://… GOOGLE_CLIENT_ID=… …`
 (`APP_ENCRYPTION_KEY`: cadena aleatoria ≥ 32 caracteres; cambiarla invalida las credenciales cifradas).

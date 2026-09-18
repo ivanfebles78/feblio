@@ -1,6 +1,6 @@
 // Feblio · Pruebas de seguridad de la capa compartida de integraciones.
-// Ejecutar con:  cd supabase/functions && APP_ENCRYPTION_KEY=clave-de-prueba-larga-0123456789 deno test --allow-env _shared/integrations/security.test.ts
-// (No se ejecutaron en el entorno de desarrollo Windows por no disponer de Deno; ver docs/integraciones.md.)
+// Ejecutar con:  cd supabase/functions && APP_ENCRYPTION_KEY=clave-de-prueba-larga-0123456789 deno test --node-modules-dir=auto --allow-env=APP_ENCRYPTION_KEY _shared/integrations/security.test.ts
+// Se ejecuta en CI (job edge-security de .github/workflows/ci.yml) sin acceso a red ni a Supabase.
 import { assert, assertEquals, assertRejects } from 'https://deno.land/std@0.224.0/assert/mod.ts'
 import { HttpError, resolveActor } from './db.ts'
 import { decryptJson, encryptJson, signState, verifyState } from './crypto.ts'
