@@ -21,7 +21,9 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { SectionCard, Badge, EmptyState } from '../components/ui'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
+import { cleanupTestData } from '../lib/onboarding/api'
 import { useAuth } from '../context/AuthContext'
 import {
   formatEUR,
@@ -74,6 +76,9 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<Project | 'new' | null>(null)
+  const [confirmCleanup, setConfirmCleanup] = useState(false)
+  const [cleaning, setCleaning] = useState(false)
+  const [cleanupMsg, setCleanupMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   async function load() {
     const [p, c, d, t] = await Promise.all([
@@ -95,7 +100,7 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
   }
   useEffect(() => {
     load()
-  }, []) // eslint-disable-line
+  }, [])
 
   const clientesCount = clientes.length
 
@@ -108,7 +113,8 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
   function toggle(id: string) {
     setOpen((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -122,11 +128,74 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
   }
 
   const invoiced = projects.reduce((s, p) => s + Number(p.invoiced), 0)
+  // Datos sandbox de la prueba guiada del asistente (marcados is_test en servidor)
+  const testCounts = {
+    projects: projects.filter((p) => p.is_test).length,
+    clientes: clientes.filter((c) => c.is_test).length,
+    tasks: tasks.filter((t) => t.is_test).length,
+  }
+  const hasTestData = testCounts.projects + testCounts.clientes + testCounts.tasks > 0
+
+  async function cleanupSandbox() {
+    setConfirmCleanup(false)
+    setCleaning(true)
+    setCleanupMsg(null)
+    try {
+      const res = await cleanupTestData()
+      const d = res.deleted
+      setCleanupMsg({ ok: true, text: `Datos de prueba eliminados (${d.projects} proyectos, ${d.clientes} clientes, ${d.tasks} pendientes, ${d.documents} documentos).` })
+      await load()
+    } catch (e) {
+      setCleanupMsg({ ok: false, text: e instanceof Error ? e.message : 'No se pudieron eliminar los datos de prueba.' })
+    } finally {
+      setCleaning(false)
+    }
+  }
 
   if (loading) return <p className="text-slate-400">Cargando…</p>
 
   return (
     <div className="space-y-6">
+      {/* Datos de prueba del asistente */}
+      {(hasTestData || cleanupMsg) && (
+        <div
+          className={`flex flex-col gap-3 rounded-2xl border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between ${
+            cleanupMsg && !hasTestData
+              ? cleanupMsg.ok
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                : 'border-red-200 bg-red-50 text-red-900'
+              : 'border-amber-200 bg-amber-50 text-amber-900'
+          }`}
+          role="status"
+        >
+          <p>
+            {hasTestData ? (
+              <>
+                <strong>Datos de prueba del asistente:</strong> {testCounts.projects} proyecto(s), {testCounts.clientes} cliente(s) y{' '}
+                {testCounts.tasks} pendiente(s) marcados como prueba. No son datos reales.
+              </>
+            ) : (
+              cleanupMsg?.text
+            )}
+            {hasTestData && cleanupMsg && !cleanupMsg.ok && <span className="block text-red-700">{cleanupMsg.text}</span>}
+          </p>
+          {hasTestData && (
+            <button
+              type="button"
+              onClick={() => setConfirmCleanup(true)}
+              disabled={cleaning}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+            >
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {cleaning ? 'Eliminando…' : 'Eliminar datos de prueba'}
+            </button>
+          )}
+        </div>
+      )}
+      <ConfirmDialog open={confirmCleanup} title="Eliminar datos de prueba" tone="danger" confirmLabel="Eliminar" busy={cleaning} onConfirm={cleanupSandbox} onCancel={() => setConfirmCleanup(false)}>
+        Se borrarán el cliente, el proyecto, los documentos, las tareas y el formulario creados por la prueba guiada. Tus datos reales y tu
+        configuración no se tocan.
+      </ConfirmDialog>
+
       {/* Banner de bienvenida */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-indigo-600 to-violet-700 p-6 text-white shadow-float sm:p-8">
         <div className="blueprint absolute inset-0 opacity-10" />
@@ -178,6 +247,7 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium text-slate-800">{t.title}</p>
+                      {t.is_test && <Badge tone="amber">Prueba</Badge>}
                       <Badge tone={pr.tone}>Prioridad {pr.label}</Badge>
                       <span className="text-xs text-slate-400">{diasDesde(t.created_at)}</span>
                     </div>
@@ -227,7 +297,10 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
                       <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block font-semibold text-slate-800">{p.name}</span>
+                      <span className="flex flex-wrap items-center gap-2 font-semibold text-slate-800">
+                        {p.name}
+                        {p.is_test && <Badge tone="amber">Prueba</Badge>}
+                      </span>
                       <span className="text-xs text-slate-400">
                         {docs.length} documento{docs.length === 1 ? '' : 's'} · {p.progress}% completado
                       </span>

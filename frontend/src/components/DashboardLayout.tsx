@@ -49,23 +49,24 @@ export function DashboardLayout({
         <div className="flex h-16 items-center px-5">
           <Logo tone="white" size={30} />
         </div>
-        <nav className="mt-2 space-y-1 px-3">
+        <nav className="mt-2 space-y-1 px-3" aria-label="Navegación principal">
           {nav.map((item) => {
             const isActive = item.label === active
             return (
               <button
                 key={item.label}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => {
                   onNavigate(item.label)
                   setOpen(false)
                 }}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition ${
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
                   isActive
                     ? 'bg-white/15 text-white'
                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <span className="text-base">{item.icon}</span>
+                <span className="text-base" aria-hidden="true">{item.icon}</span>
                 {item.label}
               </button>
             )
@@ -103,7 +104,10 @@ export function DashboardLayout({
           <div className="relative">
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-2.5 transition hover:border-brand-300 hover:shadow-sm"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="Menú de cuenta"
+              className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-2.5 transition hover:border-brand-300 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
             >
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 text-sm font-bold text-white">
                 {initials}
