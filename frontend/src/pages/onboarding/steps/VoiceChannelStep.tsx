@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { ChipsField, RadioCards, SelectField, TextField, TextareaField, ToggleField } from '../../../components/forms/Field'
 import { BusinessHoursEditor } from '../../../components/forms/BusinessHoursEditor'
@@ -25,6 +25,21 @@ export function VoiceChannelStep({ errors, showErrors, mode }: StepProps) {
   const automated = data.mode === 'agent' || data.mode === 'integrated' || data.mode === 'forward'
   const adapter = data.mode === 'manual' ? adapterById('manual_log') : automated ? adapterById('voice_provider') : undefined
   const empresaTz = ctx.snapshot?.empresa.timezone ?? 'Europe/Madrid'
+
+  // «Registro manual» es el valor inicial y no requiere clic: si la conexión aún no refleja ese modo,
+  // se configura una vez al montar para que cuente como método de creación de solicitudes.
+  const autoConfigured = useRef(false)
+  useEffect(() => {
+    if (autoConfigured.current || !connection || integration.busy) return
+    const needsSetup = data.mode === 'manual' && (connection.provider !== 'manual_log' || connection.status !== 'connected')
+    if (!needsSetup) return
+    autoConfigured.current = true
+    void (async () => {
+      const ok = await integration.configure('manual_log', 'connected', { ...settings, mode: 'manual' }, undefined, 'Registro manual')
+      if (ok) await integration.test('manual_log')
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connection?.provider, connection?.status, data.mode])
 
   async function choose(m: VoiceMode) {
     set({ mode: m, timezone: data.timezone || empresaTz })

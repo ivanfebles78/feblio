@@ -93,7 +93,9 @@ export function RegisterForm({ busy, onSubmit }: RegisterFormProps) {
   function set<K extends keyof RegisterFormValues>(key: K, value: RegisterFormValues[K]) {
     setValues((v) => {
       const next = { ...v, [key]: value }
-      if (touched[key]) setErrors(validateRegister(next))
+      // Recalcula siempre: los errores solo se muestran para campos tocados, y así un error
+      // ya visible (p. ej. términos sin aceptar) desaparece en cuanto el valor es válido.
+      setErrors(validateRegister(next))
       return next
     })
   }

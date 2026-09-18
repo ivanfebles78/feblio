@@ -5,3 +5,6 @@ dist/
 .env.*.local
 .DS_Store
 *.log
+
+# Estado local de 'supabase link' (project ref, no secretos, pero es por máquina)
+supabase/.temp/

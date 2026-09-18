@@ -43,7 +43,7 @@ feblio/
 │       ├── pages/            # Landing, dashboards, onboarding (10 pasos), legal, OAuth callback
 │       └── sections/         # Secciones del dashboard (home, plantillas, configuración)
 ├── database/
-│   ├── migrations/           # 0001 … 0011 (esquema, RLS, RPCs, sincronización de email, endurecimiento)
+│   ├── migrations/           # 0001 … 0012 (esquema, RLS, RPCs, sincronización de email, endurecimiento, fixes E2E)
 │   ├── seed/                 # Datos de desarrollo (sin credenciales)
 │   └── tests/                # 0009_rls_isolation · 0009_backfill · 0010_sync_profile_email · 0011_security_audit · 0011_signup_roles
 ├── supabase/functions/       # send-otp, send-intake-email, integrations (privada), integrations-oauth-callback (pública), _shared
@@ -99,7 +99,7 @@ Cuentas de prueba del seed (`database/seed/0002_seed_users.sql`):
 Aplica en orden en el SQL Editor de Supabase (todas idempotentes):
 `0001_init_schema.sql` → `0002_seed_users.sql` (seed; requiere `set_config('app.seed_password', …)`) →
 `0003_harden_functions.sql` → `0004` → `0005` → `0006` → `0007` → `0008` → **`0009_onboarding_wizard.sql`** →
-**`0010_sync_profile_email.sql`** → **`0011_security_hardening.sql`** (bucket `intake-files` privado, revocaciones, signup sin auto-admin).
+**`0010_sync_profile_email.sql`** → **`0011_security_hardening.sql`** (bucket `intake-files` privado, revocaciones, signup sin auto-admin) → **`0012_e2e_fixes.sql`** (auditoría idempotente de la verificación nativa).
 Después, ejecuta en una rama los tests `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql` y `0011_signup_roles.sql`.
 
 ## Documentación

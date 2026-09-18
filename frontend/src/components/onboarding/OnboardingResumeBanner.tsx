@@ -17,11 +17,19 @@ export function OnboardingResumeBanner({ currentStep, completedCount }: Onboardi
       <div className="flex items-start gap-2">
         <ClipboardList className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
         <p>
-          Configuración inicial incompleta: {completedCount} de {STEPS.length} pasos.
-          {def && (
+          {completedCount >= STEPS.length ? (
             <>
-              {' '}
-              Continúa por <strong>{def.title}</strong>.
+              Configuración inicial reabierta: revisa lo que necesites y vuelve a pulsar <strong>Activar Feblio</strong> en el último paso.
+            </>
+          ) : (
+            <>
+              Configuración inicial incompleta: {completedCount} de {STEPS.length} pasos.
+              {def && (
+                <>
+                  {' '}
+                  Continúa por <strong>{def.title}</strong>.
+                </>
+              )}
             </>
           )}
         </p>

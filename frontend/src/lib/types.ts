@@ -107,6 +107,7 @@ export interface Task {
   priority: number
   status: 'pendiente' | 'resuelto'
   related_id: string | null
+  is_test?: boolean
   created_at: string
   resolved_at: string | null
 }
@@ -123,6 +124,7 @@ export interface Cliente {
   name: string
   email: string | null
   phone: string | null
+  is_test?: boolean
   created_at: string
 }
 
@@ -137,6 +139,7 @@ export interface Project {
   provision_funds: number
   pending_payments: number
   progress: number
+  is_test?: boolean
   created_at: string
 }
 

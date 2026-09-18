@@ -108,6 +108,15 @@ describe('<RegisterForm />', () => {
     expect(params).not.toHaveProperty('confirmPassword')
   })
 
+  it('el error de términos desaparece en cuanto se marca la casilla', async () => {
+    const { user } = setup()
+    await user.click(screen.getByRole('button', { name: /crear cuenta/i }))
+    expect(screen.getByRole('checkbox', { name: /términos del servicio/i })).toHaveAttribute('aria-invalid', 'true')
+    await user.click(screen.getByRole('checkbox', { name: /términos del servicio/i }))
+    expect(screen.getByRole('checkbox', { name: /términos del servicio/i })).not.toHaveAttribute('aria-invalid')
+    expect(screen.queryByText(/debes aceptar los términos/i)).not.toBeInTheDocument()
+  })
+
   it('las contraseñas distintas bloquean el envío', async () => {
     const { onSubmit, user } = setup()
     await user.type(screen.getByLabelText(/^contraseña/i), 'Segura123')
