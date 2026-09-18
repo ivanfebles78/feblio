@@ -20,11 +20,15 @@ import {
   Save,
   type LucideIcon,
 } from 'lucide-react'
-import { SectionCard, Badge, EmptyState } from '../components/ui'
+import { SectionCard, Badge } from '../components/ui'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { EmptyState, StatusPill } from '../components/v2/Card'
+import { Button } from '../components/v2/Button'
+import { SetupProgressCard, useSetupProgress } from '../components/onboarding/SetupProgressCard'
 import { supabase } from '../lib/supabase'
 import { cleanupTestData } from '../lib/onboarding/api'
 import { useAuth } from '../context/AuthContext'
+import type { EmpresaSummary } from '../pages/EmpresaDashboard'
 import {
   formatEUR,
   STATUS_LABEL,
@@ -66,9 +70,18 @@ function diasDesde(iso: string): string {
   return `hace ${d} días`
 }
 
-export function EmpresaHome({ empresaName }: { empresaName: string }) {
+interface EmpresaHomeProps {
+  empresaId: string
+  empresa: EmpresaSummary | null
+  /** Resalta la tarjeta de configuración (llegada desde la bienvenida con «Configurar Feblio»). */
+  highlightSetup?: boolean
+}
+
+export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: EmpresaHomeProps) {
   const { profile } = useAuth()
-  const empresaId = profile?.empresa_id ?? ''
+  const setup = useSetupProgress(empresaId, empresa?.onboarding_status ?? null)
+  const firstName = (profile?.full_name ?? '').trim().split(/\s+/)[0] || ''
+  const setupPending = empresa?.onboarding_status !== 'completed'
   const [projects, setProjects] = useState<Project[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [documents, setDocuments] = useState<DocumentRow[]>([])
@@ -196,27 +209,36 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
         configuración no se tocan.
       </ConfirmDialog>
 
-      {/* Banner de bienvenida */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 via-indigo-600 to-violet-700 p-6 text-white shadow-float sm:p-8">
-        <div className="blueprint absolute inset-0 opacity-10" />
-        <div className="animate-glow pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative">
-          <p className="text-sm text-brand-100">Bienvenido de nuevo</p>
-          <h2 className="mt-1 text-2xl font-bold sm:text-3xl">
-            Hola, {empresaName || 'empresa'} 👋
-          </h2>
-          <p className="mt-1 text-sm text-brand-100">
-            Este es el resumen de tu actividad.
+      {/* Cabecera */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{firstName ? `Hola, ${firstName}` : 'Hola'}</h1>
+          <p className="mt-1 text-sm text-slate-600">
+            {projects.length === 0 && clientes.length === 0
+              ? 'Tu empresa está lista. Empieza creando tu primer proyecto o completa la configuración.'
+              : 'Esto es lo que necesita tu atención hoy.'}
           </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {setupPending ? <StatusPill tone="pending">Configuración pendiente</StatusPill> : <StatusPill tone="success">Configuración completa</StatusPill>}
+          {empresa?.subscription_status === 'trial' && <StatusPill tone="info">Periodo de prueba</StatusPill>}
         </div>
       </div>
 
+      {/* Configuración progresiva (solo mientras esté incompleta) */}
+      {setupPending && setup.progress && <SetupProgressCard empresaId={empresaId} progress={setup.progress} highlight={highlightSetup} />}
+      {setupPending && setup.error && (
+        <p className="text-sm text-red-700" role="alert">
+          {setup.error}
+        </p>
+      )}
+
       {/* Métricas */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={FolderKanban} label="Proyectos" value={String(projects.length)} hint={`${projects.filter((p) => p.status === 'en_progreso').length} en progreso`} grad="from-blue-500 to-brand-600" />
-        <MetricCard icon={Users} label="Clientes" value={String(clientesCount)} grad="from-emerald-500 to-teal-600" />
-        <MetricCard icon={Wallet} label="Facturado" value={formatEUR(invoiced)} grad="from-violet-500 to-purple-600" />
-        <MetricCard icon={ListTodo} label="Pendientes" value={String(tasks.length)} hint={tasks.length ? 'requieren atención' : 'todo al día'} grad="from-amber-500 to-orange-600" />
+        <MetricCard icon={FolderKanban} label="Proyectos" value={String(projects.length)} hint={projects.length ? `${projects.filter((p) => p.status === 'en_progreso').length} en progreso` : 'Ninguno todavía'} />
+        <MetricCard icon={Users} label="Clientes" value={String(clientesCount)} hint={clientesCount ? undefined : 'Ninguno todavía'} />
+        <MetricCard icon={Wallet} label="Facturado" value={formatEUR(invoiced)} hint={invoiced ? undefined : 'Sin facturación aún'} />
+        <MetricCard icon={ListTodo} label="Pendientes" value={String(tasks.length)} hint={tasks.length ? 'Requieren atención' : 'Todo al día'} />
       </div>
 
       {/* Pendientes */}
@@ -225,9 +247,7 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
         action={<Badge tone={tasks.length ? 'amber' : 'green'}>{tasks.length} por resolver</Badge>}
       >
         {tasks.length === 0 ? (
-          <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-6 text-sm text-emerald-600">
-            <CheckCircle2 className="h-5 w-5" /> ¡Todo al día! No tienes pendientes.
-          </div>
+          <EmptyState icon={<CheckCircle2 className="h-5 w-5" />} title="Todo al día" description="Las tareas que Feblio te proponga y los pendientes de tus proyectos aparecerán aquí." />
         ) : (
           <ul className="space-y-2">
             {tasks.map((t) => {
@@ -272,14 +292,23 @@ export function EmpresaHome({ empresaName }: { empresaName: string }) {
         action={
           <div className="flex items-center gap-2">
             <Badge tone="blue">{projects.length}</Badge>
-            <button onClick={() => setEditing('new')} className="btn-primary !px-3 !py-2 text-sm">
-              <Plus className="h-4 w-4" /> Nuevo proyecto
-            </button>
+            <Button size="sm" onClick={() => setEditing('new')} leading={<Plus className="h-4 w-4" aria-hidden="true" />}>
+              Nuevo proyecto
+            </Button>
           </div>
         }
       >
         {projects.length === 0 ? (
-          <EmptyState text="Aún no tienes proyectos." />
+          <EmptyState
+            icon={<FolderKanban className="h-5 w-5" />}
+            title="Aún no tienes proyectos"
+            description="Crea el primero para empezar a organizar documentos, presupuestos y clientes. No necesitas completar la configuración."
+            action={
+              <Button size="sm" onClick={() => setEditing('new')} leading={<Plus className="h-4 w-4" aria-hidden="true" />}>
+                Crear proyecto
+              </Button>
+            }
+          />
         ) : (
           <ul className="space-y-2">
             {projects.map((p) => {
@@ -562,38 +591,19 @@ function ProjectForm({
   )
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  grad,
-}: {
-  icon: LucideIcon
-  label: string
-  value: string
-  hint?: string
-  grad: string
-}) {
+function MetricCard({ icon: Icon, label, value, hint }: { icon: LucideIcon; label: string; value: string; hint?: string }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-lg">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,.04)]">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-1.5 text-3xl font-extrabold tracking-tight text-slate-900">
-            {value}
-          </p>
-          {hint && <p className="mt-0.5 text-xs text-slate-400">{hint}</p>}
+          <p className="text-sm font-medium text-slate-600">{label}</p>
+          <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-slate-900">{value}</p>
+          {hint && <p className="mt-1 text-sm text-slate-500">{hint}</p>}
         </div>
-        <span
-          className={`grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br ${grad} text-white shadow-lg`}
-        >
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-50 text-slate-500 ring-1 ring-slate-200" aria-hidden="true">
           <Icon className="h-5 w-5" />
         </span>
       </div>
-      <div
-        className={`pointer-events-none absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-gradient-to-br ${grad} opacity-[0.08] transition group-hover:opacity-[0.15]`}
-      />
     </div>
   )
 }

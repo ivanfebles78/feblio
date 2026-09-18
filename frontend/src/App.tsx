@@ -11,13 +11,15 @@ import EmpresaDashboard from './pages/EmpresaDashboard'
 import ClienteDashboard from './pages/ClienteDashboard'
 import PublicIntakeForm from './pages/PublicIntakeForm'
 import { LEGAL_ROUTES } from './lib/legal'
-import { ONBOARDING_BASE } from './lib/routing'
+import { ONBOARDING_BASE, REGISTER_PATH, WELCOME_PATH } from './lib/routing'
 
 // Carga diferida: el wizard y las páginas legales no pesan en el bundle inicial
 const OnboardingPage = lazy(() => import('./pages/onboarding/OnboardingPage'))
 const Terminos = lazy(() => import('./pages/legal/Terminos'))
 const Privacidad = lazy(() => import('./pages/legal/Privacidad'))
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const WelcomePage = lazy(() => import('./pages/WelcomePage'))
 
 export default function App() {
   return (
@@ -26,6 +28,7 @@ export default function App() {
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path={REGISTER_PATH} element={<RegisterPage />} />
             <Route path="/form/:token" element={<PublicIntakeForm />} />
             <Route path={LEGAL_ROUTES.terms} element={<Terminos />} />
             <Route path={LEGAL_ROUTES.privacy} element={<Privacidad />} />
@@ -43,6 +46,16 @@ export default function App() {
                 <ProtectedRoute allow={['empresa']}>
                   <EmpresaGate mode="dashboard">
                     <EmpresaDashboard />
+                  </EmpresaGate>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path={WELCOME_PATH}
+              element={
+                <ProtectedRoute allow={['empresa']}>
+                  <EmpresaGate mode="welcome">
+                    <WelcomePage />
                   </EmpresaGate>
                 </ProtectedRoute>
               }

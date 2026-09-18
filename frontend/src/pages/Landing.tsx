@@ -1,24 +1,20 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { HeroScene } from '../components/HeroScene'
 import { LoginForm } from '../components/auth/LoginForm'
-import { RegisterForm } from '../components/auth/RegisterForm'
 import { DemoAccess } from '../components/auth/DemoAccess'
-import { useAuth, type SignUpParams } from '../context/AuthContext'
-import { homePathForRole } from '../lib/routing'
+import { useAuth } from '../context/AuthContext'
+import { REGISTER_PATH, homePathForRole } from '../lib/routing'
 import type { DemoAccount } from '../lib/env'
 
-type Tab = 'login' | 'register'
-
+/** Inicio de sesión. El registro de empresas vive en /registro (RegisterPage). */
 export default function Landing() {
-  const { session, profile, signIn, signUp } = useAuth()
+  const { session, profile, signIn } = useAuth()
   const navigate = useNavigate()
-  const [tab, setTab] = useState<Tab>('login')
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [prefillEmail, setPrefillEmail] = useState('')
   const [demoAccount, setDemoAccount] = useState<DemoAccount | null>(null)
 
   useEffect(() => {
@@ -28,35 +24,10 @@ export default function Landing() {
 
   async function handleLogin(email: string, password: string) {
     setError(null)
-    setNotice(null)
     setBusy(true)
     const { error } = await signIn(email, password)
     if (error) setError(traducir(error))
     setBusy(false)
-  }
-
-  async function handleRegister(params: SignUpParams) {
-    setError(null)
-    setNotice(null)
-    setBusy(true)
-    const { error, needsConfirmation } = await signUp(params)
-    if (error) setError(traducir(error))
-    else if (needsConfirmation) {
-      setNotice(
-        'Cuenta creada. Te hemos enviado un enlace de confirmación a tu correo; ábrelo y vuelve a iniciar sesión para continuar.',
-      )
-      setPrefillEmail(params.email)
-      setTab('login')
-    } else {
-      setNotice('Cuenta creada. Entrando…')
-    }
-    setBusy(false)
-  }
-
-  function switchTab(t: Tab) {
-    setTab(t)
-    setError(null)
-    setNotice(null)
   }
 
   return (
@@ -70,68 +41,35 @@ export default function Landing() {
             <Logo size={34} />
           </div>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 ring-1 ring-brand-100">
-            {tab === 'login' ? '👋 Te estábamos esperando' : '🚀 Únete a Feblio'}
-          </span>
-          <h1 className="mt-3 text-2xl font-bold text-slate-900">
-            {tab === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {tab === 'login'
-              ? 'Inicia sesión para acceder a tus proyectos.'
-              : 'Tus datos personales y los de tu empresa, por separado. En minutos.'}
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Bienvenido de nuevo</h1>
+          <p className="mt-1 text-sm text-slate-600">Inicia sesión para acceder a tus proyectos.</p>
 
-          <div className="mb-6 mt-6 flex gap-6 border-b border-slate-200" role="tablist" aria-label="Acceso">
-            {(['login', 'register'] as const).map((t) => (
-              <button
-                key={t}
-                role="tab"
-                id={`tab-${t}`}
-                aria-selected={tab === t}
-                aria-controls={`panel-${t}`}
-                onClick={() => switchTab(t)}
-                className={`-mb-px border-b-2 pb-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-                  tab === t ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {t === 'login' ? 'Iniciar sesión' : 'Registrarse'}
-              </button>
-            ))}
+          <div className="mt-6">
+            <LoginForm busy={busy} demoAccount={demoAccount} onClearDemo={() => setDemoAccount(null)} onSubmit={handleLogin} />
           </div>
 
-          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-            {tab === 'login' ? (
-              <LoginForm
-                key={prefillEmail}
-                busy={busy}
-                initialEmail={prefillEmail}
-                demoAccount={demoAccount}
-                onClearDemo={() => setDemoAccount(null)}
-                onSubmit={handleLogin}
-              />
-            ) : (
-              <RegisterForm busy={busy} onSubmit={handleRegister} />
-            )}
-          </div>
-
-          <div aria-live="polite" className="mt-3 space-y-2">
+          <div aria-live="assertive" className="mt-3">
             {error && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
                 {error}
               </p>
             )}
-            {notice && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p>}
           </div>
 
-          <DemoAccess
-            onPick={(account) => {
-              setDemoAccount(account)
-              switchTab('login')
-            }}
-          />
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm font-medium text-slate-900">¿Tu empresa aún no está en Feblio?</p>
+            <p className="mt-0.5 text-sm text-slate-600">Crea tu empresa en dos minutos y configura el resto cuando quieras.</p>
+            <Link
+              to={REGISTER_PATH}
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            >
+              Crear empresa <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
 
-          <p className="mt-8 text-center text-xs text-slate-400">© {new Date().getFullYear()} Feblio</p>
+          <DemoAccess onPick={(account) => setDemoAccount(account)} />
+
+          <p className="mt-8 text-center text-sm text-slate-500">© {new Date().getFullYear()} Feblio</p>
         </div>
       </main>
     </div>
@@ -141,7 +79,6 @@ export default function Landing() {
 function traducir(msg: string): string {
   const m = msg.toLowerCase()
   if (m.includes('invalid login')) return 'Email o contraseña incorrectos.'
-  if (m.includes('already registered')) return 'Ese email ya está registrado.'
   if (m.includes('email not confirmed')) return 'Confirma tu email desde el enlace que te enviamos antes de iniciar sesión.'
   if (m.includes('rate limit')) return 'Demasiados intentos. Espera unos minutos.'
   if (m.includes('password')) return 'La contraseña no cumple la política de seguridad.'

@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getEmpresaAccessState, claimNativeVerification } from '../lib/onboarding/api'
-import { resolveEmpresaDestination, type OnboardingStatus } from '../lib/routing'
+import { WELCOME_PATH, resolveEmpresaDestination, type OnboardingStatus } from '../lib/routing'
 import { VerifyEmailScreen } from '../sections/VerifyEmailScreen'
 import { LoadingScreen, ErrorScreen } from './LoadingScreen'
 
 interface EmpresaGateProps {
-  /** Qué pantalla envuelve: el dashboard (/empresa) o el wizard (/onboarding) */
-  mode: 'dashboard' | 'onboarding'
+  /** Qué pantalla envuelve: el dashboard (/empresa), el wizard (/onboarding) o la bienvenida (/bienvenida) */
+  mode: 'dashboard' | 'onboarding' | 'welcome'
   children: ReactNode
 }
 
@@ -17,13 +17,16 @@ interface AccessState {
   verificationMode: 'otp' | 'native'
   onboardingStatus: OnboardingStatus
   onboardingCurrentStep: string | null
+  welcomeSeen: boolean
 }
 
 /**
  * Puerta de entrada de las cuentas de empresa.
- * Consulta el estado en servidor (verificación + onboarding) y decide:
- * verificación → wizard → dashboard. Muestra carga mientras consulta y evita
- * bucles: solo redirige cuando el estado del servidor contradice la ruta actual.
+ * Consulta el estado en servidor (verificación + bienvenida + onboarding) y decide:
+ * verificación → bienvenida (una sola vez) → dashboard. El wizard es opcional
+ * (configuración progresiva); solo se redirige a /empresa cuando ya está completado.
+ * Muestra carga mientras consulta y evita bucles: solo redirige cuando el estado
+ * del servidor contradice la ruta actual.
  */
 export function EmpresaGate({ mode, children }: EmpresaGateProps) {
   const { profile, signOut } = useAuth()
@@ -53,6 +56,7 @@ export function EmpresaGate({ mode, children }: EmpresaGateProps) {
         verificationMode: res.verification.mode,
         onboardingStatus: res.onboarding_status ?? 'not_started',
         onboardingCurrentStep: res.onboarding_current_step,
+        welcomeSeen: res.welcome_seen,
       })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo comprobar el estado de la cuenta.')
@@ -61,9 +65,11 @@ export function EmpresaGate({ mode, children }: EmpresaGateProps) {
     }
   }, [empresaId])
 
+  // Se vuelve a consultar al cambiar de modo: React reutiliza esta instancia entre las rutas
+  // /bienvenida → /empresa (mismo tipo de elemento), y el estado previo quedaría obsoleto.
   useEffect(() => {
     load()
-  }, [load])
+  }, [load, mode])
 
   if (!empresaId) {
     // Cuenta de empresa sin tenant (caso anómalo): el dashboard muestra el aviso; el wizard no aplica.
@@ -79,15 +85,20 @@ export function EmpresaGate({ mode, children }: EmpresaGateProps) {
     emailVerified: state.emailVerified,
     onboardingStatus: state.onboardingStatus,
     onboardingCurrentStep: state.onboardingCurrentStep,
+    welcomeSeen: state.welcomeSeen,
   })
 
   if (destination.kind === 'verify') {
     return <VerifyEmailScreen email={profile?.email ?? ''} mode={state.verificationMode} onVerified={load} />
   }
-  if (destination.kind === 'onboarding' && mode === 'dashboard') {
-    return <Navigate to={destination.path} replace state={{ from: location.pathname }} />
+  if (destination.kind === 'welcome' && mode !== 'welcome') {
+    return <Navigate to={WELCOME_PATH} replace state={{ from: location.pathname }} />
   }
-  if (destination.kind === 'dashboard' && mode === 'onboarding') {
+  if (destination.kind === 'dashboard' && mode === 'welcome') {
+    return <Navigate to="/empresa" replace />
+  }
+  if (destination.kind === 'dashboard' && mode === 'onboarding' && state.onboardingStatus === 'completed') {
+    // Configuración ya activada: el wizard solo se reabre desde Configuración (reopen)
     return <Navigate to="/empresa" replace />
   }
   return <>{children}</>

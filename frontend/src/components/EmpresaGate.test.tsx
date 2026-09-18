@@ -52,6 +52,16 @@ function app(initial: string) {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/bienvenida"
+          element={
+            <ProtectedRoute allow={['empresa']}>
+              <EmpresaGate mode="welcome">
+                <div>WELCOME</div>
+              </EmpresaGate>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </MemoryRouter>,
   )
@@ -66,34 +76,52 @@ describe('redirecciones de empresa', () => {
   })
 
   it('muestra carga y luego la verificación si el email no está verificado', async () => {
-    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: false, mode: 'otp' }, onboarding_status: 'not_started', onboarding_current_step: null })
+    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: false, mode: 'otp' }, onboarding_status: 'not_started', onboarding_current_step: null, welcome_seen: false })
     app('/empresa')
     expect(screen.getByText(/comprobando tu cuenta/i)).toBeInTheDocument()
     expect(await screen.findByText(/VERIFY ralm@example.com otp/)).toBeInTheDocument()
     expect(screen.queryByText('DASHBOARD')).not.toBeInTheDocument()
   })
 
-  it('con onboarding incompleto, /empresa redirige a /onboarding/<paso guardado>', async () => {
-    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'otp' }, onboarding_status: 'in_progress', onboarding_current_step: 'billing' })
+  it('empresa nueva verificada sin bienvenida vista: /empresa redirige a /bienvenida', async () => {
+    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'native' }, onboarding_status: 'not_started', onboarding_current_step: null, welcome_seen: false })
     app('/empresa')
+    expect(await screen.findByText('WELCOME')).toBeInTheDocument()
+  })
+
+  it('bienvenida vista: /empresa muestra el dashboard aunque el onboarding esté incompleto', async () => {
+    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'native' }, onboarding_status: 'in_progress', onboarding_current_step: 'billing', welcome_seen: true })
+    app('/empresa')
+    expect(await screen.findByText('DASHBOARD')).toBeInTheDocument()
+  })
+
+  it('bienvenida vista: /bienvenida no vuelve a mostrarse (redirige al dashboard)', async () => {
+    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'native' }, onboarding_status: 'not_started', onboarding_current_step: null, welcome_seen: true })
+    app('/bienvenida')
+    expect(await screen.findByText('DASHBOARD')).toBeInTheDocument()
+  })
+
+  it('con onboarding incompleto se puede abrir el wizard desde el dashboard', async () => {
+    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'native' }, onboarding_status: 'not_started', onboarding_current_step: null, welcome_seen: true })
+    app('/onboarding/company')
     expect(await screen.findByText('WIZARD')).toBeInTheDocument()
   })
 
-  it('con onboarding completo, /empresa muestra el dashboard', async () => {
-    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'otp' }, onboarding_status: 'completed', onboarding_current_step: null })
+  it('empresa existente completed nunca ve la bienvenida y entra al dashboard', async () => {
+    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'otp' }, onboarding_status: 'completed', onboarding_current_step: null, welcome_seen: false })
     app('/empresa')
     expect(await screen.findByText('DASHBOARD')).toBeInTheDocument()
   })
 
   it('con onboarding completo, /onboarding redirige a /empresa (sin bucle)', async () => {
-    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'otp' }, onboarding_status: 'completed', onboarding_current_step: null })
+    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'otp' }, onboarding_status: 'completed', onboarding_current_step: null, welcome_seen: true })
     app('/onboarding/company')
     expect(await screen.findByText('DASHBOARD')).toBeInTheDocument()
     expect(screen.queryByText('WIZARD')).not.toBeInTheDocument()
   })
 
   it('en modo nativo reconoce la confirmación de Supabase sin pedir OTP', async () => {
-    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: false, mode: 'native' }, onboarding_status: 'completed', onboarding_current_step: null })
+    api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: false, mode: 'native' }, onboarding_status: 'completed', onboarding_current_step: null, welcome_seen: true })
     api.claimNativeVerification.mockResolvedValue({ ok: true })
     app('/empresa')
     expect(await screen.findByText('DASHBOARD')).toBeInTheDocument()

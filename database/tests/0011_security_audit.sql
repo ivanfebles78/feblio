@@ -78,8 +78,10 @@ begin
   insert into pg_temp._t values ('S2a anon no ejecuta get_onboarding', v_ok);
   begin perform public.verify_email_otp('000000'); v_ok := false; exception when others then v_ok := true; end;
   insert into pg_temp._t values ('S2b anon no ejecuta verify_email_otp', v_ok);
-  begin perform public.feblio_trusted(); v_ok := false; exception when others then v_ok := true; end;
-  insert into pg_temp._t values ('S2c anon no ejecuta feblio_trusted', v_ok);
+  -- Desde 0013 feblio_trusted() es ejecutable (lo invocan las guardas con el rol del usuario);
+  -- lo relevante es que NUNCA considere confiable a anon/authenticated.
+  begin v_ok := (public.feblio_trusted() = false); exception when others then v_ok := true; end;
+  insert into pg_temp._t values ('S2c feblio_trusted() no considera confiable a anon', v_ok);
   begin perform public.audit_log_internal(v_e_a, null, 'x.y', null, null, 'ok', '{}'); v_ok := false; exception when others then v_ok := true; end;
   insert into pg_temp._t values ('S2d anon no ejecuta audit_log_internal', v_ok);
   -- feblio_trusted() no debe considerar confiable a anon aunque intente escribir en empresas (RLS lo impide igualmente)
