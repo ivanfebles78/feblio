@@ -8,7 +8,9 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase, initialAuthParams } from '../lib/supabase'
+import { appUrl } from '../lib/env'
+import { RESET_PASSWORD_PATH } from '../lib/routing'
 import { LEGAL_VERSIONS } from '../lib/legal'
 import { normalizeTaxId } from '../lib/validation'
 import { taxTypeForEntity, type EntityType, type Profile, type TaxType, type UserRole } from '../lib/types'
@@ -41,10 +43,18 @@ interface AuthState {
   loading: boolean
   /** Sesión activa pero el perfil aún se está cargando */
   profileLoading: boolean
+  /** La sesión actual procede de un enlace de recuperación de contraseña (evento PASSWORD_RECOVERY o #type=recovery). */
+  passwordRecovery: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signUp: (params: SignUpParams) => Promise<SignUpResult>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  /** Envía el correo de recuperación. Respuesta neutra: solo distingue errores de envío (p. ej. límite de intentos). */
+  requestPasswordReset: (email: string) => Promise<{ error: string | null }>
+  /** Establece una contraseña nueva para la sesión actual (recuperación). */
+  updatePassword: (password: string) => Promise<{ error: string | null }>
+  /** Reenvía el correo de confirmación de una cuenta pendiente. Respuesta neutra. */
+  resendConfirmation: (email: string) => Promise<{ error: string | null }>
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
@@ -93,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [passwordRecovery, setPasswordRecovery] = useState(initialAuthParams.type === 'recovery')
 
   useEffect(() => {
     let active = true
@@ -108,8 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, s) => {
       if (!active) return
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
+      if (event === 'SIGNED_OUT') setPasswordRecovery(false)
       setSession(s)
       if (s?.user) {
         setProfileLoading(true)
@@ -154,9 +167,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session?.user) setProfile(await loadProfile(session.user.id))
   }, [session])
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: `${appUrl()}${RESET_PASSWORD_PATH}`,
+    })
+    return { error: error ? error.message : null }
+  }, [])
+
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (!error) setPasswordRecovery(false)
+    return { error: error ? error.message : null }
+  }, [])
+
+  const resendConfirmation = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim().toLowerCase() })
+    return { error: error ? error.message : null }
+  }, [])
+
   const value = useMemo<AuthState>(
-    () => ({ session, profile, loading, profileLoading, signIn, signUp, signOut, refreshProfile }),
-    [session, profile, loading, profileLoading, signIn, signUp, signOut, refreshProfile],
+    () => ({ session, profile, loading, profileLoading, passwordRecovery, signIn, signUp, signOut, refreshProfile, requestPasswordReset, updatePassword, resendConfirmation }),
+    [session, profile, loading, profileLoading, passwordRecovery, signIn, signUp, signOut, refreshProfile, requestPasswordReset, updatePassword, resendConfirmation],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

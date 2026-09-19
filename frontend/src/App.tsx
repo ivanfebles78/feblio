@@ -11,7 +11,7 @@ import EmpresaDashboard from './pages/EmpresaDashboard'
 import ClienteDashboard from './pages/ClienteDashboard'
 import PublicIntakeForm from './pages/PublicIntakeForm'
 import { LEGAL_ROUTES } from './lib/legal'
-import { ONBOARDING_BASE, REGISTER_PATH, WELCOME_PATH } from './lib/routing'
+import { FORGOT_PASSWORD_PATH, ONBOARDING_BASE, REGISTER_PATH, RESET_PASSWORD_PATH, WELCOME_PATH } from './lib/routing'
 
 // Carga diferida: el wizard y las páginas legales no pesan en el bundle inicial
 const OnboardingPage = lazy(() => import('./pages/onboarding/OnboardingPage'))
@@ -20,6 +20,8 @@ const Privacidad = lazy(() => import('./pages/legal/Privacidad'))
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'))
 const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const WelcomePage = lazy(() => import('./pages/WelcomePage'))
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 
 export default function App() {
   return (
@@ -29,6 +31,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path={REGISTER_PATH} element={<RegisterPage />} />
+            <Route path={FORGOT_PASSWORD_PATH} element={<ForgotPasswordPage />} />
+            <Route path={RESET_PASSWORD_PATH} element={<ResetPasswordPage />} />
             <Route path="/form/:token" element={<PublicIntakeForm />} />
             <Route path={LEGAL_ROUTES.terms} element={<Terminos />} />
             <Route path={LEGAL_ROUTES.privacy} element={<Privacidad />} />

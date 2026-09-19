@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DemoAccess } from './DemoAccess'
+import { MemoryRouter } from 'react-router-dom'
 import { LoginForm } from './LoginForm'
 import type { DemoAccount } from '../../lib/env'
 
@@ -12,7 +13,9 @@ function Harness({ onSubmit }: { onSubmit: (email: string, password: string) => 
   const [account, setAccount] = useState<DemoAccount | null>(null)
   return (
     <>
-      <LoginForm busy={false} demoAccount={account} onClearDemo={() => setAccount(null)} onSubmit={onSubmit} />
+      <MemoryRouter>
+        <LoginForm busy={false} demoAccount={account} onClearDemo={() => setAccount(null)} onSubmit={onSubmit} />
+      </MemoryRouter>
       <DemoAccess onPick={setAccount} />
     </>
   )

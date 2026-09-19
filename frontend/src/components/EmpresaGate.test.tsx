@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import type { Profile } from '../lib/types'
 
 const authState = vi.hoisted(() => ({
@@ -24,6 +24,18 @@ vi.mock('../sections/VerifyEmailScreen', () => ({
 
 import { EmpresaGate } from './EmpresaGate'
 import { ProtectedRoute } from './ProtectedRoute'
+
+function WelcomeStub() {
+  const navigate = useNavigate()
+  return (
+    <div>
+      WELCOME
+      <button type="button" onClick={() => navigate('/empresa', { replace: true })}>
+        GO_DASHBOARD
+      </button>
+    </div>
+  )
+}
 
 function app(initial: string) {
   return render(
@@ -57,7 +69,7 @@ function app(initial: string) {
           element={
             <ProtectedRoute allow={['empresa']}>
               <EmpresaGate mode="welcome">
-                <div>WELCOME</div>
+                <WelcomeStub />
               </EmpresaGate>
             </ProtectedRoute>
           }
@@ -71,6 +83,7 @@ const empresaProfile: Profile = { id: 'u1', email: 'ralm@example.com', full_name
 
 describe('redirecciones de empresa', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     authState.profile = empresaProfile
     api.claimNativeVerification.mockResolvedValue({ ok: false })
   })
@@ -86,7 +99,29 @@ describe('redirecciones de empresa', () => {
   it('empresa nueva verificada sin bienvenida vista: /empresa redirige a /bienvenida', async () => {
     api.getEmpresaAccessState.mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'native' }, onboarding_status: 'not_started', onboarding_current_step: null, welcome_seen: false })
     app('/empresa')
-    expect(await screen.findByText('WELCOME')).toBeInTheDocument()
+    // La instancia de EmpresaGate se reutiliza entre rutas: se espera al estado estable (sin carga)
+    await waitFor(() => {
+      expect(screen.queryByText(/comprobando tu cuenta/i)).not.toBeInTheDocument()
+      expect(screen.getByText('WELCOME')).toBeInTheDocument()
+    })
+    // Consulta el estado una vez por modo (dashboard → welcome), nunca reutiliza el del modo anterior
+    expect(api.getEmpresaAccessState).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('DASHBOARD')).not.toBeInTheDocument()
+  })
+
+  it('tras marcar la bienvenida, /bienvenida → /empresa vuelve a consultar y no rebota', async () => {
+    api.getEmpresaAccessState
+      .mockResolvedValueOnce({ verification: { has_empresa: true, email_verified: true, mode: 'native' }, onboarding_status: 'not_started', onboarding_current_step: null, welcome_seen: false })
+      .mockResolvedValue({ verification: { has_empresa: true, email_verified: true, mode: 'native' }, onboarding_status: 'not_started', onboarding_current_step: null, welcome_seen: true })
+    app('/bienvenida')
+    await waitFor(() => expect(screen.getByText('WELCOME')).toBeInTheDocument())
+    screen.getByRole('button', { name: 'GO_DASHBOARD' }).click()
+    await waitFor(() => {
+      expect(screen.queryByText(/comprobando tu cuenta/i)).not.toBeInTheDocument()
+      expect(screen.getByText('DASHBOARD')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('WELCOME')).not.toBeInTheDocument()
+    expect(api.getEmpresaAccessState).toHaveBeenCalledTimes(2)
   })
 
   it('bienvenida vista: /empresa muestra el dashboard aunque el onboarding esté incompleto', async () => {
