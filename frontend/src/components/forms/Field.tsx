@@ -22,7 +22,7 @@ interface BaseProps {
 
 function Label({ id, label, required }: { id: string; label: ReactNode; required?: boolean }) {
   return (
-    <label htmlFor={id} className="mb-1 block text-xs font-medium text-slate-600">
+    <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700">
       {label}
       {required && (
         <span className="ml-0.5 text-red-500" aria-hidden="true">
@@ -37,7 +37,7 @@ function Label({ id, label, required }: { id: string; label: ReactNode; required
 export function FieldMessage({ id, error, hint }: { id: string; error?: string; hint?: ReactNode }) {
   if (error) {
     return (
-      <p id={id} className="mt-1 flex items-start gap-1 text-xs font-medium text-red-600" role="alert">
+      <p id={id} className="mt-1 flex items-start gap-1 text-sm font-medium text-red-600" role="alert">
         <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         {error}
       </p>
@@ -45,7 +45,7 @@ export function FieldMessage({ id, error, hint }: { id: string; error?: string; 
   }
   if (hint) {
     return (
-      <p id={id} className="mt-1 text-xs text-slate-400">
+      <p id={id} className="mt-1 text-sm text-slate-500">
         {hint}
       </p>
     )

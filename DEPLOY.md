@@ -17,12 +17,12 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
 ## 2. Base de datos (Supabase)
 
 1. **Antes de producción, prueba en una rama** (Supabase → Branches → New branch) o en un proyecto de desarrollo:
-   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql` y `0012_e2e_fixes.sql` → Run (en ese orden).
+   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql` y `0013_registration_v2.sql` → Run (en ese orden).
    - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql` y `0011_signup_roles.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
    - `0011` convierte `intake-files` en bucket **privado**: los adjuntos ya subidos siguen accesibles para la empresa
      dueña mediante URLs firmadas (el panel las genera al pulsar); las URLs públicas antiguas dejan de funcionar.
    - Opcional en desarrollo: `database/seed/0003_seed_onboarding_ralm.sql`.
-2. Aplica `0009`, `0010`, `0011` y `0012` en producción cuando la rama esté verificada. Es idempotente y no destruye datos: las empresas
+2. Aplica `0009`, `0010`, `0011`, `0012` y `0013` en producción cuando la rama esté verificada. Es idempotente y no destruye datos: las empresas
    existentes quedan con `onboarding_status = 'completed'` en la primera ejecución (backfill de una sola vez, marcado en
    `platform_settings.onboarding_backfill_done`; pueden reabrir el asistente desde Configuración). No usa GUC personalizados
    (`set_config` de parámetros propios no está permitido en Supabase alojado).

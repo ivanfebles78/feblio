@@ -149,3 +149,16 @@ confirmación, términos, marketing), metadatos de `signUp`, modo demo oculto, r
 onboarding, dashboard, admin, cliente), persistencia/reanudación, autoguardado y reintentos, validaciones por
 paso, estados de integración, accesibilidad básica y adjuntos privados (ruta en vez de URL pública). El aislamiento
 RLS, los permisos, el bucket privado y la sincronización de email se prueban con los scripts SQL del punto 9.
+
+
+## Registro v2 y configuración progresiva (0013)
+
+- `/registro` crea la empresa con los datos mínimos (razón social, CIF/NIF, responsable, correo, contraseña,
+  consentimientos). El rol es siempre `empresa`; el tipo de titular se infiere del identificador fiscal.
+- Flujo: registro → confirmación nativa → login → **bienvenida una sola vez** (`/bienvenida`, marcada con
+  `mark_onboarding_welcome_seen()` en `empresas.onboarding_welcome_seen_at`) → dashboard.
+- El wizard ya no bloquea el dashboard: la tarjeta «Configura Feblio a tu ritmo» agrupa los 10 pasos en 5 áreas
+  (`lib/onboarding/areas.ts`) y abre el paso real correspondiente. «Continuar después» pliega la tarjeta por
+  sesión sin restringir ninguna función.
+- Empresas preexistentes con `onboarding_status <> 'not_started'` quedan marcadas por el backfill y nunca ven la
+  bienvenida.

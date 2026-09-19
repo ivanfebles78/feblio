@@ -2,26 +2,29 @@ import { describe, expect, it } from 'vitest'
 import { homePathForRole, resolveEmpresaDestination } from './routing'
 
 describe('resolveEmpresaDestination', () => {
-  it('envía a verificación si el email no está verificado', () => {
-    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: false, onboardingStatus: 'not_started', onboardingCurrentStep: null })).toEqual({ kind: 'verify' })
+  it('sin email verificado → verificación, antes que nada', () => {
+    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: false, onboardingStatus: 'not_started', onboardingCurrentStep: null, welcomeSeen: false })).toEqual({ kind: 'verify' })
   })
-  it('un onboarding incompleto entra en /onboarding (reanudando el último paso)', () => {
-    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'in_progress', onboardingCurrentStep: 'billing' })).toEqual({ kind: 'onboarding', path: '/onboarding/billing' })
-    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'not_started', onboardingCurrentStep: null })).toEqual({ kind: 'onboarding', path: '/onboarding' })
-    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'requires_attention', onboardingCurrentStep: 'email' }).kind).toBe('onboarding')
+  it('empresa nueva verificada sin bienvenida vista → bienvenida (una sola vez)', () => {
+    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'not_started', onboardingCurrentStep: null, welcomeSeen: false })).toEqual({ kind: 'welcome', path: '/bienvenida' })
+    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'in_progress', onboardingCurrentStep: 'billing', welcomeSeen: false }).kind).toBe('welcome')
   })
-  it('un onboarding completo entra en /empresa', () => {
-    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'completed', onboardingCurrentStep: null })).toEqual({ kind: 'dashboard', path: '/empresa' })
+  it('bienvenida vista → dashboard aunque el onboarding esté incompleto (configuración progresiva)', () => {
+    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'not_started', onboardingCurrentStep: null, welcomeSeen: true })).toEqual({ kind: 'dashboard', path: '/empresa' })
+    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'requires_attention', onboardingCurrentStep: 'email', welcomeSeen: true }).kind).toBe('dashboard')
   })
-  it('una cuenta sin empresa no queda atrapada', () => {
-    expect(resolveEmpresaDestination({ hasEmpresa: false, emailVerified: false, onboardingStatus: null, onboardingCurrentStep: null }).kind).toBe('dashboard')
+  it('empresa existente completed nunca ve la bienvenida, aunque no esté marcada', () => {
+    expect(resolveEmpresaDestination({ hasEmpresa: true, emailVerified: true, onboardingStatus: 'completed', onboardingCurrentStep: null, welcomeSeen: false })).toEqual({ kind: 'dashboard', path: '/empresa' })
+  })
+  it('sin empresa asociada va al dashboard (que muestra el aviso)', () => {
+    expect(resolveEmpresaDestination({ hasEmpresa: false, emailVerified: false, onboardingStatus: null, onboardingCurrentStep: null, welcomeSeen: false }).kind).toBe('dashboard')
   })
 })
 
 describe('homePathForRole', () => {
-  it('admin y cliente nunca van al wizard de empresa', () => {
+  it('cada rol tiene su panel', () => {
     expect(homePathForRole('admin')).toBe('/admin')
-    expect(homePathForRole('cliente')).toBe('/cliente')
     expect(homePathForRole('empresa')).toBe('/empresa')
+    expect(homePathForRole('cliente')).toBe('/cliente')
   })
 })

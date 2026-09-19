@@ -84,7 +84,17 @@ export function OnboardingLayout({ current, errors, blockedReason, onShowErrors,
     if (p) guardedNavigate(() => navigate(onboardingStepPath(p)))
   }
 
+  /** Guarda y vuelve al dashboard: la configuración es progresiva y nunca bloquea el panel. */
   async function saveAndExit() {
+    const ok = await ctx.flush()
+    if (!ok) {
+      setConfirmLeave(() => () => navigate('/empresa'))
+      return
+    }
+    navigate('/empresa')
+  }
+
+  async function saveAndSignOut() {
     const ok = await ctx.flush()
     if (!ok) {
       setConfirmLeave(() => () => signOut())
@@ -103,7 +113,7 @@ export function OnboardingLayout({ current, errors, blockedReason, onShowErrors,
         dirty={ctx.dirty}
         onRetry={ctx.retry}
         onSaveAndExit={saveAndExit}
-        onSignOut={saveAndExit}
+        onSignOut={saveAndSignOut}
       />
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 lg:grid-cols-[260px_1fr_240px] lg:px-8 lg:py-8">

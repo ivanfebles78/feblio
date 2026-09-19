@@ -126,18 +126,23 @@ export const claimNativeVerification = () => rpc<{ ok: boolean; error?: string }
 export async function getEmpresaAccessState(empresaId: string) {
   const [verificationRes, empresa] = await Promise.all([
     getVerificationState().then((v) => ({ ok: true as const, v })).catch((e: OnboardingApiError) => ({ ok: false as const, e })),
-    supabase.from('empresas').select('onboarding_status, onboarding_current_step, email_verified').eq('id', empresaId).single(),
+    supabase.from('empresas').select('onboarding_status, onboarding_current_step, email_verified, onboarding_welcome_seen_at').eq('id', empresaId).single(),
   ])
   if (empresa.error) {
     if (empresa.error.code === '42703') {
       // Columnas de onboarding inexistentes (0009 pendiente): comportamiento previo
       const legacy = await supabase.from('empresas').select('email_verified').eq('id', empresaId).single()
       const verified = legacy.error ? true : ((legacy.data as { email_verified?: boolean }).email_verified ?? true)
-      return { verification: { has_empresa: true, email_verified: verified, mode: 'otp' as const }, onboarding_status: 'completed' as const, onboarding_current_step: null }
+      return { verification: { has_empresa: true, email_verified: verified, mode: 'otp' as const }, onboarding_status: 'completed' as const, onboarding_current_step: null, welcome_seen: true }
     }
     throw friendly(empresa.error, 'No se pudo cargar la empresa.')
   }
-  const row = empresa.data as { onboarding_status: Empresa['onboarding_status']; onboarding_current_step: string | null; email_verified?: boolean }
+  const row = empresa.data as {
+    onboarding_status: Empresa['onboarding_status']
+    onboarding_current_step: string | null
+    email_verified?: boolean
+    onboarding_welcome_seen_at?: string | null
+  }
   const verification: VerificationState = verificationRes.ok
     ? verificationRes.v
     : { has_empresa: true, email_verified: row.email_verified ?? true, mode: 'otp' }
@@ -145,7 +150,25 @@ export async function getEmpresaAccessState(empresaId: string) {
     verification,
     onboarding_status: row.onboarding_status ?? 'not_started',
     onboarding_current_step: row.onboarding_current_step,
+    /** Bienvenida de primera entrada ya mostrada (0013). Sin la columna, se considera vista. */
+    welcome_seen: !('onboarding_welcome_seen_at' in row) || row.onboarding_welcome_seen_at != null,
   }
+}
+
+/** Marca la bienvenida de primera entrada como vista (idempotente; RPC de 0013). */
+export const markWelcomeSeen = () =>
+  rpc<{ ok: boolean; seen_at: string | null; onboarding_status: string }>('mark_onboarding_welcome_seen', {}, 'No se pudo registrar la bienvenida.')
+
+/**
+ * Estados reales de los pasos del wizard para la tarjeta de configuración del dashboard.
+ * Solo lectura (RLS: la empresa ve sus filas). Los pasos sin fila cuentan como pendientes.
+ */
+export async function getStepStatuses(empresaId: string): Promise<Partial<Record<OnboardingStepKey, StepStatus>>> {
+  const { data, error } = await supabase.from('onboarding_steps').select('step_key, status').eq('empresa_id', empresaId)
+  if (error) throw friendly(error, 'No se pudo cargar el progreso de la configuración.')
+  const out: Partial<Record<OnboardingStepKey, StepStatus>> = {}
+  for (const row of (data ?? []) as { step_key: OnboardingStepKey; status: StepStatus }[]) out[row.step_key] = row.status
+  return out
 }
 
 /* ------------------------------------------------------------------ */
