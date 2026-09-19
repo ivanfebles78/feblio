@@ -46,4 +46,6 @@ export function homePathForRole(role: UserRole): string {
 export const ONBOARDING_BASE = '/onboarding'
 export const WELCOME_PATH = '/bienvenida'
 export const REGISTER_PATH = '/registro'
+export const FORGOT_PASSWORD_PATH = '/recuperar-contrasena'
+export const RESET_PASSWORD_PATH = '/restablecer-contrasena'
 export const onboardingStepPath = (step: string) => `${ONBOARDING_BASE}/${step}`

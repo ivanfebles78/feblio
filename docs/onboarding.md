@@ -162,3 +162,18 @@ RLS, los permisos, el bucket privado y la sincronización de email se prueban co
   sesión sin restringir ninguna función.
 - Empresas preexistentes con `onboarding_status <> 'not_started'` quedan marcadas por el backfill y nunca ven la
   bienvenida.
+
+## Autenticación y recuperación de acceso
+
+- Login en `/` (`Landing`): errores genéricos; si el correo está pendiente de confirmar, se ofrece reenviar el enlace
+  (`supabase.auth.resend`, respuesta neutra). Enlace «¿Has olvidado tu contraseña?».
+- `/recuperar-contrasena`: `resetPasswordForEmail(email, { redirectTo: <APP_URL>/restablecer-contrasena })`. Respuesta
+  siempre neutra (no revela si el correo existe); solo se muestran errores de envío (límite de intentos, red).
+- `/restablecer-contrasena`: destino del enlace. Los parámetros del enlace (`#type=recovery` o `#error_code=…`) se
+  capturan en `lib/authUrl.ts` antes de crear el cliente de Supabase. Con sesión de recuperación (evento
+  `PASSWORD_RECOVERY`) se pide la contraseña nueva con los mismos requisitos del registro; al guardar se cierra la
+  sesión y se vuelve al login con aviso. Enlaces caducados/inválidos muestran un mensaje claro y un acceso para pedir otro.
+- Requisito de configuración: la URL de redirección debe estar permitida en Supabase → Auth → Redirect URLs
+  (`https://<dominio>/**` ya cubre `/restablecer-contrasena`).
+- Limitación actual: sin SMTP propio, Supabase envía los correos con su remitente por defecto y con un límite bajo por
+  hora; la plantilla y el remitente se personalizan al conectar dominio y SMTP.

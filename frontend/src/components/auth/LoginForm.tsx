@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, UserRound } from 'lucide-react'
 import { TextField } from '../forms/Field'
 import { validateEmail } from '../../lib/validation'
 import type { DemoAccount } from '../../lib/env'
+import { FORGOT_PASSWORD_PATH } from '../../lib/routing'
 
 interface LoginFormProps {
   busy: boolean
@@ -68,7 +70,7 @@ export function LoginForm({ busy, initialEmail = '', demoAccount = null, onClear
           <button
             type="button"
             onClick={() => setShowPass((v) => !v)}
-            className="rounded-md p-1 text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+            className="rounded-md p-1 text-slate-500 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'}
             aria-pressed={showPass}
           >
@@ -76,6 +78,11 @@ export function LoginForm({ busy, initialEmail = '', demoAccount = null, onClear
           </button>
         }
       />
+      <div className="text-right">
+        <Link to={FORGOT_PASSWORD_PATH} className="text-sm font-medium text-brand-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+          ¿Has olvidado tu contraseña?
+        </Link>
+      </div>
       <button type="submit" className="btn-primary w-full" disabled={busy}>
         {busy ? (
           'Un momento…'

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { HeroScene } from '../components/HeroScene'
@@ -11,11 +11,24 @@ import type { DemoAccount } from '../lib/env'
 
 /** Inicio de sesión. El registro de empresas vive en /registro (RegisterPage). */
 export default function Landing() {
-  const { session, profile, signIn } = useAuth()
+  const { session, profile, signIn, resendConfirmation } = useAuth()
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(params.get('reset') === 'ok' ? 'Contraseña actualizada. Ya puedes iniciar sesión con la nueva.' : null)
   const [busy, setBusy] = useState(false)
   const [demoAccount, setDemoAccount] = useState<DemoAccount | null>(null)
+  /** Correo con el que falló el login por estar pendiente de confirmar (permite reenviar el enlace). */
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null)
+  const [resent, setResent] = useState(false)
+
+  useEffect(() => {
+    if (params.has('reset')) {
+      const next = new URLSearchParams(params)
+      next.delete('reset')
+      setParams(next, { replace: true })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Empresa: /empresa decide (verificación → onboarding → dashboard) sin parpadeos.
@@ -24,10 +37,23 @@ export default function Landing() {
 
   async function handleLogin(email: string, password: string) {
     setError(null)
+    setNotice(null)
+    setUnconfirmedEmail(null)
+    setResent(false)
     setBusy(true)
     const { error } = await signIn(email, password)
-    if (error) setError(traducir(error))
+    if (error) {
+      setError(traducir(error))
+      if (error.toLowerCase().includes('email not confirmed')) setUnconfirmedEmail(email)
+    }
     setBusy(false)
+  }
+
+  async function handleResend() {
+    if (!unconfirmedEmail || resent) return
+    await resendConfirmation(unconfirmedEmail)
+    // Respuesta neutra: no depende del resultado real del envío
+    setResent(true)
   }
 
   return (
@@ -48,10 +74,29 @@ export default function Landing() {
             <LoginForm busy={busy} demoAccount={demoAccount} onClearDemo={() => setDemoAccount(null)} onSubmit={handleLogin} />
           </div>
 
-          <div aria-live="assertive" className="mt-3">
+          <div aria-live="assertive" className="mt-3 space-y-2">
             {error && (
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
                 {error}
+              </p>
+            )}
+            {unconfirmedEmail && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
+                {resent ? (
+                  'Si la cuenta existe y sigue pendiente, recibirás un nuevo enlace de confirmación en unos minutos.'
+                ) : (
+                  <>
+                    ¿No encuentras el correo de confirmación?{' '}
+                    <button type="button" onClick={handleResend} className="font-semibold text-amber-900 underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                      Reenviar enlace
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
+            {notice && (
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900" role="status">
+                {notice}
               </p>
             )}
           </div>
