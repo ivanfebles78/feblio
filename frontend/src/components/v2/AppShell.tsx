@@ -41,10 +41,12 @@ export interface AppShellProps {
   menu?: ShellMenuItem[]
   /** Acción del botón de ayuda; si falta, el botón no se muestra. */
   onHelp?: () => void
+  /** Sustituye la campana básica por un panel de notificaciones real (p. ej. <NotificationsBell />). */
+  bell?: ReactNode
   children: ReactNode
 }
 
-export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notifications = 0, menu = [], onHelp, children }: AppShellProps) {
+export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notifications = 0, menu = [], onHelp, bell, children }: AppShellProps) {
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -158,10 +160,12 @@ export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notificat
                   <HelpCircle className="h-5 w-5" aria-hidden="true" />
                 </button>
               )}
-              <button type="button" className="relative rounded-md p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={notifications ? `Notificaciones: ${notifications} sin leer` : 'Notificaciones'}>
-                <Bell className="h-5 w-5" aria-hidden="true" />
-                {notifications > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" aria-hidden="true" />}
-              </button>
+              {bell ?? (
+                <button type="button" className="relative rounded-md p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={notifications ? `Notificaciones: ${notifications} sin leer` : 'Notificaciones'}>
+                  <Bell className="h-5 w-5" aria-hidden="true" />
+                  {notifications > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" aria-hidden="true" />}
+                </button>
+              )}
               <div className="relative ml-1" ref={menuRef}>
                 <button
                   type="button"

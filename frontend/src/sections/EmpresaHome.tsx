@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   FolderKanban,
+  Inbox,
   Users,
   Wallet,
   ListTodo,
@@ -28,6 +30,8 @@ import { SetupProgressCard, useSetupProgress } from '../components/onboarding/Se
 import { supabase } from '../lib/supabase'
 import { cleanupTestData } from '../lib/onboarding/api'
 import { useAuth } from '../context/AuthContext'
+import { PENDING_FOR_EMPRESA } from '../lib/solicitudes/status'
+import { EMPRESA_PATHS } from '../lib/routing'
 import type { EmpresaSummary } from '../pages/EmpresaDashboard'
 import {
   formatEUR,
@@ -86,6 +90,7 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [documents, setDocuments] = useState<DocumentRow[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [solicitudes, setSolicitudes] = useState<{ status: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [editing, setEditing] = useState<Project | 'new' | null>(null)
@@ -94,7 +99,7 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
   const [cleanupMsg, setCleanupMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   async function load() {
-    const [p, c, d, t] = await Promise.all([
+    const [p, c, d, t, s] = await Promise.all([
       supabase.from('projects').select('*').order('created_at', { ascending: false }),
       supabase.from('clientes').select('*'),
       supabase.from('documents').select('*').order('created_at', { ascending: false }),
@@ -104,11 +109,13 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
         .eq('status', 'pendiente')
         .order('priority', { ascending: true })
         .order('created_at', { ascending: true }),
+      supabase.from('solicitudes').select('status'),
     ])
     setProjects((p.data as Project[]) ?? [])
     setClientes((c.data as Cliente[]) ?? [])
     setDocuments((d.data as DocumentRow[]) ?? [])
     setTasks((t.data as Task[]) ?? [])
+    setSolicitudes((s.data as { status: string }[]) ?? [])
     setLoading(false)
   }
   useEffect(() => {
@@ -116,6 +123,8 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
   }, [])
 
   const clientesCount = clientes.length
+  const solicitudesOpen = solicitudes.filter((x) => x.status !== 'closed').length
+  const solicitudesPending = solicitudes.filter((x) => (PENDING_FOR_EMPRESA as string[]).includes(x.status)).length
 
   async function deleteProject(id: string) {
     if (!window.confirm('¿Borrar este proyecto y todos sus documentos?')) return
@@ -234,7 +243,8 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
       )}
 
       {/* Métricas */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <MetricCard icon={Inbox} label="Solicitudes" value={String(solicitudesOpen)} hint={solicitudesOpen ? `${solicitudesPending} requieren tu atención` : 'Ninguna abierta'} to={EMPRESA_PATHS.solicitudes} />
         <MetricCard icon={FolderKanban} label="Proyectos" value={String(projects.length)} hint={projects.length ? `${projects.filter((p) => p.status === 'en_progreso').length} en progreso` : 'Ninguno todavía'} />
         <MetricCard icon={Users} label="Clientes" value={String(clientesCount)} hint={clientesCount ? undefined : 'Ninguno todavía'} />
         <MetricCard icon={Wallet} label="Facturado" value={formatEUR(invoiced)} hint={invoiced ? undefined : 'Sin facturación aún'} />
@@ -591,9 +601,10 @@ function ProjectForm({
   )
 }
 
-function MetricCard({ icon: Icon, label, value, hint }: { icon: LucideIcon; label: string; value: string; hint?: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,.04)]">
+function MetricCard({ icon: Icon, label, value, hint, to }: { icon: LucideIcon; label: string; value: string; hint?: string; to?: string }) {
+  const cls = 'block rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,.04)]'
+  const body = (
+    <>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-slate-600">{label}</p>
@@ -604,8 +615,14 @@ function MetricCard({ icon: Icon, label, value, hint }: { icon: LucideIcon; labe
           <Icon className="h-5 w-5" />
         </span>
       </div>
-    </div>
+    </>
   )
+  if (to) return (
+    <Link to={to} className={`${cls} hover:border-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}>
+      {body}
+    </Link>
+  )
+  return <div className={cls}>{body}</div>
 }
 
 function DocActions({ path }: { path: string | null }) {

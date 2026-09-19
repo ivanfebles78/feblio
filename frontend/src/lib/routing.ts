@@ -49,3 +49,16 @@ export const REGISTER_PATH = '/registro'
 export const FORGOT_PASSWORD_PATH = '/recuperar-contrasena'
 export const RESET_PASSWORD_PATH = '/restablecer-contrasena'
 export const onboardingStepPath = (step: string) => `${ONBOARDING_BASE}/${step}`
+
+/** Rutas anidadas del panel de empresa (/empresa/*). */
+export const EMPRESA_PATHS = {
+  home: '/empresa',
+  solicitudes: '/empresa/solicitudes',
+  nuevaSolicitud: '/empresa/solicitudes/nueva',
+  plantillas: '/empresa/plantillas',
+  configuracion: '/empresa/configuracion',
+} as const
+export const solicitudPath = (id: string) => `${EMPRESA_PATHS.solicitudes}/${id}`
+/** Enlace público (sin cuenta) del cliente a su solicitud. */
+export const CLIENT_LINK_BASE = '/s'
+export const clientLinkPath = (token: string) => `${CLIENT_LINK_BASE}/${token}`
