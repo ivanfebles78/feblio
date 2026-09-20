@@ -46,7 +46,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+    <div className="min-h-screen bg-slate-50 text-slate-900 lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       <aside className="relative overflow-hidden bg-slate-900 px-6 py-8 text-white sm:px-10 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between lg:px-14 lg:py-12">
         <div className="pointer-events-none absolute inset-0 opacity-[.07]" aria-hidden="true" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         <div className="relative">
@@ -82,7 +82,7 @@ export default function RegisterPage() {
       </aside>
 
       <main className="flex items-start justify-center px-4 py-8 sm:px-8 lg:py-10">
-        <div className="w-full max-w-xl">
+        <div className="w-full max-w-xl lg:max-w-3xl">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,.04)] sm:p-8">
             {sentTo ? (
               <div role="status" aria-live="polite">
