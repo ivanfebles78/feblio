@@ -16,7 +16,7 @@ const COMPACT_LABEL: Record<string, string> = {
 export function PasswordRequirements({ password, id }: { password: string; id: string }) {
   const reqs = passwordRequirements(password)
   return (
-    <ul id={id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm md:flex-nowrap md:justify-between" aria-label="Requisitos de la contraseña">
+    <ul id={id} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm md:flex-nowrap md:justify-between" aria-label="Requisitos de la contraseña">
       {reqs.map((r) => (
         <li key={r.key} className={`flex shrink-0 items-center gap-1.5 ${r.met ? 'text-emerald-600' : 'text-slate-500'}`}>
           {r.met ? <CircleCheck className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Circle className="h-4 w-4 shrink-0" aria-hidden="true" />}
