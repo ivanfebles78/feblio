@@ -100,4 +100,17 @@ describe('<ResetPasswordPage />', () => {
     setup()
     expect(screen.getByRole('form', { name: /nueva contraseña/i })).toBeInTheDocument()
   })
+
+  it('permite que los requisitos se repartan en varias filas dentro de la tarjeta', () => {
+    auth.session = { user: { email: 'laura@norte.es' } }
+    auth.passwordRecovery = true
+    setup()
+
+    const requirements = screen.getByRole('list', {
+      name: /requisitos de la contraseña/i,
+    })
+
+    expect(requirements).toHaveClass('flex-wrap')
+    expect(requirements).not.toHaveClass('md:flex-nowrap')
+  })
 })
