@@ -14,7 +14,8 @@
 --                               solicitud_accesos con hash del token, caducidad y revocación.
 --
 -- Tablas nuevas: solicitudes, solicitud_accesos, solicitud_mensajes, solicitud_documentos,
--- solicitud_requisitos, solicitud_analisis, notificaciones.
+-- solicitud_requisitos, solicitud_analisis, notificaciones y rate_limits (contador para la
+-- descarga por token; ver solicitud_acceso_documento, solo service_role vía Edge Function).
 --
 -- Rollback lógico: drop de las funciones solicitud_* / notificaciones_* / sol_* y de las 7 tablas
 -- (en orden inverso de dependencias); las políticas de storage sol_*/emp_* se eliminan con
@@ -143,6 +144,20 @@ create table if not exists public.notificaciones (
 );
 create index if not exists notificaciones_empresa_idx on public.notificaciones (empresa_id, recipient_kind, created_at desc);
 create index if not exists notificaciones_cliente_idx on public.notificaciones (recipient_cliente_id, created_at desc);
+
+-- Visibilidad para el cliente y borrado lógico (idempotente; documentos previos: visibles y activos)
+alter table public.solicitud_documentos add column if not exists visible_to_client boolean not null default true;
+alter table public.solicitud_documentos add column if not exists deleted_at timestamptz;
+
+-- Limitación de frecuencia para accesos públicos (descargas por token): contador por clave y ventana.
+-- Sin grants a usuarios: solo la usan funciones security definer.
+create table if not exists public.rate_limits (
+  key          text primary key,
+  window_start timestamptz not null default now(),
+  hits         integer not null default 0
+);
+alter table public.rate_limits enable row level security;
+revoke all on table public.rate_limits from public, anon, authenticated;
 
 -- FK diferida de documentos → requisitos (ambas tablas ya existen)
 do $$ begin
@@ -320,7 +335,7 @@ begin
       if coalesce((f->>'required')::boolean, true) then
         v_total := v_total + 1;
         if exists (select 1 from public.solicitud_documentos d join public.solicitud_requisitos q on q.id = d.requisito_id
-                   where d.solicitud_id = s.id and q.key = f->>'key')
+                   where d.solicitud_id = s.id and q.key = f->>'key' and d.deleted_at is null)
            or exists (select 1 from public.solicitud_requisitos q where q.solicitud_id = s.id and q.key = f->>'key' and q.status in ('resolved', 'waived', 'received')) then
           v_ok := v_ok + 1; v_received := v_received || jsonb_build_object('key', f->>'key', 'label', f->>'label', 'kind', 'document');
         else v_missing_docs := v_missing_docs || jsonb_build_object('key', f->>'key', 'label', f->>'label'); end if;
@@ -591,7 +606,7 @@ returns jsonb language sql stable security definer set search_path = public as $
     'requisitos', (select coalesce(jsonb_agg(jsonb_build_object('id', q.id, 'kind', q.kind, 'key', q.key, 'label', q.label, 'status', q.status, 'requested_at', q.requested_at) order by q.requested_at), '[]'::jsonb)
                    from public.solicitud_requisitos q where q.solicitud_id = s.id and q.status in ('pending', 'received')),
     'documentos', (select coalesce(jsonb_agg(jsonb_build_object('id', d.id, 'name', d.original_name, 'size_bytes', d.size_bytes, 'by', d.uploaded_by_kind, 'created_at', d.created_at, 'requisito_id', d.requisito_id) order by d.created_at), '[]'::jsonb)
-                   from public.solicitud_documentos d where d.solicitud_id = s.id),
+                   from public.solicitud_documentos d where d.solicitud_id = s.id and d.deleted_at is null and d.visible_to_client),
     'mensajes', (select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'author_kind', m.author_kind, 'author_name', case when m.author_kind = 'empresa' then m.author_name else m.author_name end, 'kind', m.kind, 'body', m.body, 'created_at', m.created_at, 'read', m.read_by_cliente_at is not null) order by m.created_at), '[]'::jsonb)
                  from public.solicitud_mensajes m where m.solicitud_id = s.id)
   );
@@ -783,10 +798,10 @@ drop policy if exists sol_files_select_owner on storage.objects;
 create policy sol_files_select_owner on storage.objects for select to authenticated
   using (bucket_id = 'intake-files'
          and (storage.foldername(name))[1] in ('sol', 'emp')
-         and exists (select 1 from public.solicitud_documentos d where d.storage_path = name
+         and exists (select 1 from public.solicitud_documentos d where d.storage_path = name and d.deleted_at is null
                      and (public.is_admin()
                           or (public.current_role_name() = 'empresa' and d.empresa_id = public.current_empresa_id())
-                          or public.sol_cliente_ve(d.solicitud_id))));
+                          or (d.visible_to_client and public.sol_cliente_ve(d.solicitud_id)))));
 
 drop policy if exists sol_files_delete_owner on storage.objects;
 create policy sol_files_delete_owner on storage.objects for delete to authenticated
@@ -794,6 +809,52 @@ create policy sol_files_delete_owner on storage.objects for delete to authentica
          and (storage.foldername(name))[1] in ('sol', 'emp')
          and exists (select 1 from public.solicitud_documentos d where d.storage_path = name
                      and (public.is_admin() or (public.current_role_name() = 'empresa' and d.empresa_id = public.current_empresa_id()))));
+
+-- ---------------------------------------------------------------------------
+-- Descarga segura del cliente anónimo (Edge Function `solicitud-descarga`)
+-- ---------------------------------------------------------------------------
+-- Limita `p_max` accesos por clave en ventanas de `p_window`. Devuelve true si se permite.
+create or replace function public.sol_rate_limit(p_key text, p_max integer, p_window interval)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare r public.rate_limits;
+begin
+  if p_key is null or p_key = '' then return true; end if;
+  insert into public.rate_limits (key, window_start, hits) values (left(p_key, 200), now(), 1)
+  on conflict (key) do update
+    set hits = case when public.rate_limits.window_start < now() - p_window then 1 else public.rate_limits.hits + 1 end,
+        window_start = case when public.rate_limits.window_start < now() - p_window then now() else public.rate_limits.window_start end
+  returning * into r;
+  -- Limpieza oportunista de claves antiguas (barata: la tabla es pequeña)
+  delete from public.rate_limits where window_start < now() - interval '1 day';
+  return r.hits <= p_max;
+end $$;
+revoke all on function public.sol_rate_limit(text, integer, interval) from public, anon, authenticated;
+
+-- Resuelve un documento descargable por el cliente que presenta el token: hash, caducidad y revocación
+-- del acceso; el documento debe pertenecer EXACTAMENTE a la solicitud del acceso, estar activo y ser
+-- visible para el cliente. Devuelve la ruta física para que el servidor firme la URL (nunca el navegador).
+-- Cualquier fallo → 'Enlace no válido' (mensaje único, sin distinguir causa). Solo service_role.
+create or replace function public.solicitud_acceso_documento(p_token text, p_documento uuid, p_rate_key text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare a public.solicitud_accesos; d public.solicitud_documentos;
+begin
+  if not public.sol_rate_limit('dl:ip:' || coalesce(p_rate_key, 'none'), 60, interval '5 minutes') then
+    raise exception 'Demasiadas solicitudes. Inténtalo en unos minutos.' using errcode = '53400';
+  end if;
+  a := public.sol_acceso_valido(p_token);
+  if not public.sol_rate_limit('dl:acc:' || a.id::text, 30, interval '5 minutes') then
+    raise exception 'Demasiadas solicitudes. Inténtalo en unos minutos.' using errcode = '53400';
+  end if;
+  select * into d from public.solicitud_documentos
+   where id = p_documento and solicitud_id = a.solicitud_id and empresa_id = a.empresa_id
+     and deleted_at is null and visible_to_client;
+  if not found then raise exception 'Enlace no válido' using errcode = '42501'; end if;
+  perform public.audit_log_internal(d.empresa_id, null, 'solicitud.client_download', 'solicitud_documentos', d.id, 'ok',
+                                    jsonb_build_object('solicitud_id', d.solicitud_id, 'access_id', a.id));
+  return jsonb_build_object('storage_path', d.storage_path, 'original_name', d.original_name, 'mime_type', d.mime_type, 'size_bytes', d.size_bytes);
+end $$;
+revoke all on function public.solicitud_acceso_documento(text, uuid, text) from public, anon, authenticated;
+grant execute on function public.solicitud_acceso_documento(text, uuid, text) to service_role;
 
 -- ===========================================================================
 -- Comprobaciones

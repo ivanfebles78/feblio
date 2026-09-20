@@ -22,7 +22,7 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
    - `0011` convierte `intake-files` en bucket **privado**: los adjuntos ya subidos siguen accesibles para la empresa
      dueña mediante URLs firmadas (el panel las genera al pulsar); las URLs públicas antiguas dejan de funcionar.
    - Opcional en desarrollo: `database/seed/0003_seed_onboarding_ralm.sql`.
-2. Aplica `0009`, `0010`, `0011`, `0012`, `0013` y `0014` en producción cuando la rama esté verificada. Es idempotente y no destruye datos: las empresas
+2. Aplica `0009`, `0010`, `0011`, `0012`, `0013` y `0014` en producción cuando la rama esté verificada. Con `0014` despliega también la Edge Function pública `supabase functions deploy solicitud-descarga --no-verify-jwt` (descarga del cliente por token; no requiere secretos adicionales) y añade `https://<app>/**` a *Auth → Redirect URLs* para que los magic links conserven la ruta profunda. Es idempotente y no destruye datos: las empresas
    existentes quedan con `onboarding_status = 'completed'` en la primera ejecución (backfill de una sola vez, marcado en
    `platform_settings.onboarding_backfill_done`; pueden reabrir el asistente desde Configuración). No usa GUC personalizados
    (`set_config` de parámetros propios no está permitido en Supabase alojado).

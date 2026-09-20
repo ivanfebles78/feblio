@@ -46,7 +46,7 @@ feblio/
 │   ├── migrations/           # 0001 … 0014 (esquema, RLS, RPCs, sincronización de email, endurecimiento, registro v2, solicitudes)
 │   ├── seed/                 # Datos de desarrollo (sin credenciales)
 │   └── tests/                # 0009_rls_isolation · 0009_backfill · 0010_sync_profile_email · 0011_security_audit · 0011_signup_roles · 0013_registration_v2 · 0014_solicitudes
-├── supabase/functions/       # send-otp, send-intake-email, integrations (privada), integrations-oauth-callback (pública), _shared
+├── supabase/functions/       # send-otp, send-intake-email, integrations (privada), integrations-oauth-callback y solicitud-descarga (públicas), _shared
 └── docs/                     # arquitectura, onboarding, integraciones, solicitudes
 ```
 

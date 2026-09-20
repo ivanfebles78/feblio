@@ -69,6 +69,10 @@ export interface SolicitudDocumento {
   mime_type: string
   size_bytes: number
   requisito_id: string | null
+  /** Visible en el enlace del cliente (los internos solo los ve la empresa). */
+  visible_to_client: boolean
+  /** Borrado lógico: nunca se muestra ni se descarga. */
+  deleted_at: string | null
   created_at: string
 }
 

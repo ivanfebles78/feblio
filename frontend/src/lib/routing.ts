@@ -62,3 +62,93 @@ export const solicitudPath = (id: string) => `${EMPRESA_PATHS.solicitudes}/${id}
 /** Enlace público (sin cuenta) del cliente a su solicitud. */
 export const CLIENT_LINK_BASE = '/s'
 export const clientLinkPath = (token: string) => `${CLIENT_LINK_BASE}/${token}`
+
+/* ------------------------------------------------------------------ */
+/* Conservación de la ruta solicitada antes de autenticar              */
+/* ------------------------------------------------------------------ */
+
+const RETURN_TO_KEY = 'feblio:return_to'
+const RETURN_TO_TTL_MS = 10 * 60 * 1000
+
+/**
+ * Acepta solo rutas internas relativas ("/algo?x=1#y"). Rechaza URLs absolutas,
+ * protocol-relative ("//evil"), esquemas, barras invertidas y cualquier open redirect.
+ */
+export function sanitizeReturnTo(raw: string | null | undefined): string | null {
+  if (typeof raw !== 'string') return null
+  const v = raw.trim()
+  if (v.length === 0 || v.length > 2048) return null
+  if (!v.startsWith('/') || v.startsWith('//')) return null
+  // Barras invertidas (el navegador las normaliza a "/"), espacios y variantes codificadas de "//" o "\"
+  if (/[\\\s]|%2f%2f|%5c/i.test(v)) return null
+  let url: URL
+  try {
+    url = new URL(v, 'http://internal.local')
+  } catch {
+    return null
+  }
+  if (url.origin !== 'http://internal.local' || url.username || url.password) return null
+  const path = `${url.pathname}${url.search}${url.hash}`
+  if (path === '/' || path.startsWith('//')) return null
+  return path
+}
+
+/** Prefijos que puede abrir cada rol al volver a la ruta guardada. */
+const ROLE_PREFIXES: Record<UserRole, string[]> = {
+  admin: ['/admin'],
+  empresa: ['/empresa', '/onboarding', '/bienvenida', '/integraciones/callback'],
+  cliente: ['/cliente'],
+}
+
+export function pathAllowedForRole(path: string, role: UserRole): boolean {
+  const pathname = path.split(/[?#]/)[0]
+  return (ROLE_PREFIXES[role] ?? []).some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
+/** Ruta a la que volver tras autenticar: la guardada si es interna y permitida; si no, la home del rol. */
+export function resolveReturnTo(raw: string | null | undefined, role: UserRole): string {
+  const path = sanitizeReturnTo(raw)
+  return path && pathAllowedForRole(path, role) ? path : homePathForRole(role)
+}
+
+// localStorage (no sessionStorage): un magic link se abre en OTRA pestaña, y Supabase Auth solo conserva
+// el redirect si está en su lista permitida; la ruta guardada aquí sobrevive al cambio de pestaña.
+function storage(): Storage | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage : null
+  } catch {
+    return null
+  }
+}
+
+/** Guarda la ruta interna pedida sin sesión (caduca a los 10 minutos; se consume una sola vez). No guarda nada si no es válida. */
+export function rememberReturnTo(raw: string | null | undefined): void {
+  const path = sanitizeReturnTo(raw)
+  const s = storage()
+  if (!s || !path) return
+  try {
+    s.setItem(RETURN_TO_KEY, JSON.stringify({ path, at: Date.now() }))
+  } catch {
+    /* almacenamiento no disponible */
+  }
+}
+
+/** Devuelve y borra la ruta guardada (null si no hay, caducó o no es válida). */
+export function takeReturnTo(now: number = Date.now()): string | null {
+  const s = storage()
+  if (!s) return null
+  try {
+    const raw = s.getItem(RETURN_TO_KEY)
+    s.removeItem(RETURN_TO_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { path?: unknown; at?: unknown }
+    if (typeof parsed.at !== 'number' || now - parsed.at > RETURN_TO_TTL_MS) return null
+    return sanitizeReturnTo(typeof parsed.path === 'string' ? parsed.path : null)
+  } catch {
+    return null
+  }
+}
+
+export function clearReturnTo(): void {
+  storage()?.removeItem(RETURN_TO_KEY)
+}

@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { CheckboxField, SelectField, TextField, TextareaField } from '../forms/Field'
 import { ProgressBar } from '../v2/Progress'
 import { FileUploader } from './FileUploader'
+import { ClienteDocList } from './ClienteDocList'
 import { validateEmail } from '../../lib/validation'
 import { RulesAnalysisProvider } from '../../lib/solicitudes/analysis'
 import type { FormFieldDef } from '../../lib/onboarding/types'
@@ -45,6 +46,8 @@ export function localCompleteness(data: ClienteFormData, vista: ClienteVista): n
 }
 
 export interface ClienteFormProps {
+  /** Token del enlace (solo se usa para pedir descargas al servidor). */
+  token: string
   vista: ClienteVista
   data: ClienteFormData
   onChange: (next: ClienteFormData) => void
@@ -75,11 +78,12 @@ function Section({ step, title, description, children }: { step: number; title: 
 }
 
 /** Formulario del cliente por secciones, con progreso y adjuntos por documento requerido. */
-export function ClienteForm({ vista, data, onChange, consents, onConsentChange, errors, readOnly, onUpload }: ClienteFormProps) {
+export function ClienteForm({ token, vista, data, onChange, consents, onConsentChange, errors, readOnly, onUpload }: ClienteFormProps) {
   const set = (k: string, v: string) => onChange({ ...data, [k]: v })
   const fields = useMemo(() => visibleFields(vista.template?.fields ?? [], data), [vista.template, data])
   const docReqs = vista.requisitos.filter((r) => r.kind === 'document')
   const docsFor = (reqId: string) => vista.documentos.filter((d) => d.requisito_id === reqId)
+  const otherDocs = vista.documentos.filter((d) => !d.requisito_id || !docReqs.some((r) => r.id === d.requisito_id))
   const progress = localCompleteness(data, vista)
   const empresaName = vista.empresa?.name ?? 'la empresa'
   let step = 0
@@ -133,13 +137,9 @@ export function ClienteForm({ vista, data, onChange, consents, onConsentChange, 
                     <span className={`text-xs font-medium ${files.length ? 'text-emerald-700' : 'text-amber-700'}`}>{files.length ? `${files.length} adjunto${files.length > 1 ? 's' : ''}` : 'Pendiente'}</span>
                   </div>
                   {files.length > 0 && (
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                      {files.map((d) => (
-                        <li key={d.id} className="truncate">
-                          · {d.name}
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="mt-2">
+                      <ClienteDocList token={token} docs={files} empresaName={empresaName} />
+                    </div>
                   )}
                   <div className="mt-3">
                     <FileUploader onUpload={(file, mime, ext) => onUpload(file, mime, ext, r.id)} label={files.length ? 'Añadir otro archivo' : 'Adjuntar archivo'} compact />
@@ -151,17 +151,11 @@ export function ClienteForm({ vista, data, onChange, consents, onConsentChange, 
         </Section>
       )}
 
-      <Section step={++step} title="Otros archivos" description="Fotos, planos, presupuestos anteriores… cualquier cosa que ayude.">
-        {vista.documentos.filter((d) => !d.requisito_id && d.by === 'cliente').length > 0 && (
-          <ul className="mb-3 space-y-1 text-sm text-slate-700">
-            {vista.documentos
-              .filter((d) => !d.requisito_id && d.by === 'cliente')
-              .map((d) => (
-                <li key={d.id} className="truncate">
-                  · {d.name}
-                </li>
-              ))}
-          </ul>
+      <Section step={++step} title="Otros archivos" description={`Fotos, planos, presupuestos anteriores… cualquier cosa que ayude. Aquí verás también lo que ${empresaName} comparta contigo.`}>
+        {otherDocs.length > 0 && (
+          <div className="mb-3">
+            <ClienteDocList token={token} docs={otherDocs} empresaName={empresaName} />
+          </div>
         )}
         <FileUploader onUpload={(file, mime, ext) => onUpload(file, mime, ext, null)} />
       </Section>

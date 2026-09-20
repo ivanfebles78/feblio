@@ -214,6 +214,7 @@ export default function SolicitudCliente() {
         )}
 
         <ClienteForm
+          token={token}
           vista={vista}
           data={data}
           onChange={(next) => {

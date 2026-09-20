@@ -10,10 +10,12 @@
 --   M  conversación, no leídos, peticiones de información
 --   I  idempotencia de notificaciones (dedupe_key)
 --   K  cálculo de completitud versionado; borrador y envío del formulario
+--   D  descarga segura por token (RPC solo service_role): correcta, token manipulado/caducado/revocado,
+--      documento de otra solicitud / otra empresa / no visible / eliminado, sin acceso directo anon, rate limit
 
 begin;
 create temp table _t (name text, ok boolean) on commit drop;
-grant insert on table pg_temp._t to authenticated, anon;
+grant insert on table pg_temp._t to authenticated, anon, service_role;
 
 -- Cambios de rol simulando PostgREST (siempre precedidos de reset role)
 create function pg_temp.as_user(u uuid) returns void language plpgsql as $f$
@@ -36,6 +38,7 @@ declare
   v_ua uuid := gen_random_uuid(); v_ub uuid := gen_random_uuid(); v_ca uuid := gen_random_uuid(); v_cb uuid := gen_random_uuid();
   v_ea uuid; v_eb uuid; v_cla uuid; v_clb uuid; v_sol uuid; v_sol_b uuid; v_link jsonb; v_tok text; v_acc uuid; v_view jsonb;
   n int; v_ok boolean; v_msg uuid; v_req uuid; v_an record; v_json jsonb; v_status text;
+  v_doc uuid; v_doc_emp uuid; v_doc_b uuid; v_tok_exp text; v_tok_rev text; i int;
 begin
   -- ---- Datos base (como postgres) ----
   insert into public.empresas (name, cif, email_verified, onboarding_status) values ('Empresa A', 'B11111111', true, 'completed') returning id into v_ea;
@@ -231,6 +234,77 @@ begin
   insert into pg_temp._t values ('C7 cliente B no ve documentos ajenos', n = 0);
   select count(*) into n from storage.objects where bucket_id = 'intake-files' and name like 'sol/%';
   insert into pg_temp._t values ('F11 cliente B no lee objetos ajenos', n = 0);
+  reset role;
+
+  -- ---- D: descarga segura del cliente anónimo (Edge Function → RPC solo service_role) ----
+  v_tok_exp := v_tok;                                                       -- token caducado (T8)
+  select id into v_doc from public.solicitud_documentos where solicitud_id = v_sol and uploaded_by_kind = 'cliente' limit 1;
+  select id into v_doc_emp from public.solicitud_documentos where solicitud_id = v_sol and uploaded_by_kind = 'empresa' limit 1;
+  -- documento de otra empresa (solicitud B): registrado directamente como postgres
+  insert into storage.objects (bucket_id, name) values ('intake-files', 'emp/' || v_eb || '/' || v_sol_b || '/b.pdf');
+  insert into public.solicitud_documentos (solicitud_id, empresa_id, uploaded_by_kind, original_name, storage_path, mime_type, size_bytes)
+  values (v_sol_b, v_eb, 'empresa', 'b.pdf', 'emp/' || v_eb || '/' || v_sol_b || '/b.pdf', 'application/pdf', 10) returning id into v_doc_b;
+  -- token vigente para A y otro revocado
+  perform pg_temp.as_user(v_ua);
+  v_link := public.solicitud_generar_enlace(v_sol, 7); v_tok_rev := v_link->>'token';
+  v_link := public.solicitud_generar_enlace(v_sol, 7); v_tok := v_link->>'token';   -- revoca el anterior
+  reset role;
+  -- D1/D2/D3 sin acceso directo: ni anon ni cliente autenticado ejecutan la RPC; anon no lee storage.objects
+  perform pg_temp.as_anon();
+  begin perform public.solicitud_acceso_documento(v_tok, v_doc, 'ip'); v_ok := false; exception when insufficient_privilege then v_ok := true; end;
+  insert into pg_temp._t values ('D1 anon no ejecuta la RPC de descarga (solo service_role)', v_ok);
+  begin select count(*) into n from storage.objects where bucket_id = 'intake-files'; v_ok := (n = 0); exception when insufficient_privilege then v_ok := true; end;
+  insert into pg_temp._t values ('D2 anon no ve ningún objeto de intake-files (sin SELECT directo útil)', v_ok);
+  reset role;
+  perform pg_temp.as_user(v_ca);
+  begin perform public.solicitud_acceso_documento(v_tok, v_doc, 'ip'); v_ok := false; exception when insufficient_privilege then v_ok := true; end;
+  insert into pg_temp._t values ('D3 cliente autenticado tampoco ejecuta la RPC directamente', v_ok);
+  reset role;
+  -- D4/D5 descarga correcta (como service_role): ruta física del documento visible de la solicitud del token
+  set local role service_role;
+  v_json := public.solicitud_acceso_documento(v_tok, v_doc, 'ip-a');
+  insert into pg_temp._t values ('D4 descarga correcta: ruta bajo sol/{acceso}/ y nombre original', (v_json->>'storage_path') like 'sol/%' and (v_json->>'original_name') = 'planos.pdf');
+  v_json := public.solicitud_acceso_documento(v_tok, v_doc_emp, 'ip-a');
+  insert into pg_temp._t values ('D5 el cliente descarga también los archivos que la empresa le comparte', (v_json->>'storage_path') like ('emp/' || v_ea || '/%'));
+  begin perform public.solicitud_acceso_documento(substr(v_tok, 1, 42) || case when right(v_tok, 1) = 'A' then 'B' else 'A' end, v_doc, 'ip-a'); v_ok := false; exception when others then v_ok := (sqlerrm = 'Enlace no válido'); end;
+  insert into pg_temp._t values ('D6 token manipulado → Enlace no válido', v_ok);
+  begin perform public.solicitud_acceso_documento(v_tok_exp, v_doc, 'ip-a'); v_ok := false; exception when others then v_ok := (sqlerrm = 'Enlace no válido'); end;
+  insert into pg_temp._t values ('D7 token caducado → Enlace no válido', v_ok);
+  begin perform public.solicitud_acceso_documento(v_tok_rev, v_doc, 'ip-a'); v_ok := false; exception when others then v_ok := (sqlerrm = 'Enlace no válido'); end;
+  insert into pg_temp._t values ('D8 token revocado → Enlace no válido', v_ok);
+  begin perform public.solicitud_acceso_documento(v_tok, v_doc_b, 'ip-a'); v_ok := false; exception when others then v_ok := (sqlerrm = 'Enlace no válido'); end;
+  insert into pg_temp._t values ('D9 documento de otra solicitud / otra empresa → Enlace no válido (mismo mensaje)', v_ok);
+  reset role;
+  update public.solicitud_documentos set visible_to_client = false where id = v_doc_emp;
+  set local role service_role;
+  begin perform public.solicitud_acceso_documento(v_tok, v_doc_emp, 'ip-a'); v_ok := false; exception when others then v_ok := (sqlerrm = 'Enlace no válido'); end;
+  insert into pg_temp._t values ('D10 documento interno (no visible para el cliente) → Enlace no válido', v_ok);
+  v_view := public.solicitud_acceso_obtener(v_tok);
+  insert into pg_temp._t values ('D11 la vista del cliente no lista el documento interno', (select count(*) from jsonb_array_elements(v_view->'documentos') d where (d->>'id')::uuid = v_doc_emp) = 0);
+  reset role;
+  update public.solicitud_documentos set deleted_at = now() where id = v_doc;
+  set local role service_role;
+  begin perform public.solicitud_acceso_documento(v_tok, v_doc, 'ip-a'); v_ok := false; exception when others then v_ok := (sqlerrm = 'Enlace no válido'); end;
+  insert into pg_temp._t values ('D12 documento eliminado → Enlace no válido', v_ok);
+  v_view := public.solicitud_acceso_obtener(v_tok);
+  insert into pg_temp._t values ('D13 la vista del cliente no lista el documento eliminado', (select count(*) from jsonb_array_elements(v_view->'documentos') d where (d->>'id')::uuid = v_doc) = 0);
+  reset role;
+  update public.solicitud_documentos set deleted_at = null where id = v_doc;
+  -- D14 registro de auditoría sin token
+  insert into pg_temp._t values ('D14 descarga auditada sin secretos', (select count(*) from public.audit_events where action = 'solicitud.client_download' and entity_id = v_doc and metadata::text not like '%' || v_tok || '%') >= 1);
+  -- D15 rate limit por IP (60 / 5 min) y por acceso (30 / 5 min)
+  set local role service_role;
+  v_ok := false;
+  for i in 1..70 loop
+    begin perform public.solicitud_acceso_documento(v_tok, v_doc, 'ip-limite'); exception when others then if sqlerrm like 'Demasiadas%' then v_ok := true; end if; end;
+  end loop;
+  insert into pg_temp._t values ('D15 rate limit: tras repetir la descarga se rechaza con «Demasiadas solicitudes»', v_ok);
+  reset role;
+  -- D16 la lectura autenticada del cliente (URL firmada) tampoco expone documentos internos ni eliminados
+  update public.solicitud_documentos set deleted_at = now() where id = v_doc;
+  perform pg_temp.as_user(v_ca);
+  select count(*) into n from storage.objects o join public.solicitud_documentos d on d.storage_path = o.name where d.id in (v_doc, v_doc_emp);
+  insert into pg_temp._t values ('D16 cliente autenticado: la política de storage excluye internos y eliminados', n = 0);
   reset role;
 end $$;
 

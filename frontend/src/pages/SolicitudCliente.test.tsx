@@ -11,6 +11,7 @@ const api = vi.hoisted(() => ({
   clienteMensaje: vi.fn(),
   clienteRegistrarDocumento: vi.fn(),
   clienteMarcarLeido: vi.fn(),
+  clienteDescargarDocumento: vi.fn(),
 }))
 vi.mock('../lib/solicitudes/api', () => api)
 const files = vi.hoisted(() => ({ uploadSolicitudFile: vi.fn() }))
@@ -162,6 +163,35 @@ describe('<SolicitudCliente />', () => {
     await user.upload(input, new File(['abc'], 'plano.pdf', { type: 'application/pdf' }))
     await waitFor(() => expect(files.uploadSolicitudFile).toHaveBeenCalledWith(expect.stringMatching(/^sol\/acc-1\/[0-9a-f-]+\.pdf$/), expect.any(File), 'application/pdf'))
     expect(api.clienteRegistrarDocumento).toHaveBeenCalledWith(TOKEN, expect.stringMatching(/^sol\/acc-1\//), 'plano.pdf', 'application/pdf', 3, 'r1')
-    expect(await screen.findByText(/· plano\.pdf/)).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /descargar plano\.pdf/i })).toBeInTheDocument()
+  })
+
+  it('descarga: pide la URL firmada al servidor con el token y la abre; nunca expone rutas internas', async () => {
+    api.clienteObtener.mockResolvedValue(vista({}, { documentos: [{ id: 'd1', name: 'plano.pdf', size_bytes: 3, by: 'cliente', created_at: '2026-09-19T10:00:00Z', requisito_id: null }, { id: 'd2', name: 'presupuesto-previo.pdf', size_bytes: 5, by: 'empresa', created_at: '2026-09-19T10:01:00Z', requisito_id: null }] }))
+    api.clienteDescargarDocumento.mockResolvedValue({ url: 'https://storage.example/sign/abc?token=xyz', name: 'presupuesto-previo.pdf' })
+    const fakeWin = { location: { href: '' }, close: vi.fn() }
+    const open = vi.spyOn(window, 'open').mockReturnValue(fakeWin as unknown as Window)
+    const user = setup()
+    await screen.findByRole('heading', { name: 'Reforma de cocina' })
+    expect(screen.getByText(/compartido por Reformas Norte/i)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /descargar presupuesto-previo\.pdf/i }))
+    await waitFor(() => expect(api.clienteDescargarDocumento).toHaveBeenCalledWith(TOKEN, 'd2'))
+    await waitFor(() => expect(fakeWin.location.href).toBe('https://storage.example/sign/abc?token=xyz'))
+    expect(document.body.textContent).not.toMatch(/sol\/|storage_path/)
+    open.mockRestore()
+  })
+
+  it('descarga rechazada (token caducado/revocado o documento no disponible): mensaje neutro y sin pestaña abierta', async () => {
+    api.clienteObtener.mockResolvedValue(vista({}, { documentos: [{ id: 'd1', name: 'plano.pdf', size_bytes: 3, by: 'cliente', created_at: '2026-09-19T10:00:00Z', requisito_id: null }] }))
+    api.clienteDescargarDocumento.mockRejectedValue(new Error('El archivo no está disponible. Si el enlace ha caducado, pide uno nuevo a la empresa.'))
+    const fakeWin = { location: { href: '' }, close: vi.fn() }
+    const open = vi.spyOn(window, 'open').mockReturnValue(fakeWin as unknown as Window)
+    const user = setup()
+    await screen.findByRole('heading', { name: 'Reforma de cocina' })
+    await user.click(screen.getByRole('button', { name: /descargar plano\.pdf/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/no está disponible/i)
+    expect(fakeWin.close).toHaveBeenCalled()
+    expect(fakeWin.location.href).toBe('')
+    open.mockRestore()
   })
 })

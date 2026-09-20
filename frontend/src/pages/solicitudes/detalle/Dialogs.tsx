@@ -49,7 +49,12 @@ export function LinkDialog({ open, onClose, link, activeExpiresAt, onGenerate, o
               </Button>
             </div>
           </label>
-          <p className="text-xs text-slate-500">Caduca el {formatDate(link.expires_at)}.</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-slate-500">Caduca el {formatDate(link.expires_at)}.</p>
+            <Button type="button" variant="ghost" size="sm" onClick={() => void onRevoke()} disabled={busy} leading={<Trash2 className="h-4 w-4" aria-hidden="true" />}>
+              Revocar acceso
+            </Button>
+          </div>
         </div>
       ) : activeExpiresAt ? (
         <div className="space-y-3">

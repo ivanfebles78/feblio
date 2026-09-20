@@ -88,7 +88,7 @@ export async function getSolicitud(id: string): Promise<SolicitudDetalle> {
   const [acc, msg, docs, reqs, ana, ev, cli, tpl] = await Promise.all([
     supabase.from('solicitud_accesos').select('id, solicitud_id, expires_at, revoked_at, last_used_at, created_at').eq('solicitud_id', id).order('created_at', { ascending: false }),
     supabase.from('solicitud_mensajes').select('*').eq('solicitud_id', id).order('created_at'),
-    supabase.from('solicitud_documentos').select('*').eq('solicitud_id', id).order('created_at'),
+    supabase.from('solicitud_documentos').select('*').eq('solicitud_id', id).is('deleted_at', null).order('created_at'),
     supabase.from('solicitud_requisitos').select('*').eq('solicitud_id', id).order('requested_at'),
     supabase.from('solicitud_analisis').select('*').eq('solicitud_id', id).order('version', { ascending: false }),
     supabase
@@ -150,6 +150,23 @@ export const clienteMensaje = (token: string, body: string) => rpc<ClienteVista>
 export const clienteRegistrarDocumento = (token: string, path: string, name: string, mime: string, size: number, requisitoId?: string | null) =>
   rpc<ClienteVista>('solicitud_acceso_registrar_documento', { p_token: token, p_path: path, p_name: name, p_mime: mime, p_size: size, p_requisito: requisitoId ?? null }, 'No se pudo registrar el archivo.')
 export const clienteMarcarLeido = (token: string) => rpc<void>('solicitud_acceso_marcar_leido', { p_token: token })
+
+/** Nombre de la Edge Function que valida el token en servidor y firma la URL (5 minutos). */
+export const DOWNLOAD_FUNCTION = 'solicitud-descarga'
+
+/**
+ * Descarga de un documento por el cliente anónimo. La autorización (hash del token, caducidad,
+ * revocación, pertenencia y visibilidad del documento) ocurre en servidor; el navegador solo recibe
+ * una URL firmada de corta duración. Cualquier fallo devuelve un mensaje neutro.
+ */
+export async function clienteDescargarDocumento(token: string, documentId: string): Promise<{ url: string; name: string }> {
+  const { data, error } = await supabase.functions.invoke<{ url?: string; name?: string; error?: string }>(DOWNLOAD_FUNCTION, { body: { token, document_id: documentId } })
+  if (error || !data?.url) {
+    const status = (error as { context?: { status?: number } } | null)?.context?.status
+    throw new SolicitudesApiError(status === 429 ? 'Demasiadas descargas seguidas. Inténtalo en unos minutos.' : 'El archivo no está disponible. Si el enlace ha caducado, pide uno nuevo a la empresa.', status ? String(status) : undefined)
+  }
+  return { url: data.url, name: data.name ?? 'archivo' }
+}
 
 /* ------------------------------------------------------------------ */
 /* Notificaciones                                                       */

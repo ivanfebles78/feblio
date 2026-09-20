@@ -11,7 +11,8 @@ pagos, Calendly ni envíos por email/SMS/WhatsApp; la capa de eventos queda prep
 | `solicitudes` | La petición: contacto, canal de entrada (`llamada/email/sms/whatsapp/portal/otro`), asunto, tipo, notas, fecha límite, estado, `form_data` (respuestas del cliente), `completeness`, `last_activity_at`. |
 | `solicitud_accesos` | Enlaces del cliente: **solo el hash SHA-256 del token**, caducidad, revocación y último uso. |
 | `solicitud_mensajes` | Conversación empresa ↔ cliente (`author_kind`, `kind` = `message` / `info_request` / `system`, lectura por cada parte). No existen mensajes internos privados. |
-| `solicitud_documentos` | Metadatos de archivos: nombre original, ruta física aleatoria en `intake-files`, MIME, tamaño, requisito asociado. |
+| `solicitud_documentos` | Metadatos de archivos: nombre original, ruta física aleatoria en `intake-files`, MIME, tamaño, requisito asociado, `visible_to_client` y `deleted_at` (borrado lógico). |
+| `rate_limits` | Contador por clave y ventana para accesos públicos (descarga por token). Sin grants a usuarios. |
 | `solicitud_requisitos` | Información pedida al cliente (`field` / `document`), estado `pending/received/resolved/waived`. |
 | `solicitud_analisis` | Análisis de suficiencia **versionados** (`provider = 'rules'`): completitud, recibido, pendiente, documentos pendientes. |
 | `notificaciones` | Notificaciones internas (empresa y cliente) con `dedupe_key` único → sin duplicados en reintentos. |
@@ -44,6 +45,18 @@ solo si no existe un presupuesto asociado al cliente). El frontend replica la ta
   URL firmada de 5 minutos. Extensiones PDF/DOC/DOCX/XLS/XLSX/PNG/JPG/JPEG, 10 MB (`sol_validar_archivo`,
   también validado en cliente). El nombre físico nunca lo elige el usuario.
 - Auditoría en `audit_events` sin secretos (los eventos de subentidades llevan `metadata.solicitud_id`).
+- **Descarga del cliente anónimo**: Edge Function `solicitud-descarga` (POST `{token, document_id}`, desplegada
+  con `--no-verify-jwt`). Valida la forma de la petición, llama con service_role a la RPC
+  `solicitud_acceso_documento` (ejecutable **solo** por service_role: hash del token, caducidad, revocación,
+  documento de esa misma solicitud y empresa, activo y visible) y firma una URL de **5 minutos**. El navegador
+  nunca recibe rutas ni claves; cualquier fallo → 404 «Enlace no válido». Límite de frecuencia en la RPC:
+  60/5 min por IP y 30/5 min por acceso (429). Auditado como `solicitud.client_download` sin el token.
+- **Ruta conservada tras autenticar**: `ProtectedRoute` guarda la ruta interna pedida sin sesión
+  (`rememberReturnTo`, localStorage, 10 min) y `Landing` vuelve a ella si el rol puede abrirla
+  (`resolveReturnTo`); solo rutas relativas internas (sin `//`, esquemas ni barras invertidas). Necesario porque
+  Supabase Auth descarta el `redirect_to` de un magic link si no está en la lista de URLs permitidas: añade
+  `https://<app>/**` (y `http://localhost:5173/**` en desarrollo) a *Redirect URLs* para que el enlace aterrice
+  directamente en la ruta profunda.
 
 ### Análisis de suficiencia
 
@@ -77,18 +90,21 @@ volver el foco. Ver una solicitud marca como leídos sus mensajes y notificacion
 
 ## Pruebas
 
-- SQL: `database/tests/0014_solicitudes.sql` (57 comprobaciones, transacción con ROLLBACK):
+- SQL: `database/tests/0014_solicitudes.sql` (73 comprobaciones, transacción con ROLLBACK):
   aislamiento entre empresas y entre clientes, token válido/caducado/revocado/manipulado, anon sin
   acceso, transiciones, archivos y políticas de storage, no leídos, idempotencia de notificaciones,
-  completitud versionada, borrador y envío.
+  completitud versionada, borrador y envío, y descarga por token (D1–D16: correcta, token manipulado,
+  caducado, revocado, documento de otra solicitud/empresa, interno, eliminado, sin acceso directo, rate limit).
+- Edge (Deno, CI `edge-security`): `supabase/functions/_shared/solicitudes/descarga.test.ts`.
 - Frontend (Vitest): `lib/solicitudes/domain.test.ts`, `useNotifications.test.tsx`,
   `components/v2/NotificationsBell.test.tsx`, `pages/solicitudes/SolicitudesInbox.test.tsx`,
-  `pages/solicitudes/NuevaSolicitud.test.tsx`, `pages/SolicitudCliente.test.tsx`.
+  `pages/solicitudes/NuevaSolicitud.test.tsx`, `pages/SolicitudCliente.test.tsx` (incluye descarga),
+  `lib/solicitudes/api.test.ts`, `lib/routing.test.ts` y `components/ReturnTo.test.tsx` (ruta conservada).
 
 ## Limitaciones conocidas y siguiente fase
 
-- El cliente anónimo no puede **descargar** sus propios archivos (solo subirlos y verlos listados):
-  las URL firmadas requieren sesión. Próxima fase: RPC de descarga por token o portal de cliente.
+- La empresa aún no marca documentos como internos desde la interfaz (`visible_to_client` existe en el
+  modelo y lo respetan vista, políticas y descarga); todo lo que sube es visible para el cliente.
 - Sin antivirus en la subida (mejora posterior); validación por extensión/MIME/tamaño.
 - Sin envíos de email/SMS/WhatsApp: las notificaciones son internas; la tabla `notificaciones`
   es el punto de enganche para un despachador externo.
