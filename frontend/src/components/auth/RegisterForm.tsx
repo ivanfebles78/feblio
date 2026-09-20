@@ -187,9 +187,11 @@ export function RegisterForm({ busy, onSubmit }: RegisterFormProps) {
               </button>
             }
           />
-          <PasswordRequirements password={values.password} id={pwReqId} />
         </div>
         <TextField label="Confirmar contraseña" name="confirmPassword" type={showPass ? 'text' : 'password'} autoComplete="new-password" required value={values.confirmPassword} onChange={(e) => set('confirmPassword', e.target.value)} onBlur={() => blur('confirmPassword')} error={err('confirmPassword')} />
+        <div className="sm:col-span-2">
+          <PasswordRequirements password={values.password} id={pwReqId} />
+        </div>
       </fieldset>
 
       <div className="space-y-3 border-t border-slate-200 pt-4">
