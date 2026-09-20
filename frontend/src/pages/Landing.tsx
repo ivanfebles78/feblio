@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { Logo } from '../components/Logo'
 import { HeroScene } from '../components/HeroScene'
 import { LoginForm } from '../components/auth/LoginForm'
 import { DemoAccess } from '../components/auth/DemoAccess'
 import { useAuth } from '../context/AuthContext'
-import { REGISTER_PATH, homePathForRole } from '../lib/routing'
+import { REGISTER_PATH, resolveReturnTo, takeReturnTo } from '../lib/routing'
 import type { DemoAccount } from '../lib/env'
 
 /** Inicio de sesión. El registro de empresas vive en /registro (RegisterPage). */
 export default function Landing() {
   const { session, profile, signIn, resendConfirmation } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [params, setParams] = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(params.get('reset') === 'ok' ? 'Contraseña actualizada. Ya puedes iniciar sesión con la nueva.' : null)
@@ -31,9 +32,13 @@ export default function Landing() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Empresa: /empresa decide (verificación → onboarding → dashboard) sin parpadeos.
-    if (session && profile) navigate(homePathForRole(profile.role), { replace: true })
-  }, [session, profile, navigate])
+    // Con sesión: vuelve a la ruta interna pedida antes de autenticar si el rol puede abrirla;
+    // si no, a la home del rol (/empresa decide verificación → bienvenida → dashboard).
+    if (!session || !profile) return
+    const from = (location.state as { from?: unknown } | null)?.from
+    const remembered = takeReturnTo()
+    navigate(resolveReturnTo(typeof from === 'string' ? from : remembered, profile.role), { replace: true })
+  }, [session, profile, navigate, location.state])
 
   async function handleLogin(email: string, password: string) {
     setError(null)
