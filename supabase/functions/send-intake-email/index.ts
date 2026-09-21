@@ -1,6 +1,7 @@
 // Feblio · Edge Function: envía por email el enlace del formulario de cliente (solo usuarios de empresa
 // autenticados y solo para formularios de SU empresa; ver _shared/intake/sendIntake.ts).
 // Secretos del servidor: RESEND_API_KEY (obligatorio), INTAKE_FROM_EMAIL (opcional), APP_URL (opcional).
+// Requiere la migración 0017 (RPC intake_email_rate_check); sin ella la función no envía (fail closed).
 // Deploy (verify_jwt activado, por defecto):  supabase functions deploy send-intake-email
 //
 // Idioma: comunicación empresarial → empresas.language de la empresa del formulario. Sin idioma → español.
@@ -32,6 +33,12 @@ function deps(): SendIntakeDeps {
       const { data } = await admin.from('empresas').select('id, name, trade_name, language').eq('id', empresaId).maybeSingle()
       return (data as EmpresaRow | null) ?? null
     },
+    async rateCheck(userId, empresaId, intakeId) {
+      const { data, error } = await admin.rpc('intake_email_rate_check', { p_user: userId, p_empresa: empresaId, p_intake: intakeId })
+      if (error || !data || typeof data !== 'object') throw new Error('rate_check_failed')
+      const r = data as { allowed?: unknown; retry_after?: unknown }
+      return { allowed: r.allowed === true, retry_after: typeof r.retry_after === 'number' ? r.retry_after : undefined }
+    },
     async sendMail(mail) {
       const r = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -55,7 +62,7 @@ Deno.serve(async (req) => {
   }
   try {
     const out = await handleSendIntake(req, deps())
-    return new Response(JSON.stringify(out.body), { status: out.status, headers: { ...cors, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify(out.body), { status: out.status, headers: { ...cors, ...(out.headers ?? {}), 'Content-Type': 'application/json' } })
   } catch (e) {
     // Nunca se devuelve el texto de la excepción al cliente
     console.error('send-intake-email: error inesperado', { reason: e instanceof Error ? e.name : 'unknown' })

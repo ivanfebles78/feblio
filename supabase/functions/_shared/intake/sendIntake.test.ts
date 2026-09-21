@@ -1,7 +1,7 @@
 // Feblio · Pruebas de seguridad de `send-intake-email` (sin red, sin envíos reales; proveedor simulado).
 // Ejecutar con:  cd supabase/functions && deno test _shared/intake/sendIntake.test.ts
 import { assert, assertEquals, assertMatch } from 'https://deno.land/std@0.224.0/assert/mod.ts'
-import { allowedOrigin, corsHeaders, handleSendIntake, parsePayload, publicBase, type IntakeRow, type SendIntakeDeps } from './sendIntake.ts'
+import { allowedOrigin, corsHeaders, handleSendIntake, parsePayload, publicBase, retryAfterSeconds, type IntakeRow, type RateCheckResult, type SendIntakeDeps } from './sendIntake.ts'
 
 const EMPRESA_A = '11111111-1111-4111-8111-111111111111'
 const EMPRESA_B = '22222222-2222-4222-8222-222222222222'
@@ -13,11 +13,52 @@ const INTAKE_B: IntakeRow = { id: '55555555-5555-4555-8555-555555555555', empres
 
 interface Sent { from: string; to: string; subject: string; html: string; text: string }
 
-function makeDeps(opts: { langA?: string; resendFails?: boolean; noKey?: boolean; intakes?: IntakeRow[] } = {}) {
+/**
+ * Contador simulado con las mismas reglas que la RPC `intake_email_rate_check` (0017): comprobación conjunta
+ * usuario+formulario (5) y empresa (30) en ventana fija de 60 min; un rechazo no consume nada; un permiso
+ * incrementa ambos exactamente una vez. Las llamadas se serializan (como el bloqueo de fila en Postgres).
+ */
+class FakeRateStore {
+  rows = new Map<string, { windowStart: number; hits: number }>()
+  calls = 0
+  now = () => Date.now()
+  private chain: Promise<unknown> = Promise.resolve()
+  constructor(readonly userMax = 5, readonly empMax = 30, readonly windowMs = 60 * 60 * 1000) {}
+  check(user: string, emp: string, intake: string): Promise<RateCheckResult> {
+    const run = (): RateCheckResult => {
+      this.calls++
+      const now = this.now()
+      const ku = `ie:u:${user}:i:${intake}`
+      const ke = `ie:e:${emp}`
+      const eff = (k: string) => {
+        const r = this.rows.get(k)
+        return !r || r.windowStart < now - this.windowMs ? { hits: 0, windowStart: now } : r
+      }
+      const u = eff(ku)
+      const e = eff(ke)
+      const retry = (r: { windowStart: number }) => Math.min(3600, Math.max(1, Math.ceil((r.windowStart + this.windowMs - now) / 1000)))
+      if (u.hits >= this.userMax) return { allowed: false, retry_after: retry(u) }
+      if (e.hits >= this.empMax) return { allowed: false, retry_after: retry(e) }
+      this.rows.set(ku, { windowStart: u.hits === 0 ? now : u.windowStart, hits: u.hits + 1 })
+      this.rows.set(ke, { windowStart: e.hits === 0 ? now : e.windowStart, hits: e.hits + 1 })
+      return { allowed: true }
+    }
+    const p = this.chain.then(run)
+    this.chain = p.catch(() => undefined)
+    return p
+  }
+  hits(k: string): number {
+    return this.rows.get(k)?.hits ?? 0
+  }
+}
+
+function makeDeps(opts: { langA?: string; resendFails?: boolean; noKey?: boolean; intakes?: IntakeRow[]; store?: FakeRateStore; rpcDown?: boolean } = {}) {
   const sent: Sent[] = []
   const logs: string[] = []
   const intakes = opts.intakes ?? [INTAKE_A, INTAKE_B]
+  const store = opts.store ?? new FakeRateStore()
   const deps: SendIntakeDeps = {
+    rateCheck: (u, e, i) => (opts.rpcDown ? Promise.reject(new Error('rate_check_failed')) : store.check(u, e, i)),
     getUserId: async (jwt) => ({ 'jwt-a': USER_A, 'jwt-b': USER_B, 'jwt-client': USER_CLIENT })[jwt] ?? null,
     getProfile: async (id) => ({ [USER_A]: { empresa_id: EMPRESA_A, role: 'empresa' }, [USER_B]: { empresa_id: EMPRESA_B, role: 'empresa' }, [USER_CLIENT]: { empresa_id: EMPRESA_A, role: 'cliente' } })[id] ?? null,
     findIntakeById: async (id) => intakes.find((r) => r.id === id) ?? null,
@@ -31,7 +72,7 @@ function makeDeps(opts: { langA?: string; resendFails?: boolean; noKey?: boolean
     env: (name) => (name === 'RESEND_API_KEY' ? (opts.noKey ? undefined : 're_test') : name === 'INTAKE_FROM_EMAIL' ? 'Feblio <notificaciones@feblio.com>' : name === 'APP_URL' ? 'https://feblio-production.up.railway.app' : undefined),
     log: (event) => logs.push(event),
   }
-  return { deps, sent, logs }
+  return { deps, sent, logs, store }
 }
 
 const post = (body: unknown, jwt?: string, origin = 'https://feblio.com') =>
@@ -158,4 +199,101 @@ Deno.test('10. CORS y enlace: solo orígenes permitidos; el enlace usa el token 
   assertEquals(h['Access-Control-Allow-Methods'], 'POST, OPTIONS')
   assertEquals(parsePayload({ link: 'https://evil.example/form/44444444-4444-4444-8444-444444444444?x=1' }), { token: '44444444-4444-4444-8444-444444444444' })
   assertEquals(parsePayload({ intake_id: INTAKE_A.id.toUpperCase() }), { intake_id: INTAKE_A.id })
+})
+
+/* ------------------------------------------------------------------------------------------------ */
+/* Límite de frecuencia (0017)                                                                        */
+/* ------------------------------------------------------------------------------------------------ */
+
+const own = (jwt = 'jwt-a', id = INTAKE_A.id) => post({ intake_id: id }, jwt)
+
+Deno.test('11. cinco intentos permitidos y el sexto bloqueado con 429 rate_limited y Retry-After (1..3600)', async () => {
+  const { deps, sent, store } = makeDeps()
+  for (let n = 1; n <= 5; n++) assertEquals((await handleSendIntake(own(), deps)).status, 200, `intento ${n}`)
+  const sixth = await handleSendIntake(own(), deps)
+  assertEquals(sixth.status, 429)
+  assertEquals(sixth.body, { ok: false, code: 'rate_limited' })
+  const ra = Number(sixth.headers?.['Retry-After'])
+  assert(ra >= 1 && ra <= 3600, `Retry-After fuera de rango: ${ra}`)
+  assertEquals(sent.length, 5)
+  // el rechazo no consume cuota
+  assertEquals(store.hits(`ie:u:${USER_A}:i:${INTAKE_A.id}`), 5)
+  assertEquals(store.hits(`ie:e:${EMPRESA_A}`), 5)
+  assertEquals(retryAfterSeconds(0), 1)
+  assertEquals(retryAfterSeconds(99999), 3600)
+  assertEquals(retryAfterSeconds(undefined), 60)
+})
+
+Deno.test('12. usuarios, formularios y empresas distintos mantienen cuotas independientes', async () => {
+  const store = new FakeRateStore()
+  const intakeA2: IntakeRow = { ...INTAKE_A, id: '77777777-7777-4777-8777-777777777777', token: '88888888-8888-4888-8888-888888888888' }
+  const { deps, sent } = makeDeps({ store, intakes: [INTAKE_A, INTAKE_B, intakeA2] })
+  for (let n = 1; n <= 5; n++) await handleSendIntake(own(), deps)
+  assertEquals((await handleSendIntake(own(), deps)).status, 429)
+  assertEquals((await handleSendIntake(own('jwt-a', intakeA2.id), deps)).status, 200) // otro formulario, mismo usuario
+  assertEquals((await handleSendIntake(post({ intake_id: INTAKE_B.id }, 'jwt-b'), deps)).status, 200) // otra empresa
+  assertEquals(store.hits(`ie:e:${EMPRESA_A}`), 6)
+  assertEquals(store.hits(`ie:e:${EMPRESA_B}`), 1)
+  assertEquals(sent.length, 7)
+})
+
+Deno.test('13. llamadas simultáneas: nunca más de 5 envíos para el mismo usuario+formulario', async () => {
+  const { deps, sent } = makeDeps()
+  const results = await Promise.all(Array.from({ length: 12 }, () => handleSendIntake(own(), deps)))
+  assertEquals(results.filter((r) => r.status === 200).length, 5)
+  assertEquals(results.filter((r) => r.status === 429).length, 7)
+  assertEquals(sent.length, 5)
+})
+
+Deno.test('14. límite de empresa (30): bloquea aunque el usuario+formulario tenga cuota; el rechazo no incrementa nada', async () => {
+  const store = new FakeRateStore()
+  const intakes: IntakeRow[] = Array.from({ length: 7 }, (_, k) => ({ ...INTAKE_A, id: `${String(k + 1).repeat(8)}-0000-4000-8000-000000000000`, token: `${String(k + 1).repeat(8)}-1111-4111-8111-111111111111` }))
+  const { deps, sent } = makeDeps({ store, intakes })
+  let ok = 0
+  for (const it of intakes) for (let n = 0; n < 5; n++) if ((await handleSendIntake(own('jwt-a', it.id), deps)).status === 200) ok++
+  assertEquals(ok, 30) // 7 formularios × 5 = 35 intentos, solo 30 pasan
+  assertEquals(sent.length, 30)
+  assertEquals(store.hits(`ie:e:${EMPRESA_A}`), 30)
+  assertEquals(store.hits(`ie:u:${USER_A}:i:${intakes[6].id}`), 0) // el último formulario quedó bloqueado sin consumir su cuota propia
+})
+
+Deno.test('15. expiración de la ventana: pasados 60 minutos vuelve a permitir', async () => {
+  const store = new FakeRateStore()
+  let t = Date.parse('2026-09-21T10:00:00Z')
+  store.now = () => t
+  const { deps } = makeDeps({ store })
+  for (let n = 1; n <= 5; n++) await handleSendIntake(own(), deps)
+  const blocked = await handleSendIntake(own(), deps)
+  assertEquals(blocked.status, 429)
+  assertEquals(Number(blocked.headers?.['Retry-After']), 3600)
+  t += 30 * 60 * 1000
+  assertEquals((await handleSendIntake(own(), deps)).status, 429)
+  assertEquals(Number((await handleSendIntake(own(), deps)).headers?.['Retry-After']), 1800)
+  t += 31 * 60 * 1000
+  assertEquals((await handleSendIntake(own(), deps)).status, 200)
+  assertEquals(store.hits(`ie:u:${USER_A}:i:${INTAKE_A.id}`), 1)
+})
+
+Deno.test('16. un error de Resend consume cuota igualmente; la RPC caída cierra la función', async () => {
+  const store = new FakeRateStore()
+  const { deps, logs } = makeDeps({ store, resendFails: true })
+  for (let n = 1; n <= 5; n++) assertEquals((await handleSendIntake(own(), deps)).status, 502)
+  assertEquals((await handleSendIntake(own(), deps)).status, 429)
+  assertEquals(store.hits(`ie:u:${USER_A}:i:${INTAKE_A.id}`), 5)
+  assertEquals(logs.length, 5)
+  const down = makeDeps({ rpcDown: true })
+  const out = await handleSendIntake(own(), down.deps)
+  assertEquals(out, { status: 500, body: { ok: false, code: 'error' } })
+  assertEquals(down.sent.length, 0)
+})
+
+Deno.test('17. los intentos rechazados antes del proveedor (pertenencia, payload, sin clave) no consumen cuota', async () => {
+  const store = new FakeRateStore()
+  const { deps } = makeDeps({ store })
+  await handleSendIntake(post({ intake_id: INTAKE_B.id }, 'jwt-a'), deps) // ajeno
+  await handleSendIntake(post({}, 'jwt-a'), deps) // payload inválido
+  await handleSendIntake(own('jwt-client'), deps) // cuenta cliente
+  const noKey = makeDeps({ store, noKey: true })
+  await handleSendIntake(own(), noKey.deps)
+  assertEquals(store.calls, 0)
 })
