@@ -1,17 +1,17 @@
 {
   "confirm-signup": {
     "file": "confirm-signup.html",
-    "subject": "{{ if eq .Data.language \"en\" }}Confirm your email address · Feblio{{ else }}Confirma tu correo electrónico · Feblio{{ end }}",
-    "subject_es": "Confirma tu correo electrónico · Feblio",
-    "subject_en": "Confirm your email address · Feblio",
+    "subject": "{{ if eq .Data.language \"en\" }}Confirm your email and activate your Feblio account{{ else }}Confirma tu correo y activa tu cuenta de Feblio{{ end }}",
+    "subject_es": "Confirma tu correo y activa tu cuenta de Feblio",
+    "subject_en": "Confirm your email and activate your Feblio account",
     "api_subject_key": "mailer_subjects_confirmation",
     "api_content_key": "mailer_templates_confirmation_content"
   },
   "reset-password": {
     "file": "reset-password.html",
-    "subject": "{{ if eq .Data.language \"en\" }}Reset your password · Feblio{{ else }}Restablece tu contraseña · Feblio{{ end }}",
-    "subject_es": "Restablece tu contraseña · Feblio",
-    "subject_en": "Reset your password · Feblio",
+    "subject": "{{ if eq .Data.language \"en\" }}Reset your Feblio password{{ else }}Restablece tu contraseña de Feblio{{ end }}",
+    "subject_es": "Restablece tu contraseña de Feblio",
+    "subject_en": "Reset your Feblio password",
     "api_subject_key": "mailer_subjects_recovery",
     "api_content_key": "mailer_templates_recovery_content"
   },

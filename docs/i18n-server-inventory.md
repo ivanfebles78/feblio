@@ -70,7 +70,7 @@ mensajes de proveedores externos (Resend, Twilio, Meta, Google, Microsoft: se re
 
 | Plantilla | Estado anterior | Ahora |
 |---|---|---|
-| Confirm sign up, Reset password, Invite user, Magic link, Change email, Reauthentication, notificaciones de seguridad | las alojadas en cada proyecto (se copian exactamente antes de cambiarlas; ver informe del despliegue) | versión bilingüe es/en por `user_metadata.language` en `docs/email-templates/` (ver README de esa carpeta para el estado de aplicación) |
+| Confirm sign up, Reset password, Invite user, Magic link, Change email, Reauthentication, notificaciones de seguridad | producción: *Confirm sign up* y *Reset password* personalizadas en español; el resto, plantillas por defecto de Supabase (inglés). Staging: no editables (sin SMTP propio) | versión bilingüe es/en por `user_metadata.language` en `docs/email-templates/` (ver README de esa carpeta para el estado de aplicación) |
 
 ## Textos que siguen sin traducir y por qué
 

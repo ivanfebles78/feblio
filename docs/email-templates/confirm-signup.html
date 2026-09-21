@@ -24,14 +24,14 @@
                   <td style="padding:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:32px;font-weight:bold;color:#0f172a;">{{ if eq .Data.language "en" }}Confirm your email address{{ else }}Confirma tu correo electrónico{{ end }}</td>
                 </tr>
                 <tr>
-                  <td style="padding:0 0 24px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#334155;">{{ if eq .Data.language "en" }}Thanks for signing up for Feblio. Click the button below to confirm this email address and finish creating your account.{{ else }}Gracias por registrarte en Feblio. Pulsa el botón para confirmar esta dirección de correo y terminar de crear tu cuenta.{{ end }}</td>
+                  <td style="padding:0 0 24px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#334155;">{{ if eq .Data.language "en" }}Thanks for signing up for Feblio. Confirm your email address to activate your account and start managing your projects.{{ else }}Gracias por registrarte en Feblio. Confirma tu dirección de correo para activar tu cuenta y comenzar a gestionar tus proyectos.{{ end }}</td>
                 </tr>
                 <tr>
                   <td align="center" style="padding:8px 0 24px 0;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                       <tr>
                         <td align="center" bgcolor="#2563eb" style="border-radius:10px;">
-                          <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;border-radius:10px;">{{ if eq .Data.language "en" }}Confirm email address{{ else }}Confirmar correo electrónico{{ end }}</a>
+                          <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;line-height:20px;color:#ffffff;text-decoration:none;border-radius:10px;">{{ if eq .Data.language "en" }}Confirm my email{{ else }}Confirmar mi correo{{ end }}</a>
                         </td>
                       </tr>
                     </table>
@@ -44,13 +44,13 @@
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding:16px 0 0 0;border-top:1px solid #e2e8f0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#64748b;">{{ if eq .Data.language "en" }}If you didn't sign up for Feblio, you can safely ignore this email.{{ else }}Si no te has registrado en Feblio, puedes ignorar este correo con tranquilidad.{{ end }}</td>
+                  <td style="padding:16px 0 0 0;border-top:1px solid #e2e8f0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#64748b;">{{ if eq .Data.language "en" }}If you didn't create a Feblio account, you can safely ignore this message.{{ else }}Si no has creado una cuenta en Feblio, puedes ignorar este mensaje de forma segura.{{ end }}</td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding:24px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#94a3b8;">{{ if eq .Data.language "en" }}Feblio · Manage your projects from start to finish{{ else }}Feblio · Gestiona tus proyectos de principio a fin{{ end }}</td>
+            <td align="center" style="padding:24px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#94a3b8;">{{ if eq .Data.language "en" }}This is an automatic message sent by Feblio.<br>Feblio · Project management from start to finish{{ else }}Este es un mensaje automático enviado por Feblio.<br>Feblio · Gestión de proyectos de principio a fin{{ end }}</td>
           </tr>
         </table>
       </td>

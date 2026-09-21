@@ -44,8 +44,8 @@ Los asuntos:
 
 | Plantilla | Español | Inglés |
 | --- | --- | --- |
-| Confirm sign up | Confirma tu correo electrónico · Feblio | Confirm your email address · Feblio |
-| Reset password | Restablece tu contraseña · Feblio | Reset your password · Feblio |
+| Confirm sign up | Confirma tu correo y activa tu cuenta de Feblio | Confirm your email and activate your Feblio account |
+| Reset password | Restablece tu contraseña de Feblio | Reset your Feblio password |
 | Invite user | Te han invitado a Feblio | You've been invited to Feblio |
 | Magic link | Tu enlace de acceso · Feblio | Your sign-in link · Feblio |
 | Change email | Confirma tu nueva dirección de correo · Feblio | Confirm your new email address · Feblio |
@@ -68,18 +68,41 @@ resolución a español sin idioma; que ninguna condicional queda literal al rend
 exactas por plantilla y ninguna inventada; ausencia de `<script>`, manejadores `on*=`, `javascript:` y
 Base64; logo por HTTPS con texto alternativo; y ausencia de claves técnicas visibles.
 
+## Estado en los proyectos (verificado el 2026-09-21, solo lectura)
+
+| Proyecto | Situación |
+| --- | --- |
+| Staging `tbobbbgjfqrifwrmbtpd` | **No se pueden editar** las plantillas: el panel indica «Set up custom SMTP to edit templates» (sin SMTP propio se usan las plantillas por defecto). Configurar SMTP no forma parte de este cambio, así que la validación previa en staging no es posible para las plantillas. |
+| Producción `sykyofrzbzosbtdcsrxa` | SMTP propio activo; plantillas editables. **Confirm sign up** y **Reset password** ya están personalizadas en español (asuntos «Confirma tu correo y activa tu cuenta de Feblio» y «Restablece tu contraseña de Feblio»; los textos españoles de este repositorio se han alineado con ellas). **Invite user, Magic link, Change email, Reauthentication** y las notificaciones de seguridad conservan las plantillas por defecto de Supabase (en inglés). |
+
+Las plantillas de este directorio **no están aplicadas** en ningún proyecto: solo están versionadas.
+Motivo: no ha sido posible obtener una copia exacta (asunto + HTML completo) de las dos plantillas
+personalizadas de producción con un mecanismo automatizado, y ese respaldo es condición previa para
+sustituirlas. Los pasos manuales están más abajo.
+
+**Sobre el botón Preview del panel**: comprobado en producción (sin guardar) que el Preview solo
+sustituye las variables (`{{ .ConfirmationURL }}`…) en el navegador y **no evalúa las condicionales de
+Go**: muestra las dos ramas y los `{{ if … }}` / `{{ else }}` / `{{ end }}` literalmente. Las condicionales
+se evalúan en el servidor al enviar (documentación oficial, sección *Customization* de *Email Templates*).
+Por tanto el Preview sirve para revisar el diseño, pero la verificación real de la rama es/en solo puede
+hacerse con un envío a una cuenta propia (p. ej. «Reset password» a un usuario de prueba con
+`user_metadata.language = "en"` y a otro sin el campo), con autorización previa.
+
 ## Cómo aplicarlas (manual, panel de Supabase)
 
-1. **Antes de tocar nada**, guarda una copia exacta del asunto y del HTML actuales de cada plantilla (copia
-   el contenido del editor del panel a un archivo fuera del repositorio, p. ej.
-   `C:\Users\<usuario>\FeblioBackups\auth-templates-<ref>-<fecha>\`). No la subas al repositorio si
-   contiene textos que no quieras versionar.
-2. En el panel del proyecto (**primero staging `tbobbbgjfqrifwrmbtpd`, después producción
-   `sykyofrzbzosbtdcsrxa`**): *Authentication → Email Templates* → pestaña de cada plantilla.
+1. **Antes de tocar nada**, guarda una copia exacta del asunto y del HTML actuales de cada plantilla
+   personalizada (en producción: *Confirm sign up* y *Reset password*; las demás son las de Supabase y se
+   recuperan con «Reset template»). Copia el contenido del editor del panel a un archivo fuera del
+   repositorio, p. ej. `C:\Users\<usuario>\FeblioBackups\auth-templates-<ref>-<fecha>\`, o usa el `GET`
+   de la Management API indicado más abajo. No la subas al repositorio si contiene textos que no quieras
+   versionar.
+2. En el panel de producción `sykyofrzbzosbtdcsrxa` (staging no admite edición sin SMTP propio):
+   *Authentication → Email Templates* → pestaña de cada plantilla.
 3. Pega en **Subject** el valor `subject` de `templates.json` y en **Message body** el contenido íntegro
    del archivo `.html`. Guarda.
-4. Pulsa **Preview** y comprueba que se ve el español, que no aparece ningún `{{ if` / `{{ else }}` /
-   `{{ end }}` literal y que el botón apunta a la URL de confirmación.
+4. Pulsa **Preview** para revisar el diseño (verás las dos ramas y las condicionales literales: es el
+   comportamiento del Preview, no un error) y que el botón apunta a la URL de confirmación. Para
+   confirmar la rama por idioma, envía una prueba real a una cuenta propia (con autorización).
 5. Repite en la pestaña *Security* para las 7 notificaciones (solo se envían si están activadas a nivel de
    proyecto; activar o desactivar notificaciones **no** forma parte de este cambio).
 
