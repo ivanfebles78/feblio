@@ -415,5 +415,25 @@
     "composerLabel": "Nuevo mensaje",
     "closed": "La conversación está cerrada.",
     "hint": "La otra parte recibirá una notificación. Ctrl+Intro para enviar."
+  },
+  "serverErrors": {
+    "request_not_found": "Solicitud no encontrada",
+    "invalid_link": "Enlace no válido",
+    "file_too_large": "El archivo supera el tamaño máximo (10 MB)",
+    "file_type_not_allowed": "Tipo de archivo no permitido",
+    "invalid_transition": "Transición de estado no permitida",
+    "close_reason_required": "Indica el motivo de cierre",
+    "reopen_blocked": "No se puede reabrir: ya existe un presupuesto",
+    "info_request_not_allowed": "La solicitud no admite peticiones de información en su estado actual",
+    "message_required": "Escribe un mensaje",
+    "invalid_path": "Ruta no válida",
+    "file_not_found": "Archivo no encontrado",
+    "already_submitted": "El formulario ya se ha enviado",
+    "request_closed": "La solicitud está cerrada",
+    "invalid_requisito": "Requisito no válido",
+    "rate_limited": "Demasiadas solicitudes. Inténtalo en unos minutos.",
+    "download_bad_request": "Petición no válida",
+    "download_invalid": "Enlace no válido",
+    "download_rate_limited": "Demasiadas solicitudes. Inténtalo en unos minutos."
   }
 }

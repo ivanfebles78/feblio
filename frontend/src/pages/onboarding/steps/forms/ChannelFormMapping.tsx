@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { SelectField, TextareaField } from '../../../../components/forms/Field'
 import type { ChannelKey, ChannelRule, IntakeFormTemplate } from '../../../../lib/onboarding/types'
-import { DEFAULT_FORM_MESSAGE } from '../../../../lib/onboarding/steps'
+import { channelDefault } from '../../../../lib/onboarding/channelDefaults'
 import { t as translate } from '../../../../i18n'
 
 export const CHANNEL_KEYS: ChannelKey[] = ['public_form', 'email', 'whatsapp', 'sms', 'voice', 'manual']
@@ -17,13 +17,15 @@ const SELECTION_RULE_KEYS = [
 ]
 
 interface ChannelFormMappingProps {
+  /** Idioma de la empresa (empresas.language) para la plantilla por defecto del mensaje */
+  companyLanguage?: string | null
   rules: ChannelRule[]
   templates: IntakeFormTemplate[]
   onChange: (channel: ChannelKey, patch: Partial<ChannelRule>) => void
 }
 
 /** Asignación de formulario por canal: predeterminado, regla de selección y mensaje con la URL. */
-export function ChannelFormMapping({ rules, templates, onChange }: ChannelFormMappingProps) {
+export function ChannelFormMapping({ rules, templates, onChange, companyLanguage }: ChannelFormMappingProps) {
   const { t } = useTranslation()
   const channels = CHANNEL_KEYS
   const selectionRules = SELECTION_RULE_KEYS.map((r) => ({ value: r.value, label: t(`onboarding.channelMapping.${r.key}`) }))
@@ -54,7 +56,7 @@ export function ChannelFormMapping({ rules, templates, onChange }: ChannelFormMa
                   <SelectField label={<span className="sr-only">{t('onboarding.channelMapping.ruleFor', { channel: channelLabel(ch) })}</span>} value={selection} onChange={(e) => onChange(ch, { form_selection_rule: { mode: e.target.value } })} options={selectionRules} />
                 </td>
                 <td className="py-3">
-                  <TextareaField label={<span className="sr-only">{t('onboarding.channelMapping.messageFor', { channel: channelLabel(ch) })}</span>} rows={2} value={rule?.send_message_template ?? DEFAULT_FORM_MESSAGE} onChange={(e) => onChange(ch, { send_message_template: e.target.value })} hint={t('onboarding.channelMapping.messageHint')} />
+                  <TextareaField label={<span className="sr-only">{t('onboarding.channelMapping.messageFor', { channel: channelLabel(ch) })}</span>} rows={2} value={rule?.send_message_template ?? channelDefault('form_message', companyLanguage)} onChange={(e) => onChange(ch, { send_message_template: e.target.value })} hint={t('onboarding.channelMapping.messageHint')} />
                 </td>
               </tr>
             )

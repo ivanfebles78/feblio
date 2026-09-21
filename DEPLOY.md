@@ -17,12 +17,12 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
 ## 2. Base de datos (Supabase)
 
 1. **Antes de producción, prueba en una rama** (Supabase → Branches → New branch) o en un proyecto de desarrollo:
-   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql` y `0015_i18n_public_language.sql` → Run (en ese orden).
-   - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql` y `0015_i18n_public_language.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
+   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql` y `0016_i18n_server_messages.sql` → Run (en ese orden).
+   - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql` y `0016_i18n_server_messages.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
    - `0011` convierte `intake-files` en bucket **privado**: los adjuntos ya subidos siguen accesibles para la empresa
      dueña mediante URLs firmadas (el panel las genera al pulsar); las URLs públicas antiguas dejan de funcionar.
    - Opcional en desarrollo: `database/seed/0003_seed_onboarding_ralm.sql`.
-2. Aplica `0009`, `0010`, `0011`, `0012`, `0013`, `0014` y `0015` en producción cuando la rama esté verificada. Con `0014` despliega también la Edge Function pública `supabase functions deploy solicitud-descarga --no-verify-jwt` (descarga del cliente por token; no requiere secretos adicionales) y añade `https://<app>/**` a *Auth → Redirect URLs* para que los magic links conserven la ruta profunda. Es idempotente y no destruye datos: las empresas
+2. Aplica `0009`, `0010`, `0011`, `0012`, `0013`, `0014`, `0015` y `0016` en producción cuando la rama esté verificada. Con `0016` vuelve a desplegar `send-otp`, `send-intake-email`, `integrations` y `solicitud-descarga` (mensajes en el idioma de la empresa/usuario y códigos estables). Con `0014` despliega también la Edge Function pública `supabase functions deploy solicitud-descarga --no-verify-jwt` (descarga del cliente por token; no requiere secretos adicionales) y añade `https://<app>/**` a *Auth → Redirect URLs* para que los magic links conserven la ruta profunda. Es idempotente y no destruye datos: las empresas
    existentes quedan con `onboarding_status = 'completed'` en la primera ejecución (backfill de una sola vez, marcado en
    `platform_settings.onboarding_backfill_done`; pueden reabrir el asistente desde Configuración). No usa GUC personalizados
    (`set_config` de parámetros propios no está permitido en Supabase alojado).
@@ -35,7 +35,7 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
 | Authentication → Providers → Email → **Confirm email** | **OFF** (modo `otp`, por defecto) | Feblio verifica con su propio código de 6 dígitos. Si se deja ON habría doble verificación (enlace + código). Si prefieres la confirmación nativa, déjalo ON y ejecuta `update public.platform_settings set value = '"native"' where key = 'email_verification_mode';` |
 | Authentication → URL Configuration → **Site URL** | `https://feblio-production.up.railway.app` | Enlaces de confirmación / cambio de email |
 | Authentication → URL Configuration → **Redirect URLs** | `https://feblio-production.up.railway.app/**`, `http://localhost:5173/**` | Cambio seguro de email de acceso (`auth.updateUser`) y confirmación nativa |
-| Authentication → Email Templates | Opcional | Personaliza «Confirm signup» y «Change email» |
+| Authentication → Email Templates | Plantillas bilingües de `docs/email-templates/` | Asunto y cuerpo es/en según `user_metadata.language` (ausente → español). Instrucciones y copia de seguridad previa en `docs/email-templates/README.md` |
 | Authentication → Rate limits | Revisar | Registro y OTP |
 
 ## 4. Edge Functions y secrets

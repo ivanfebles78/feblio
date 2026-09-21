@@ -11,6 +11,7 @@ import { TIMEZONES, defaultVoiceData } from '../../../lib/onboarding/steps'
 import { onboardingStepPath } from '../../../lib/routing'
 import type { VoiceMode, VoiceStepData } from '../../../lib/onboarding/types'
 import { useChannelStep } from './useChannelStep'
+import { useOnboarding } from '../../../lib/onboarding/OnboardingContext'
 import type { StepProps } from './types'
 
 type Data = VoiceStepData & Record<string, unknown>
@@ -19,7 +20,9 @@ export function VoiceChannelStep({ errors, showErrors, mode }: StepProps) {
   const { t } = useTranslation()
   const integration = useIntegration('voice')
   const tz = integration.connection?.settings?.timezone as string | undefined
-  const defaults = useCallback(() => defaultVoiceData(tz ?? 'Europe/Madrid') as Data, [tz])
+  // Plantillas por defecto en el idioma de la empresa (no el de la interfaz); lo guardado no se toca
+  const companyLanguage = useOnboarding().snapshot?.empresa.language
+  const defaults = useCallback(() => defaultVoiceData(tz ?? 'Europe/Madrid', companyLanguage) as Data, [tz, companyLanguage])
   const { ctx, data, set, connection } = useChannelStep<Data>('voice', 'voice', defaults)
   const err = (k: string) => (showErrors ? errors[k] : undefined)
   const returnTo = mode === 'wizard' ? onboardingStepPath('voice') : '/empresa?settings=integrations'

@@ -117,7 +117,7 @@ export function FormsStep({ errors, showErrors }: StepProps) {
           {t('onboarding.forms.mappingTitle')}
         </h2>
         <p className="mb-3 text-xs text-slate-500">{t('onboarding.forms.mappingDescription')}</p>
-        <ChannelFormMapping rules={rules} templates={templates} onChange={updateRule} />
+        <ChannelFormMapping rules={rules} templates={templates} onChange={updateRule} companyLanguage={ctx.snapshot?.empresa.language} />
       </section>
 
       <ConfirmDialog open={confirmDelete !== null} title={t('onboarding.forms.deleteTitle', { name: confirmDelete?.name ?? '' })} tone="danger" confirmLabel={t('onboarding.forms.deleteConfirm')} onConfirm={remove} onCancel={() => setConfirmDelete(null)}>

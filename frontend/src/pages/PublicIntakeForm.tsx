@@ -6,6 +6,7 @@ import { Logo } from '../components/Logo'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { applyCompanyLanguage, type Language } from '../i18n'
 import { supabase } from '../lib/supabase'
+import { serverErrorMessage, type ServerResult } from '../lib/serverErrors'
 
 interface FormFieldDef {
   key: string
@@ -133,7 +134,7 @@ export default function PublicIntakeForm() {
     setBusy(false)
     if (error) setError(t('intake.submit.failedRetry'))
     else if (res && (res as { ok: boolean }).ok) setDone(true)
-    else setError((res as { error?: string })?.error ?? t('intake.submit.failed'))
+    else setError(serverErrorMessage(res as ServerResult, 'intake.submit.serverErrors', t('intake.submit.failed')))
   }
 
   if (loading)

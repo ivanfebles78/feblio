@@ -40,6 +40,13 @@
   "submit": {
     "button": "Enviar mis datos",
     "failedRetry": "No se pudo enviar. Inténtalo de nuevo.",
-    "failed": "No se pudo enviar."
+    "failed": "No se pudo enviar.",
+    "serverErrors": {
+      "invalid_data": "Datos no válidos.",
+      "payload_too_large": "Los datos enviados son demasiado grandes.",
+      "invalid_form": "Formulario no válido.",
+      "already_completed": "Este formulario ya fue completado.",
+      "link_expired": "Este enlace ha caducado. Solicita uno nuevo."
+    }
   }
 }

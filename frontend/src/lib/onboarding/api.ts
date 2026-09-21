@@ -114,7 +114,7 @@ export interface VerificationState {
 }
 
 export const getVerificationState = () => rpc<VerificationState>('get_verification_state', {}, t('onboarding.api.verification'))
-export const claimNativeVerification = () => rpc<{ ok: boolean; error?: string }>('claim_native_email_verification')
+export const claimNativeVerification = () => rpc<{ ok: boolean; code?: string; error?: string }>('claim_native_email_verification')
 
 /**
  * Estado de acceso de la empresa: verificación + onboarding.

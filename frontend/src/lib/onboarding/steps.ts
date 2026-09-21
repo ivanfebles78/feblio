@@ -1,4 +1,5 @@
 import { t } from '../../i18n'
+import { CHANNEL_DEFAULTS, channelDefault, channelLanguage } from './channelDefaults'
 import type { BusinessHours } from '../validation'
 import type {
   EmailStepData,
@@ -123,8 +124,8 @@ export const DEFAULT_FOLDERS = [
 
 export const DEFAULT_ROOT_PATTERN = '/Proyectos/{codigo_proyecto}_{nombre_cliente}/'
 
-export const DEFAULT_FORM_MESSAGE =
-  'Hola {nombre}, soy {empresa}. Para atender tu solicitud necesitamos algunos datos. Complétalos aquí: {url}'
+/** Mensaje de formulario por defecto en español (compatibilidad); usa `channelDefault('form_message', lang)` para el idioma de la empresa. */
+export const DEFAULT_FORM_MESSAGE = CHANNEL_DEFAULTS.form_message.es
 
 export const defaultRepositoryData = (): RepositoryStepData => ({ provider: 'later' })
 
@@ -142,40 +143,42 @@ export const defaultEmailData = (): EmailStepData => ({
   auto_send: false,
 })
 
-export const defaultWhatsAppData = (): WhatsAppStepData => ({
+// Los valores por defecto de los canales dependen del idioma de la EMPRESA (empresas.language): son
+// mensajes hacia sus clientes. Solo se aplican a campos aún no guardados; lo guardado se conserva.
+export const defaultWhatsAppData = (language: unknown = 'es'): WhatsAppStepData => ({
   provider: 'later',
   phone_number: '',
   business_account_id: '',
   phone_number_id: '',
-  welcome_message: 'Hola, gracias por escribir a {empresa}. Cuéntanos en qué podemos ayudarte.',
-  off_hours_message: 'Gracias por tu mensaje. Ahora mismo estamos fuera de horario; te responderemos el próximo día laborable.',
-  form_message_template: DEFAULT_FORM_MESSAGE,
+  welcome_message: channelDefault('whatsapp_welcome', language),
+  off_hours_message: channelDefault('whatsapp_off_hours', language),
+  form_message_template: channelDefault('form_message', language),
   hours: DEFAULT_HOURS,
-  languages: ['es'],
+  languages: [channelLanguage(language)],
   escalate_to_human: true,
-  escalation_keywords: 'persona, agente, humano',
-  consent_text: 'Al continuar aceptas que tratemos tus datos para atender tu solicitud.',
+  escalation_keywords: channelDefault('whatsapp_escalation_keywords', language),
+  consent_text: channelDefault('whatsapp_consent', language),
   create_request_rule: 'manual',
 })
 
-export const defaultSmsData = (): SmsStepData => ({
+export const defaultSmsData = (language: unknown = 'es'): SmsStepData => ({
   provider: 'later',
   sender_number: '',
   reply_number: '',
   allowed_countries: ['ES'],
   monthly_limit: 200,
-  form_message_template: '{empresa}: completa tus datos aquí {url}. Responde BAJA para no recibir más SMS.',
+  form_message_template: channelDefault('sms_form_message', language),
   reminders_enabled: true,
   reminder_days: [3, 7],
-  opt_out_keyword: 'BAJA',
+  opt_out_keyword: channelDefault('sms_opt_out_keyword', language),
 })
 
-export const defaultVoiceData = (timezone = 'Europe/Madrid'): VoiceStepData => ({
+export const defaultVoiceData = (timezone = 'Europe/Madrid', language: unknown = 'es'): VoiceStepData => ({
   mode: 'manual',
   main_number: '',
   hours: DEFAULT_HOURS,
   timezone,
-  welcome_message: 'Gracias por llamar a {empresa}. En un momento le atendemos.',
+  welcome_message: channelDefault('voice_welcome', language),
   recording_notice: true,
   transcription_notice: true,
   consent_required: true,
@@ -183,7 +186,7 @@ export const defaultVoiceData = (timezone = 'Europe/Madrid'): VoiceStepData => (
   overflow_number: '',
   max_wait_seconds: 60,
   max_duration_minutes: 15,
-  languages: ['es'],
+  languages: [channelLanguage(language)],
   transfer_to_employee: true,
   send_form_via: 'sms',
   scheduling_enabled: false,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { MessageCircle, Send } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ChipsField, RadioCards, SelectField, TextField, TextareaField, ToggleField } from '../../../components/forms/Field'
@@ -12,13 +12,16 @@ import { onboardingStepPath } from '../../../lib/routing'
 import { validatePhone } from '../../../lib/validation'
 import type { WhatsAppProvider, WhatsAppStepData } from '../../../lib/onboarding/types'
 import { useChannelStep } from './useChannelStep'
+import { useOnboarding } from '../../../lib/onboarding/OnboardingContext'
 import type { StepProps } from './types'
 
 type Data = WhatsAppStepData & Record<string, unknown>
-const defaults = defaultWhatsAppData as () => Data
 
 export function WhatsAppChannelStep({ errors, showErrors, mode }: StepProps) {
   const { t } = useTranslation()
+  // Plantillas por defecto en el idioma de la empresa (no el de la interfaz); lo guardado no se toca
+  const companyLanguage = useOnboarding().snapshot?.empresa.language
+  const defaults = useCallback(() => defaultWhatsAppData(companyLanguage) as Data, [companyLanguage])
   const { data, set, connection } = useChannelStep<Data>('whatsapp', 'whatsapp', defaults)
   const integration = useIntegration('whatsapp')
   const [testTo, setTestTo] = useState('')

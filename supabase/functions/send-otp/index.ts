@@ -2,7 +2,10 @@
 // por email (desde Feblio, vía Resend). La llama el usuario autenticado.
 // Secretos: RESEND_API_KEY (obligatorio), OTP_FROM_EMAIL (opcional).
 // SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY los inyecta Supabase automáticamente.
+// Idioma: comunicación de autenticación → auth user_metadata.language (es|en; ausente → es).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { userLocale } from '../_shared/i18n/locale.ts'
+import { escapeHtml, serverT, serverTHtml } from '../_shared/i18n/messages.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +19,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   try {
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ ok: false, error: 'No autenticado' }, 401)
+    if (!authHeader) return json({ ok: false, code: 'unauthenticated', error: 'No autenticado' }, 401)
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -24,14 +27,15 @@ Deno.serve(async (req) => {
     )
     const { data: userData } = await admin.auth.getUser(authHeader.replace('Bearer ', ''))
     const user = userData?.user
-    if (!user) return json({ ok: false, error: 'Sesión no válida' }, 401)
+    if (!user) return json({ ok: false, code: 'invalid_session', error: 'Sesión no válida' }, 401)
+    const locale = userLocale(user)
 
     const { data: prof } = await admin
       .from('profiles')
       .select('empresa_id, full_name')
       .eq('id', user.id)
       .single()
-    if (!prof?.empresa_id) return json({ ok: false, error: 'Cuenta sin empresa' }, 400)
+    if (!prof?.empresa_id) return json({ ok: false, code: 'no_company', error: 'Cuenta sin empresa' }, 400)
 
     const { data: emp } = await admin
       .from('empresas')
@@ -46,7 +50,7 @@ Deno.serve(async (req) => {
       .upsert({ empresa_id: prof.empresa_id, code, expires_at, attempts: 0 })
 
     const KEY = Deno.env.get('RESEND_API_KEY')
-    if (!KEY) return json({ ok: false, error: 'RESEND_API_KEY no configurada' }, 500)
+    if (!KEY) return json({ ok: false, code: 'not_configured', error: 'RESEND_API_KEY no configurada' }, 500)
     const from = Deno.env.get('OTP_FROM_EMAIL') ?? 'Feblio <onboarding@resend.dev>'
     const nombre = (prof.full_name as string) ?? (emp?.name as string) ?? ''
 
@@ -56,14 +60,14 @@ Deno.serve(async (req) => {
           <div style="font-size:22px;font-weight:800">Feblio</div>
         </div>
         <div style="padding:32px">
-          <h2 style="margin:0 0 8px;color:#0f172a">¡Gracias por registrarte${nombre ? ', ' + nombre : ''}! 🎉</h2>
-          <p style="color:#475569;font-size:14px;margin:0 0 24px">Introduce este código para verificar tu email y activar tu cuenta:</p>
+          <h2 style="margin:0 0 8px;color:#0f172a">${serverTHtml(locale, 'otp.greeting', { name: nombre ? ', ' + nombre : '' })} 🎉</h2>
+          <p style="color:#475569;font-size:14px;margin:0 0 24px">${serverTHtml(locale, 'otp.intro')}</p>
           <div style="text-align:center;margin:8px 0 24px">
-            <div style="display:inline-block;background:#eff5ff;border:1px dashed #93bbfd;border-radius:12px;padding:16px 28px;font-size:34px;letter-spacing:10px;font-weight:800;color:#1d4ed8">${code}</div>
+            <div style="display:inline-block;background:#eff5ff;border:1px dashed #93bbfd;border-radius:12px;padding:16px 28px;font-size:34px;letter-spacing:10px;font-weight:800;color:#1d4ed8">${escapeHtml(code)}</div>
           </div>
-          <p style="color:#94a3b8;font-size:12px;margin:0">El código caduca en 15 minutos. Si no te has registrado en Feblio, ignora este email.</p>
+          <p style="color:#94a3b8;font-size:12px;margin:0">${serverTHtml(locale, 'otp.expires')}</p>
         </div>
-        <div style="background:#f8fafc;padding:16px 32px;color:#94a3b8;font-size:11px">Feblio · Gestiona tus proyectos de principio a fin</div>
+        <div style="background:#f8fafc;padding:16px 32px;color:#94a3b8;font-size:11px">${serverTHtml(locale, 'otp.footer')}</div>
       </div>`
 
     const r = await fetch('https://api.resend.com/emails', {
@@ -72,12 +76,13 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from,
         to: user.email,
-        subject: 'Tu código de verificación · Feblio',
+        subject: serverT(locale, 'otp.subject'),
         html,
+        text: [serverT(locale, 'otp.greeting', { name: nombre ? ', ' + nombre : '' }), serverT(locale, 'otp.intro'), code, serverT(locale, 'otp.expires'), serverT(locale, 'otp.footer')].join('\n\n'),
       }),
     })
     return json({ ok: r.ok }, r.ok ? 200 : 502)
   } catch (e) {
-    return json({ ok: false, error: String(e) }, 500)
+    return json({ ok: false, code: 'error', error: String(e) }, 500)
   }
 })

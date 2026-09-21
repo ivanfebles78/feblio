@@ -1,0 +1,106 @@
+{
+  "confirm-signup": {
+    "file": "confirm-signup.html",
+    "subject": "{{ if eq .Data.language \"en\" }}Confirm your email and activate your Feblio account{{ else }}Confirma tu correo y activa tu cuenta de Feblio{{ end }}",
+    "subject_es": "Confirma tu correo y activa tu cuenta de Feblio",
+    "subject_en": "Confirm your email and activate your Feblio account",
+    "api_subject_key": "mailer_subjects_confirmation",
+    "api_content_key": "mailer_templates_confirmation_content"
+  },
+  "reset-password": {
+    "file": "reset-password.html",
+    "subject": "{{ if eq .Data.language \"en\" }}Reset your Feblio password{{ else }}Restablece tu contraseña de Feblio{{ end }}",
+    "subject_es": "Restablece tu contraseña de Feblio",
+    "subject_en": "Reset your Feblio password",
+    "api_subject_key": "mailer_subjects_recovery",
+    "api_content_key": "mailer_templates_recovery_content"
+  },
+  "invite-user": {
+    "file": "invite-user.html",
+    "subject": "{{ if eq .Data.language \"en\" }}You've been invited to Feblio{{ else }}Te han invitado a Feblio{{ end }}",
+    "subject_es": "Te han invitado a Feblio",
+    "subject_en": "You've been invited to Feblio",
+    "api_subject_key": "mailer_subjects_invite",
+    "api_content_key": "mailer_templates_invite_content"
+  },
+  "magic-link": {
+    "file": "magic-link.html",
+    "subject": "{{ if eq .Data.language \"en\" }}Your sign-in link · Feblio{{ else }}Tu enlace de acceso · Feblio{{ end }}",
+    "subject_es": "Tu enlace de acceso · Feblio",
+    "subject_en": "Your sign-in link · Feblio",
+    "api_subject_key": "mailer_subjects_magic_link",
+    "api_content_key": "mailer_templates_magic_link_content"
+  },
+  "change-email": {
+    "file": "change-email.html",
+    "subject": "{{ if eq .Data.language \"en\" }}Confirm your new email address · Feblio{{ else }}Confirma tu nueva dirección de correo · Feblio{{ end }}",
+    "subject_es": "Confirma tu nueva dirección de correo · Feblio",
+    "subject_en": "Confirm your new email address · Feblio",
+    "api_subject_key": "mailer_subjects_email_change",
+    "api_content_key": "mailer_templates_email_change_content"
+  },
+  "reauthentication": {
+    "file": "reauthentication.html",
+    "subject": "{{ if eq .Data.language \"en\" }}{{ .Token }} is your verification code · Feblio{{ else }}{{ .Token }} es tu código de verificación · Feblio{{ end }}",
+    "subject_es": "{{ .Token }} es tu código de verificación · Feblio",
+    "subject_en": "{{ .Token }} is your verification code · Feblio",
+    "api_subject_key": "mailer_subjects_reauthentication",
+    "api_content_key": "mailer_templates_reauthentication_content"
+  },
+  "security/password-changed": {
+    "file": "security/password-changed.html",
+    "subject": "{{ if eq .Data.language \"en\" }}Your password was changed · Feblio{{ else }}Tu contraseña se ha cambiado · Feblio{{ end }}",
+    "subject_es": "Tu contraseña se ha cambiado · Feblio",
+    "subject_en": "Your password was changed · Feblio",
+    "api_subject_key": "mailer_subjects_password_changed_notification",
+    "api_content_key": "mailer_templates_password_changed_notification_content"
+  },
+  "security/email-changed": {
+    "file": "security/email-changed.html",
+    "subject": "{{ if eq .Data.language \"en\" }}Your email address was changed · Feblio{{ else }}Tu dirección de correo se ha cambiado · Feblio{{ end }}",
+    "subject_es": "Tu dirección de correo se ha cambiado · Feblio",
+    "subject_en": "Your email address was changed · Feblio",
+    "api_subject_key": "mailer_subjects_email_changed_notification",
+    "api_content_key": "mailer_templates_email_changed_notification_content"
+  },
+  "security/phone-changed": {
+    "file": "security/phone-changed.html",
+    "subject": "{{ if eq .Data.language \"en\" }}Your phone number was changed · Feblio{{ else }}Tu número de teléfono se ha cambiado · Feblio{{ end }}",
+    "subject_es": "Tu número de teléfono se ha cambiado · Feblio",
+    "subject_en": "Your phone number was changed · Feblio",
+    "api_subject_key": "mailer_subjects_phone_changed_notification",
+    "api_content_key": "mailer_templates_phone_changed_notification_content"
+  },
+  "security/identity-linked": {
+    "file": "security/identity-linked.html",
+    "subject": "{{ if eq .Data.language \"en\" }}A sign-in method was linked to your account · Feblio{{ else }}Se ha vinculado un método de acceso a tu cuenta · Feblio{{ end }}",
+    "subject_es": "Se ha vinculado un método de acceso a tu cuenta · Feblio",
+    "subject_en": "A sign-in method was linked to your account · Feblio",
+    "api_subject_key": "mailer_subjects_identity_linked_notification",
+    "api_content_key": "mailer_templates_identity_linked_notification_content"
+  },
+  "security/identity-unlinked": {
+    "file": "security/identity-unlinked.html",
+    "subject": "{{ if eq .Data.language \"en\" }}A sign-in method was removed from your account · Feblio{{ else }}Se ha eliminado un método de acceso de tu cuenta · Feblio{{ end }}",
+    "subject_es": "Se ha eliminado un método de acceso de tu cuenta · Feblio",
+    "subject_en": "A sign-in method was removed from your account · Feblio",
+    "api_subject_key": "mailer_subjects_identity_unlinked_notification",
+    "api_content_key": "mailer_templates_identity_unlinked_notification_content"
+  },
+  "security/mfa-factor-enrolled": {
+    "file": "security/mfa-factor-enrolled.html",
+    "subject": "{{ if eq .Data.language \"en\" }}A new verification method was added · Feblio{{ else }}Se ha añadido un nuevo método de verificación · Feblio{{ end }}",
+    "subject_es": "Se ha añadido un nuevo método de verificación · Feblio",
+    "subject_en": "A new verification method was added · Feblio",
+    "api_subject_key": "mailer_subjects_mfa_factor_enrolled_notification",
+    "api_content_key": "mailer_templates_mfa_factor_enrolled_notification_content"
+  },
+  "security/mfa-factor-unenrolled": {
+    "file": "security/mfa-factor-unenrolled.html",
+    "subject": "{{ if eq .Data.language \"en\" }}A verification method was removed · Feblio{{ else }}Se ha eliminado un método de verificación · Feblio{{ end }}",
+    "subject_es": "Se ha eliminado un método de verificación · Feblio",
+    "subject_en": "A verification method was removed · Feblio",
+    "api_subject_key": "mailer_subjects_mfa_factor_unenrolled_notification",
+    "api_content_key": "mailer_templates_mfa_factor_unenrolled_notification_content"
+  }
+}

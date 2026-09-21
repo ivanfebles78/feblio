@@ -1,6 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
-import { t } from '../../i18n'
+import i18n, { t } from '../../i18n'
 import type {
   ClienteVista,
   Notificacion,
@@ -35,14 +35,37 @@ function friendly(error: PostgrestError | Error | null | undefined, fallback: st
   // .single() sin fila: no existe o no pertenece a esta empresa (RLS); no se distingue a propósito
   if (code === 'PGRST116' || /coerce the result to a single/i.test(msg)) return new SolicitudesApiError(t('requests.api.notFound'), code)
   if (/Failed to fetch|NetworkError|network/i.test(msg)) return new SolicitudesApiError(t('common.errors.network'), 'network')
-  // Errores de negocio del servidor (22023 / P0002) llegan con mensaje en español y se muestran tal cual
+  // Errores de negocio del servidor (22023 / P0002 / 53400): traen un código estable en `details`
+  // (migración 0016) que se traduce aquí; sin código conocido se muestra el mensaje (español) tal cual
+  const serverCode = serverErrorCode(error as { details?: unknown })
+  if (serverCode) return new SolicitudesApiError(t(`requests.serverErrors.${serverCode}`, { defaultValue: msg || fallback }), serverCode)
   return new SolicitudesApiError(msg || fallback, code)
+}
+
+/** Código estable de error de negocio (`pg_exception_detail`, p. ej. `request_closed`) si existe en el catálogo. */
+export function serverErrorCode(error: { details?: unknown } | null | undefined): string | null {
+  const details = typeof error?.details === 'string' ? error.details.trim() : ''
+  if (!/^[a-z_]{3,40}$/.test(details)) return null
+  return i18n.exists(`requests.serverErrors.${details}`) ? details : null
 }
 
 async function rpc<T>(fn: string, args: Record<string, unknown> = {}, fallback?: string): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args)
   if (error) throw friendly(error, fallback ?? t('common.errors.generic'))
   return data as T
+}
+
+/** Lee el `code` del cuerpo de error de la Edge Function (Response clonada) o del propio `data`. */
+async function downloadErrorCode(error: unknown, data: { code?: string } | null): Promise<string | null> {
+  if (data?.code && /^download_[a-z_]+$/.test(data.code)) return data.code
+  const res = (error as { context?: unknown } | null)?.context
+  if (!(res instanceof Response)) return null
+  try {
+    const body = (await res.clone().json()) as { code?: unknown }
+    return typeof body?.code === 'string' && /^download_[a-z_]+$/.test(body.code) ? body.code : null
+  } catch {
+    return null
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -161,10 +184,13 @@ export const DOWNLOAD_FUNCTION = 'solicitud-descarga'
  * una URL firmada de corta duración. Cualquier fallo devuelve un mensaje neutro.
  */
 export async function clienteDescargarDocumento(token: string, documentId: string): Promise<{ url: string; name: string }> {
-  const { data, error } = await supabase.functions.invoke<{ url?: string; name?: string; error?: string }>(DOWNLOAD_FUNCTION, { body: { token, document_id: documentId } })
+  const { data, error } = await supabase.functions.invoke<{ url?: string; name?: string; code?: string; error?: string }>(DOWNLOAD_FUNCTION, { body: { token, document_id: documentId } })
   if (error || !data?.url) {
     const status = (error as { context?: { status?: number } } | null)?.context?.status
-    throw new SolicitudesApiError(status === 429 ? t('requests.api.downloadRateLimited') : t('requests.api.downloadUnavailable'), status ? String(status) : undefined)
+    // La función responde con un código estable (`download_rate_limited`, `download_invalid`…); el estado HTTP es el respaldo
+    const code = await downloadErrorCode(error, data)
+    const rateLimited = code === 'download_rate_limited' || status === 429
+    throw new SolicitudesApiError(rateLimited ? t('requests.api.downloadRateLimited') : t('requests.api.downloadUnavailable'), code ?? (status ? String(status) : undefined))
   }
   return { url: data.url, name: data.name ?? t('requests.api.defaultFileName') }
 }
