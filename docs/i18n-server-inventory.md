@@ -48,7 +48,7 @@ Lo ya guardado antes de 0016 no se toca; el frontend sigue reconociendo el forma
 |---|---|---|---|---|
 | `send-otp` | asunto «Tu código de verificación · Feblio», saludo, instrucciones, caducidad, pie (solo HTML) | usuario que se registra | **U** | generado al enviar (es/en + alternativa en texto plano) |
 | `send-intake-email` | asunto «Completa tus datos · {empresa}», saludo, cuerpo, botón, enlace alternativo, pie (solo HTML) | cliente de la empresa | **E** (resuelto en servidor por el token del enlace → `client_intake.empresa_id`) | generado al enviar (es/en + texto plano) |
-| `send-intake-email` | «Faltan datos (to, link)» | app | — | respuesta con `code: missing_data` |
+| `send-intake-email` | «Faltan datos (to, link)» | app | — | respuesta neutra con `code` estable (`unauthorized`, `forbidden`, `invalid_payload`, `not_found`, `no_recipient`, `form_closed`, `not_configured`, `send_failed`, `error`); el frontend traduce (`dashboard.templates.form.serverErrors.*`) |
 | `integrations` → `sendTest` | asunto «Prueba de configuración · {empresa}», texto de prueba, plantilla SMS por defecto «{empresa}: prueba de SMS desde Feblio. {url}», `{nombre}` → «cliente» | destinatario de prueba elegido por la empresa | **E** | generado al enviar; la plantilla personalizada (`payload.template`) se envía tal cual |
 | `integrations` → `testConnection` | «Conexión verificada.» | empleado | **E** | generado (`code: verified`) |
 | `solicitud-descarga` | «Enlace no válido» (400/404), «Demasiadas solicitudes…» (429) | cliente anónimo | UI | respuesta con `code: download_bad_request / download_invalid / download_rate_limited` + `error` (compatibilidad) |

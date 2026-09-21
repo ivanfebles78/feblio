@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { SectionCard, Badge, EmptyState } from '../components/ui'
 import { supabase } from '../lib/supabase'
+import { sendIntakeEmail } from '../lib/intakeEmail'
 import { formatCurrency, formatDateTime } from '../lib/intl'
 import { type Empresa, type Template, type ClientIntake } from '../lib/types'
 import { createIntakeSignedUrl, intakeFilePath, type IntakeFileRef } from '../lib/intakeFiles'
@@ -627,7 +628,6 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
 
   // Auto-email
   const [clientEmail, setClientEmail] = useState('')
-  const [empresaName, setEmpresaName] = useState('')
   const [sendMsg, setSendMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   // Plantillas de formulario (migración 0009). Si no existen, se usa el formulario básico.
@@ -637,13 +637,12 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
   async function load() {
     const [i, e, t] = await Promise.all([
       supabase.from('client_intake').select('*').order('created_at', { ascending: false }),
-      supabase.from('empresas').select('name, intake_config').eq('id', empresaId).single(),
+      supabase.from('empresas').select('intake_config').eq('id', empresaId).single(),
       supabase.from('intake_form_templates').select('id, name, is_default, link_expiry_days').eq('is_active', true).order('created_at'),
     ])
     setItems((i.data as ClientIntake[]) ?? [])
-    const emp = e.data as { name?: string; intake_config?: { project_types?: string[] } } | null
+    const emp = e.data as { intake_config?: { project_types?: string[] } } | null
     setTypes(emp?.intake_config?.project_types ?? [])
-    setEmpresaName(emp?.name ?? '')
     const tpls = (t.data as { id: string; name: string; is_default: boolean; link_expiry_days: number }[] | null) ?? []
     setFormTemplates(tpls)
     setFormTemplateId((prev) => prev || tpls.find((x) => x.is_default)?.id || '')
@@ -688,7 +687,7 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
       payload.channel = 'public_form'
       payload.expires_at = new Date(Date.now() + tpl.link_expiry_days * 86400000).toISOString()
     }
-    const { data, error } = await supabase.from('client_intake').insert(payload).select('token').single()
+    const { data, error } = await supabase.from('client_intake').insert(payload).select('id, token').single()
 
     if (error) {
       setSendMsg({ ok: false, text: t('dashboard.templates.form.createError', { message: error.message }) })
@@ -697,18 +696,10 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
     }
 
     if (data && email) {
-      const link = linkFor((data as { token: string }).token)
-      const { data: res, error: fnErr } = await supabase.functions.invoke('send-intake-email', {
-        body: { to: email, link, empresa: empresaName },
-      })
-      if (fnErr || !(res as { ok?: boolean })?.ok) {
-        setSendMsg({
-          ok: false,
-          text: (res as { error?: string })?.error ?? t('dashboard.templates.form.emailFailed'),
-        })
-      } else {
-        setSendMsg({ ok: true, text: t('dashboard.templates.form.emailSent', { email }) })
-      }
+      // El servidor resuelve destinatario, empresa, idioma y enlace a partir del formulario
+      // (solo si pertenece a la empresa del usuario autenticado); el cliente no envía nada más.
+      const sent = await sendIntakeEmail((data as { id: string }).id, email)
+      setSendMsg({ ok: sent.ok, text: sent.message })
     }
     setClientEmail('')
     setCreating(false)

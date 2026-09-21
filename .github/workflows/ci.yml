@@ -102,4 +102,4 @@ jobs:
       # Permisos mínimos: solo lectura de la variable de entorno APP_ENCRYPTION_KEY.
       # --node-modules-dir=auto instala únicamente @types/node (lo exige el .d.ts de
       # supabase-js al comprobar tipos); no hay --allow-net ni --allow-all.
-      - run: deno test --node-modules-dir=auto --allow-env=APP_ENCRYPTION_KEY _shared/integrations/security.test.ts _shared/solicitudes/descarga.test.ts _shared/i18n/i18n.test.ts
+      - run: deno test --node-modules-dir=auto --allow-env=APP_ENCRYPTION_KEY _shared/integrations/security.test.ts _shared/solicitudes/descarga.test.ts _shared/i18n/i18n.test.ts _shared/intake/sendIntake.test.ts

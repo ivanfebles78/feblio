@@ -250,7 +250,18 @@
       "attachments": "Archivos adjuntos",
       "fileUnavailable": "{{name}} (no disponible)",
       "generatingLink": "(generando enlace…)",
-      "linkError": "No se pudo generar el enlace."
+      "linkError": "No se pudo generar el enlace.",
+      "serverErrors": {
+        "unauthorized": "Tu sesión ha caducado. Vuelve a iniciar sesión y reenvía el email.",
+        "forbidden": "Tu cuenta no puede enviar formularios de esta empresa.",
+        "invalid_payload": "Enlace creado, pero la petición de envío no era válida. Puedes copiarlo abajo.",
+        "not_found": "Enlace creado, pero no se encontró el formulario para enviarlo. Puedes copiarlo abajo.",
+        "no_recipient": "El formulario no tiene un correo de cliente válido. Puedes copiar el enlace abajo.",
+        "form_closed": "El formulario ya está completado o ha caducado; no se envía.",
+        "not_configured": "Enlace creado, pero el envío de correo no está configurado. Puedes copiarlo abajo.",
+        "send_failed": "Enlace creado, pero el proveedor de correo rechazó el envío. Puedes copiarlo abajo.",
+        "error": "Enlace creado, pero no se pudo enviar el email. Puedes copiarlo abajo."
+      }
     }
   },
   "notifications": {
