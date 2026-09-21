@@ -1,9 +1,10 @@
 /**
  * Acceso a Supabase para el onboarding. Toda la lógica de tenant y validación
  * vive en RPCs SECURITY DEFINER (migración 0009); aquí solo se llaman y se
- * traducen los errores a mensajes accionables en español.
+ * traducen los errores a mensajes accionables en el idioma de la interfaz.
  */
 import type { PostgrestError } from '@supabase/supabase-js'
+import { t } from '../../i18n'
 import { supabase } from '../supabase'
 import type { Empresa, Profile } from '../types'
 import type {
@@ -37,23 +38,20 @@ function friendly(error: PostgrestError | Error | null | undefined, fallback: st
   const msg = error.message ?? ''
   const code = 'code' in error ? (error as PostgrestError).code : undefined
   if (code === '42501' || /permission denied|row-level security/i.test(msg)) {
-    return new OnboardingApiError('No tienes permiso para realizar esta acción.', code)
+    return new OnboardingApiError(t('onboarding.api.permission'), code)
   }
   if (code === 'PGRST202' || /could not find the function/i.test(msg)) {
-    return new OnboardingApiError(
-      'Falta aplicar la migración 0009 en Supabase (función no encontrada). Consulta docs/onboarding.md.',
-      code,
-    )
+    return new OnboardingApiError(t('onboarding.api.migrationMissing'), code)
   }
   if (/Failed to fetch|NetworkError|network/i.test(msg)) {
-    return new OnboardingApiError('Sin conexión. Comprueba tu red e inténtalo de nuevo.', 'network')
+    return new OnboardingApiError(t('onboarding.api.network'), 'network')
   }
   return new OnboardingApiError(msg || fallback, code)
 }
 
-async function rpc<T>(fn: string, args: Record<string, unknown> = {}, fallback = 'No se pudo completar la operación.'): Promise<T> {
+async function rpc<T>(fn: string, args: Record<string, unknown> = {}, fallback?: string): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args)
-  if (error) throw friendly(error, fallback)
+  if (error) throw friendly(error, fallback ?? t('onboarding.api.generic'))
   return data as T
 }
 
@@ -61,49 +59,49 @@ async function rpc<T>(fn: string, args: Record<string, unknown> = {}, fallback =
 /* Onboarding                                                           */
 /* ------------------------------------------------------------------ */
 
-export const getOnboarding = () => rpc<OnboardingSnapshot>('get_onboarding', {}, 'No se pudo cargar la configuración.')
+export const getOnboarding = () => rpc<OnboardingSnapshot>('get_onboarding', {}, t('onboarding.api.loadConfig'))
 
 export const saveStep = (key: OnboardingStepKey, data: Record<string, unknown>) =>
-  rpc<OnboardingStepRow>('save_onboarding_step', { p_step_key: key, p_data: data }, 'No se pudo guardar el paso.')
+  rpc<OnboardingStepRow>('save_onboarding_step', { p_step_key: key, p_data: data }, t('onboarding.api.saveStep'))
 
 export const completeStep = (key: OnboardingStepKey, data?: Record<string, unknown>) =>
-  rpc<OnboardingStepRow>('complete_onboarding_step', { p_step_key: key, p_data: data ?? null }, 'No se pudo completar el paso.')
+  rpc<OnboardingStepRow>('complete_onboarding_step', { p_step_key: key, p_data: data ?? null }, t('onboarding.api.completeStep'))
 
 export const skipStep = (key: OnboardingStepKey, reason?: string) =>
-  rpc<OnboardingStepRow>('skip_onboarding_step', { p_step_key: key, p_reason: reason ?? null }, 'No se pudo omitir el paso.')
+  rpc<OnboardingStepRow>('skip_onboarding_step', { p_step_key: key, p_reason: reason ?? null }, t('onboarding.api.skipStep'))
 
 export const reopenStep = (key: OnboardingStepKey) =>
-  rpc<OnboardingStepRow>('reopen_onboarding_step', { p_step_key: key }, 'No se pudo reabrir el paso.')
+  rpc<OnboardingStepRow>('reopen_onboarding_step', { p_step_key: key }, t('onboarding.api.reopenStep'))
 
 export const flagStep = (key: OnboardingStepKey, status: Extract<StepStatus, 'error' | 'requires_attention' | 'in_progress'>, errors: unknown[] = []) =>
-  rpc<OnboardingStepRow>('flag_onboarding_step', { p_step_key: key, p_status: status, p_errors: errors }, 'No se pudo actualizar el paso.')
+  rpc<OnboardingStepRow>('flag_onboarding_step', { p_step_key: key, p_status: status, p_errors: errors }, t('onboarding.api.updateStep'))
 
-export const reopenOnboarding = () => rpc<{ ok: boolean }>('reopen_onboarding', {}, 'No se pudo reabrir la configuración inicial.')
+export const reopenOnboarding = () => rpc<{ ok: boolean }>('reopen_onboarding', {}, t('onboarding.api.reopenOnboarding'))
 
-export const getBlockers = () => rpc<Blocker[]>('get_onboarding_blockers', {}, 'No se pudieron comprobar los requisitos.')
+export const getBlockers = () => rpc<Blocker[]>('get_onboarding_blockers', {}, t('onboarding.api.blockers'))
 
 export const activateOnboarding = () =>
-  rpc<{ ok: boolean; blockers?: Blocker[] }>('activate_onboarding', {}, 'No se pudo activar Feblio.')
+  rpc<{ ok: boolean; blockers?: Blocker[] }>('activate_onboarding', {}, t('onboarding.api.activate'))
 
 export const runOnboardingTest = () =>
   rpc<{ ok: boolean; run_id: string; steps: unknown[]; project_id: string; intake_token: string }>(
     'run_onboarding_test',
     {},
-    'La prueba guiada falló.',
+    t('onboarding.api.testRun'),
   )
 
 export const cleanupTestData = () =>
-  rpc<{ ok: boolean; deleted: Record<string, number> }>('cleanup_onboarding_test_data', {}, 'No se pudieron eliminar los datos de prueba.')
+  rpc<{ ok: boolean; deleted: Record<string, number> }>('cleanup_onboarding_test_data', {}, t('onboarding.api.cleanup'))
 
 export const createRequestFromCall = (data: Record<string, unknown>) =>
   rpc<{ ok: boolean; token: string; intake_id: string; cliente_id: string; task_id: string }>(
     'create_request_from_call',
     { p_data: data },
-    'No se pudo crear la solicitud.',
+    t('onboarding.api.createRequest'),
   )
 
 export const logAudit = (action: string, entityType?: string, entityId?: string, result: 'ok' | 'error' | 'blocked' = 'ok', metadata: Record<string, unknown> = {}) =>
-  rpc<string>('log_audit_event', { p_action: action, p_entity_type: entityType ?? null, p_entity_id: entityId ?? null, p_result: result, p_metadata: metadata }, 'No se pudo registrar la auditoría.')
+  rpc<string>('log_audit_event', { p_action: action, p_entity_type: entityType ?? null, p_entity_id: entityId ?? null, p_result: result, p_metadata: metadata }, t('onboarding.api.audit'))
 
 /* ------------------------------------------------------------------ */
 /* Verificación de email                                                */
@@ -115,7 +113,7 @@ export interface VerificationState {
   mode: 'otp' | 'native'
 }
 
-export const getVerificationState = () => rpc<VerificationState>('get_verification_state', {}, 'No se pudo comprobar la verificación.')
+export const getVerificationState = () => rpc<VerificationState>('get_verification_state', {}, t('onboarding.api.verification'))
 export const claimNativeVerification = () => rpc<{ ok: boolean; error?: string }>('claim_native_email_verification')
 
 /**
@@ -135,7 +133,7 @@ export async function getEmpresaAccessState(empresaId: string) {
       const verified = legacy.error ? true : ((legacy.data as { email_verified?: boolean }).email_verified ?? true)
       return { verification: { has_empresa: true, email_verified: verified, mode: 'otp' as const }, onboarding_status: 'completed' as const, onboarding_current_step: null, welcome_seen: true }
     }
-    throw friendly(empresa.error, 'No se pudo cargar la empresa.')
+    throw friendly(empresa.error, t('onboarding.api.loadCompany'))
   }
   const row = empresa.data as {
     onboarding_status: Empresa['onboarding_status']
@@ -157,7 +155,7 @@ export async function getEmpresaAccessState(empresaId: string) {
 
 /** Marca la bienvenida de primera entrada como vista (idempotente; RPC de 0013). */
 export const markWelcomeSeen = () =>
-  rpc<{ ok: boolean; seen_at: string | null; onboarding_status: string }>('mark_onboarding_welcome_seen', {}, 'No se pudo registrar la bienvenida.')
+  rpc<{ ok: boolean; seen_at: string | null; onboarding_status: string }>('mark_onboarding_welcome_seen', {}, t('onboarding.api.welcome'))
 
 /**
  * Estados reales de los pasos del wizard para la tarjeta de configuración del dashboard.
@@ -165,7 +163,7 @@ export const markWelcomeSeen = () =>
  */
 export async function getStepStatuses(empresaId: string): Promise<Partial<Record<OnboardingStepKey, StepStatus>>> {
   const { data, error } = await supabase.from('onboarding_steps').select('step_key, status').eq('empresa_id', empresaId)
-  if (error) throw friendly(error, 'No se pudo cargar el progreso de la configuración.')
+  if (error) throw friendly(error, t('onboarding.api.loadProgress'))
   const out: Partial<Record<OnboardingStepKey, StepStatus>> = {}
   for (const row of (data ?? []) as { step_key: OnboardingStepKey; status: StepStatus }[]) out[row.step_key] = row.status
   return out
@@ -186,14 +184,14 @@ export type EmpresaPatch = Partial<
 
 export async function updateEmpresa(empresaId: string, patch: EmpresaPatch) {
   const { error } = await supabase.from('empresas').update(patch).eq('id', empresaId)
-  if (error) throw friendly(error, 'No se pudieron guardar los datos de la empresa.')
+  if (error) throw friendly(error, t('onboarding.api.saveCompany'))
 }
 
 export type ProfilePatch = Partial<Pick<Profile, 'full_name' | 'contact_email' | 'phone' | 'job_title' | 'is_onboarding_owner'>>
 
 export async function updateProfile(userId: string, patch: ProfilePatch) {
   const { error } = await supabase.from('profiles').update(patch).eq('id', userId)
-  if (error) throw friendly(error, 'No se pudieron guardar los datos del propietario.')
+  if (error) throw friendly(error, t('onboarding.api.saveOwner'))
 }
 
 /* ------------------------------------------------------------------ */
@@ -218,18 +216,18 @@ export const upsertIntegration = (
       p_account_identifier: accountIdentifier ?? null,
       p_display_name: displayName ?? null,
     },
-    'No se pudo guardar la integración.',
+    t('onboarding.api.saveIntegration'),
   )
 
 export const updateIntegrationSettings = (kind: IntegrationKind, settings: Record<string, unknown>, accountIdentifier?: string) =>
-  rpc<IntegrationConnection>('update_integration_settings', { p_kind: kind, p_settings: settings, p_account_identifier: accountIdentifier ?? null }, 'No se pudieron guardar los ajustes del canal.')
+  rpc<IntegrationConnection>('update_integration_settings', { p_kind: kind, p_settings: settings, p_account_identifier: accountIdentifier ?? null }, t('onboarding.api.saveChannelSettings'))
 
 export const recordInternalHealthCheck = (kind: IntegrationKind, ok: boolean, result: Record<string, unknown> = {}) =>
-  rpc<{ ok: boolean }>('record_internal_health_check', { p_kind: kind, p_ok: ok, p_result: result }, 'No se pudo registrar la prueba.')
+  rpc<{ ok: boolean }>('record_internal_health_check', { p_kind: kind, p_ok: ok, p_result: result }, t('onboarding.api.recordTest'))
 
 export async function listIntegrations(): Promise<IntegrationConnection[]> {
   const { data, error } = await supabase.from('integration_connections').select('*').order('kind')
-  if (error) throw friendly(error, 'No se pudieron cargar las integraciones.')
+  if (error) throw friendly(error, t('onboarding.api.loadIntegrations'))
   return (data as IntegrationConnection[]) ?? []
 }
 
@@ -239,65 +237,65 @@ export async function listIntegrations(): Promise<IntegrationConnection[]> {
 
 export async function saveAutomation(empresaId: string, patch: Partial<AutomationSettings>) {
   const { error } = await supabase.from('automation_settings').update(patch).eq('empresa_id', empresaId)
-  if (error) throw friendly(error, 'No se pudieron guardar las automatizaciones.')
+  if (error) throw friendly(error, t('onboarding.api.saveAutomation'))
 }
 
 export async function saveBilling(empresaId: string, patch: Partial<BillingSettings>) {
   const { error } = await supabase.from('billing_settings').update(patch).eq('empresa_id', empresaId)
   if (error) {
-    if (/billing_settings_series_distinct/.test(error.message)) throw new OnboardingApiError('Las series no pueden repetirse.')
-    if (/billing_settings_exempt_rate/.test(error.message)) throw new OnboardingApiError('Si el impuesto es Exento, el porcentaje debe ser 0.')
-    throw friendly(error, 'No se pudo guardar la facturación.')
+    if (/billing_settings_series_distinct/.test(error.message)) throw new OnboardingApiError(t('onboarding.api.seriesDistinct'))
+    if (/billing_settings_exempt_rate/.test(error.message)) throw new OnboardingApiError(t('onboarding.api.exemptRateZero'))
+    throw friendly(error, t('onboarding.api.saveBilling'))
   }
 }
 
-export async function saveFolderTemplate(t: Partial<FolderTemplate> & { empresa_id: string }) {
-  const q = t.id
-    ? supabase.from('folder_templates').update({ name: t.name, root_pattern: t.root_pattern, folders: t.folders, is_default: t.is_default }).eq('id', t.id)
-    : supabase.from('folder_templates').insert({ empresa_id: t.empresa_id, name: t.name, root_pattern: t.root_pattern, folders: t.folders, is_default: t.is_default ?? false })
+export async function saveFolderTemplate(tpl: Partial<FolderTemplate> & { empresa_id: string }) {
+  const q = tpl.id
+    ? supabase.from('folder_templates').update({ name: tpl.name, root_pattern: tpl.root_pattern, folders: tpl.folders, is_default: tpl.is_default }).eq('id', tpl.id)
+    : supabase.from('folder_templates').insert({ empresa_id: tpl.empresa_id, name: tpl.name, root_pattern: tpl.root_pattern, folders: tpl.folders, is_default: tpl.is_default ?? false })
   const { error } = await q
-  if (error) throw friendly(error, 'No se pudo guardar la plantilla de carpetas.')
+  if (error) throw friendly(error, t('onboarding.api.saveFolderTemplate'))
 }
 
-export async function saveFormTemplate(t: Partial<IntakeFormTemplate> & { empresa_id: string }) {
+export async function saveFormTemplate(tpl: Partial<IntakeFormTemplate> & { empresa_id: string }) {
   const payload = {
-    key: t.key,
-    name: t.name,
-    description: t.description ?? null,
-    fields: t.fields ?? [],
-    required_documents: t.required_documents ?? [],
-    consents: t.consents ?? [],
-    link_expiry_days: t.link_expiry_days ?? 30,
-    reminders: t.reminders ?? { enabled: true, after_days: [3, 7] },
-    is_active: t.is_active ?? true,
+    key: tpl.key,
+    name: tpl.name,
+    description: tpl.description ?? null,
+    fields: tpl.fields ?? [],
+    required_documents: tpl.required_documents ?? [],
+    consents: tpl.consents ?? [],
+    link_expiry_days: tpl.link_expiry_days ?? 30,
+    reminders: tpl.reminders ?? { enabled: true, after_days: [3, 7] },
+    is_active: tpl.is_active ?? true,
   }
-  const q = t.id
-    ? supabase.from('intake_form_templates').update(payload).eq('id', t.id)
-    : supabase.from('intake_form_templates').insert({ ...payload, empresa_id: t.empresa_id })
+  const q = tpl.id
+    ? supabase.from('intake_form_templates').update(payload).eq('id', tpl.id)
+    : supabase.from('intake_form_templates').insert({ ...payload, empresa_id: tpl.empresa_id })
   const { error } = await q
   if (error) {
-    if (/intake_form_templates_empresa_id_key_key|duplicate key/.test(error.message)) throw new OnboardingApiError('Ya existe un formulario con esa clave.')
-    throw friendly(error, 'No se pudo guardar el formulario.')
+    if (/intake_form_templates_empresa_id_key_key|duplicate key/.test(error.message)) throw new OnboardingApiError(t('onboarding.api.formKeyExists'))
+    throw friendly(error, t('onboarding.api.saveForm'))
   }
 }
 
 export async function setDefaultFormTemplate(empresaId: string, id: string) {
   const a = await supabase.from('intake_form_templates').update({ is_default: false }).eq('empresa_id', empresaId)
-  if (a.error) throw friendly(a.error, 'No se pudo actualizar el formulario predeterminado.')
+  if (a.error) throw friendly(a.error, t('onboarding.api.setDefaultForm'))
   const b = await supabase.from('intake_form_templates').update({ is_default: true }).eq('id', id)
-  if (b.error) throw friendly(b.error, 'No se pudo actualizar el formulario predeterminado.')
+  if (b.error) throw friendly(b.error, t('onboarding.api.setDefaultForm'))
 }
 
 export async function deleteFormTemplate(id: string) {
   const { error } = await supabase.from('intake_form_templates').delete().eq('id', id)
-  if (error) throw friendly(error, 'No se pudo eliminar el formulario.')
+  if (error) throw friendly(error, t('onboarding.api.deleteForm'))
 }
 
 export async function saveChannelRule(empresaId: string, channel: ChannelRule['channel'], patch: Partial<ChannelRule>) {
   const { error } = await supabase
     .from('channel_rules')
     .upsert({ empresa_id: empresaId, channel, ...patch }, { onConflict: 'empresa_id,channel' })
-  if (error) throw friendly(error, 'No se pudo guardar la regla del canal.')
+  if (error) throw friendly(error, t('onboarding.api.saveChannelRule'))
 }
 
 /* ------------------------------------------------------------------ */
@@ -327,6 +325,6 @@ export async function createInternalProjectFolders(empresaId: string, projectFol
     ),
   )
   const failed = results.find((r) => r.error)
-  if (failed?.error) throw new OnboardingApiError(`No se pudo crear la carpeta: ${failed.error.message}`)
+  if (failed?.error) throw new OnboardingApiError(t('onboarding.api.createFolder', { error: failed.error.message }))
   return `${empresaId}/Proyectos/${safe}/`
 }

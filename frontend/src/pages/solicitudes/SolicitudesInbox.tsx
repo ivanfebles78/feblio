@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Inbox, Plus, Search } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button, ButtonLink } from '../../components/v2/Button'
 import { Card, EmptyState, StatusPill } from '../../components/v2/Card'
 import { INPUT_CLS } from '../../components/forms/Field'
 import { listSolicitudes } from '../../lib/solicitudes/api'
-import { CHANNEL_LABEL, PENDING_FOR_EMPRESA, STATUS_LABEL, STATUS_ORDER, STATUS_TONE } from '../../lib/solicitudes/status'
-import { formatRelative } from '../../lib/solicitudes/format'
+import { CHANNEL_ORDER, channelLabel, isSourceChannel, PENDING_FOR_EMPRESA, statusLabel, STATUS_ORDER, STATUS_TONE } from '../../lib/solicitudes/status'
+import { formatRelative } from '../../lib/intl'
 import type { SolicitudResumen, SolicitudStatus, SourceChannel } from '../../lib/solicitudes/types'
 import { EMPRESA_PATHS, solicitudPath } from '../../lib/routing'
 
@@ -38,16 +39,17 @@ function readFilter(p: URLSearchParams): InboxFilter {
   return {
     q: p.get('q') ?? '',
     status: (STATUS_ORDER as string[]).includes(status) ? (status as SolicitudStatus) : '',
-    channel: channel in CHANNEL_LABEL ? (channel as SourceChannel) : '',
+    channel: isSourceChannel(channel) ? channel : '',
     pending: p.get('pendientes') === '1',
   }
 }
 
 function Completeness({ value }: { value: number }) {
+  const { t } = useTranslation()
   const v = Math.max(0, Math.min(100, value))
   const tone = v >= 80 ? 'bg-emerald-500' : v >= 40 ? 'bg-amber-500' : 'bg-slate-400'
   return (
-    <div className="flex items-center gap-2" role="img" aria-label={`Completitud ${v}%`}>
+    <div className="flex items-center gap-2" role="img" aria-label={t('requests.inbox.completenessLabel', { value: v })}>
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
         <div className={`h-full rounded-full ${tone}`} style={{ width: `${v}%` }} />
       </div>
@@ -59,15 +61,17 @@ function Completeness({ value }: { value: number }) {
 }
 
 function UnreadBadge({ n }: { n: number }) {
+  const { t } = useTranslation()
   if (n <= 0) return null
   return (
-    <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white" aria-label={`${n} mensajes sin leer`}>
+    <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-semibold text-white" aria-label={t('requests.inbox.unreadMessages', { count: n })}>
       {n}
     </span>
   )
 }
 
 export default function SolicitudesInbox() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const filter = useMemo(() => readFilter(params), [params])
@@ -101,39 +105,39 @@ export default function SolicitudesInbox() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Solicitudes</h1>
-          <p className="mt-1 text-sm text-slate-600">Peticiones de clientes: recepción, información pendiente y conversación.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t('requests.inbox.title')}</h1>
+          <p className="mt-1 text-sm text-slate-600">{t('requests.inbox.subtitle')}</p>
         </div>
         <ButtonLink to={EMPRESA_PATHS.nuevaSolicitud} leading={<Plus className="h-4 w-4" aria-hidden="true" />}>
-          Nueva solicitud
+          {t('requests.inbox.new')}
         </ButtonLink>
       </div>
 
       <Card className="p-3 sm:p-4">
         <form role="search" className="grid gap-3 md:grid-cols-[1fr_auto_auto_auto]" onSubmit={(e) => e.preventDefault()}>
           <label className="relative block">
-            <span className="sr-only">Buscar por cliente, contacto o asunto</span>
+            <span className="sr-only">{t('requests.inbox.searchLabel')}</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-            <input type="search" value={filter.q} onChange={(e) => update({ q: e.target.value })} placeholder="Buscar cliente, contacto o asunto" className={`${FIELD_CLS} pl-9`} />
+            <input type="search" value={filter.q} onChange={(e) => update({ q: e.target.value })} placeholder={t('requests.inbox.searchPlaceholder')} className={`${FIELD_CLS} pl-9`} />
           </label>
           <label className="block">
-            <span className="sr-only">Estado</span>
+            <span className="sr-only">{t('requests.inbox.statusFilter')}</span>
             <select value={filter.status} onChange={(e) => update({ status: e.target.value as InboxFilter['status'] })} className={FIELD_CLS}>
-              <option value="">Todos los estados</option>
+              <option value="">{t('requests.inbox.allStatuses')}</option>
               {STATUS_ORDER.map((s) => (
                 <option key={s} value={s}>
-                  {STATUS_LABEL[s]}
+                  {statusLabel(s)}
                 </option>
               ))}
             </select>
           </label>
           <label className="block">
-            <span className="sr-only">Canal</span>
+            <span className="sr-only">{t('requests.inbox.channelFilter')}</span>
             <select value={filter.channel} onChange={(e) => update({ channel: e.target.value as InboxFilter['channel'] })} className={FIELD_CLS}>
-              <option value="">Todos los canales</option>
-              {(Object.keys(CHANNEL_LABEL) as SourceChannel[]).map((c) => (
+              <option value="">{t('requests.inbox.allChannels')}</option>
+              {CHANNEL_ORDER.map((c) => (
                 <option key={c} value={c}>
-                  {CHANNEL_LABEL[c]}
+                  {channelLabel(c)}
                 </option>
               ))}
             </select>
@@ -146,7 +150,7 @@ export default function SolicitudesInbox() {
               filter.pending ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
             }`}
           >
-            Solo pendientes
+            {t('requests.inbox.onlyPending')}
           </button>
         </form>
       </Card>
@@ -159,23 +163,23 @@ export default function SolicitudesInbox() {
 
       {rows === null && !error && (
         <p className="text-sm text-slate-500" aria-live="polite">
-          Cargando solicitudes…
+          {t('requests.inbox.loading')}
         </p>
       )}
 
       {rows !== null && visible.length === 0 && (
         <EmptyState
           icon={<Inbox className="h-5 w-5" aria-hidden="true" />}
-          title={hasFilters ? 'Ninguna solicitud coincide con los filtros' : 'Todavía no hay solicitudes'}
-          description={hasFilters ? 'Prueba a cambiar la búsqueda o los filtros.' : 'Crea la primera desde una llamada, un email o un mensaje y envía al cliente su enlace seguro.'}
+          title={hasFilters ? t('requests.inbox.emptyFiltered') : t('requests.inbox.empty')}
+          description={hasFilters ? t('requests.inbox.emptyFilteredHint') : t('requests.inbox.emptyHint')}
           action={
             hasFilters ? (
               <Button variant="secondary" size="sm" onClick={() => setParams({}, { replace: true })}>
-                Quitar filtros
+                {t('common.actions.clearFilters')}
               </Button>
             ) : (
               <ButtonLink to={EMPRESA_PATHS.nuevaSolicitud} size="sm" leading={<Plus className="h-4 w-4" aria-hidden="true" />}>
-                Nueva solicitud
+                {t('requests.inbox.new')}
               </ButtonLink>
             )
           }
@@ -185,20 +189,20 @@ export default function SolicitudesInbox() {
       {visible.length > 0 && (
         <>
           <p className="text-xs text-slate-500" aria-live="polite">
-            {visible.length} de {rows?.length ?? 0} solicitudes
+            {t('requests.inbox.count', { visible: visible.length, total: rows?.length ?? 0 })}
           </p>
           {/* Tabla en escritorio */}
           <Card className="hidden overflow-hidden md:block">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th scope="col" className="px-4 py-3">Cliente / contacto</th>
-                  <th scope="col" className="px-4 py-3">Asunto</th>
-                  <th scope="col" className="px-4 py-3">Completitud</th>
-                  <th scope="col" className="px-4 py-3">Estado</th>
-                  <th scope="col" className="px-4 py-3">Última actividad</th>
+                  <th scope="col" className="px-4 py-3">{t('requests.inbox.columns.client')}</th>
+                  <th scope="col" className="px-4 py-3">{t('requests.inbox.columns.subject')}</th>
+                  <th scope="col" className="px-4 py-3">{t('requests.inbox.columns.completeness')}</th>
+                  <th scope="col" className="px-4 py-3">{t('requests.inbox.columns.status')}</th>
+                  <th scope="col" className="px-4 py-3">{t('requests.inbox.columns.lastActivity')}</th>
                   <th scope="col" className="px-4 py-3 text-right">
-                    <span className="sr-only">Sin leer</span>
+                    <span className="sr-only">{t('requests.inbox.columns.unread')}</span>
                   </th>
                 </tr>
               </thead>
@@ -214,7 +218,7 @@ export default function SolicitudesInbox() {
                         {r.cliente_name ?? r.contact_name}
                       </Link>
                       {r.cliente_name && r.cliente_name !== r.contact_name && <p className="text-xs text-slate-500">{r.contact_name}</p>}
-                      <p className="text-xs text-slate-500">{CHANNEL_LABEL[r.source_channel]}</p>
+                      <p className="text-xs text-slate-500">{channelLabel(r.source_channel)}</p>
                     </td>
                     <td className="max-w-[26rem] px-4 py-3">
                       <p className="truncate text-slate-800">{r.title}</p>
@@ -224,7 +228,7 @@ export default function SolicitudesInbox() {
                       <Completeness value={r.completeness} />
                     </td>
                     <td className="px-4 py-3">
-                      <StatusPill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</StatusPill>
+                      <StatusPill tone={STATUS_TONE[r.status]}>{statusLabel(r.status)}</StatusPill>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-slate-600">{formatRelative(r.last_activity_at)}</td>
                     <td className="px-4 py-3 text-right">
@@ -248,11 +252,11 @@ export default function SolicitudesInbox() {
                     <UnreadBadge n={r.unread_count} />
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                    <StatusPill tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</StatusPill>
+                    <StatusPill tone={STATUS_TONE[r.status]}>{statusLabel(r.status)}</StatusPill>
                     <Completeness value={r.completeness} />
                   </div>
                   <p className="mt-2 text-xs text-slate-500">
-                    {CHANNEL_LABEL[r.source_channel]} · {formatRelative(r.last_activity_at)}
+                    {channelLabel(r.source_channel)} · {formatRelative(r.last_activity_at)}
                   </p>
                 </Link>
               </li>

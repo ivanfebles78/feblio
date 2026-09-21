@@ -1,0 +1,40 @@
+{
+  "tabs": {
+    "empresa": "Datos de empresa",
+    "integrations": "Canales e integraciones",
+    "billing": "Facturación y pagos",
+    "automation": "Automatizaciones",
+    "forms": "Formularios",
+    "reopen": "Reabrir configuración inicial"
+  },
+  "tablist": "Secciones de configuración",
+  "loading": "Cargando configuración…",
+  "noData": "Sin datos.",
+  "reopen": {
+    "body": "Vuelve al asistente paso a paso con tu configuración actual ya cargada. Mientras esté abierto, el dashboard no estará disponible hasta que vuelvas a activar Feblio desde el último paso. No se pierde ningún dato.",
+    "action": "Reabrir asistente",
+    "confirmTitle": "¿Reabrir la configuración inicial?",
+    "confirmAction": "Reabrir",
+    "confirmBody": "Volverás al asistente. Para regresar al dashboard tendrás que pulsar «Activar Feblio» en el último paso."
+  },
+  "integrations": {
+    "intro": "Estado de cada canal. «Gestionar» abre la configuración completa del canal sin pasar por el asistente.",
+    "columns": {
+      "channel": "Canal",
+      "status": "Estado",
+      "account": "Cuenta o número",
+      "lastActivity": "Última actividad",
+      "lastTest": "Última prueba",
+      "lastError": "Último error",
+      "actions": "Acciones"
+    },
+    "testFailed": "(fallida)",
+    "manage": "Gestionar",
+    "test": "Probar",
+    "reconnect": "Reconectar",
+    "disconnect": "Desconectar",
+    "fullConfig": "Configuración completa del canal. Los cambios se guardan automáticamente.",
+    "disconnectTitle": "¿Desconectar {{channel}}?",
+    "disconnectBody": "Se revocará el acceso y se eliminarán las credenciales guardadas. Podrás reconectar más tarde."
+  }
+}

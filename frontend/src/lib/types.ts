@@ -1,6 +1,11 @@
+import { t } from '../i18n'
+import { formatCurrency } from './intl'
+
 export type UserRole = 'admin' | 'empresa' | 'cliente'
+export const USER_ROLES: readonly UserRole[] = ['admin', 'empresa', 'cliente']
 
 export type ProjectStatus = 'borrador' | 'en_progreso' | 'completado' | 'cancelado'
+export const PROJECT_STATUSES: readonly ProjectStatus[] = ['borrador', 'en_progreso', 'completado', 'cancelado']
 
 export type DocumentType =
   | 'presupuesto'
@@ -8,14 +13,46 @@ export type DocumentType =
   | 'factura'
   | 'contrato'
   | 'otro'
+export const DOCUMENT_TYPES: readonly DocumentType[] = ['presupuesto', 'provision', 'factura', 'contrato', 'otro']
 
 export type EntityType = 'company' | 'self_employed'
+export const ENTITY_TYPES: readonly EntityType[] = ['company', 'self_employed']
 export type TaxType = 'CIF' | 'NIF'
 
-export const ENTITY_TYPE_LABEL: Record<EntityType, string> = {
-  company: 'Empresa',
-  self_employed: 'Autónomo o profesional',
+/* ------------------------------------------------------------------ */
+/* Etiquetas traducidas: los códigos internos no cambian; el texto se  */
+/* resuelve con t() en el momento de uso (nunca al cargar el módulo).  */
+/* ------------------------------------------------------------------ */
+export function entityTypeLabel(entity: EntityType): string {
+  return t(`dashboard.entityType.${entity}`)
 }
+export function projectStatusLabel(status: ProjectStatus): string {
+  return t(`dashboard.projectStatus.${status}`)
+}
+export function roleLabel(role: UserRole): string {
+  return t(`common.roles.${role}`)
+}
+/** «Presupuesto», «Factura»… */
+export function documentTypeLabel(type: DocumentType): string {
+  return t(`dashboard.documentType.${type}`)
+}
+/** «Presupuestos», «Facturas»… (cabeceras de grupo). */
+export function documentTypePluralLabel(type: DocumentType): string {
+  return t(`dashboard.documentTypePlural.${type}`)
+}
+
+/**
+ * Mapa de compatibilidad para el código que sigue indexando `LABEL[code]`: cada propiedad
+ * es un getter que llama a t() al leerse, así el texto sigue al idioma activo.
+ * Preferir las funciones `xxxLabel()` en código nuevo.
+ */
+function lazyLabelMap<K extends string>(keys: readonly K[], resolve: (key: K) => string): Readonly<Record<K, string>> {
+  const map = {} as Record<K, string>
+  for (const key of keys) Object.defineProperty(map, key, { get: () => resolve(key), enumerable: true })
+  return Object.freeze(map)
+}
+
+export const ENTITY_TYPE_LABEL: Readonly<Record<EntityType, string>> = lazyLabelMap(ENTITY_TYPES, entityTypeLabel)
 
 /** Compatibilidad: tax_type sigue usándose en empresas.tax_type. */
 export function taxTypeForEntity(entity: EntityType): TaxType {
@@ -112,11 +149,8 @@ export interface Task {
   resolved_at: string | null
 }
 
-export const TEMPLATE_TABS: { type: DocumentType; label: string }[] = [
-  { type: 'presupuesto', label: 'Presupuestos' },
-  { type: 'provision', label: 'Provisiones de fondos' },
-  { type: 'factura', label: 'Facturas' },
-]
+/** Tipos de documento con plantilla editable (etiqueta: `documentTypePluralLabel(type)`). */
+export const TEMPLATE_TYPES: readonly DocumentType[] = ['presupuesto', 'provision', 'factura']
 
 export interface Cliente {
   id: string
@@ -155,23 +189,11 @@ export interface DocumentRow {
   created_at: string
 }
 
-export const ROLE_LABEL: Record<UserRole, string> = {
-  admin: 'Administrador',
-  empresa: 'Empresa',
-  cliente: 'Cliente',
-}
+export const ROLE_LABEL: Readonly<Record<UserRole, string>> = lazyLabelMap(USER_ROLES, roleLabel)
 
-export const STATUS_LABEL: Record<ProjectStatus, string> = {
-  borrador: 'Borrador',
-  en_progreso: 'En progreso',
-  completado: 'Completado',
-  cancelado: 'Cancelado',
-}
+export const STATUS_LABEL: Readonly<Record<ProjectStatus, string>> = lazyLabelMap(PROJECT_STATUSES, projectStatusLabel)
 
+/** Compatibilidad: importe en EUR con el formato del idioma activo (delega en lib/intl). */
 export function formatEUR(n: number | null | undefined): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(n ?? 0)
+  return formatCurrency(n ?? 0)
 }

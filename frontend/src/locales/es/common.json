@@ -1,0 +1,127 @@
+{
+  "language": {
+    "switcher": "Idioma de la interfaz",
+    "es": "Español",
+    "en": "English"
+  },
+  "brand": {
+    "name": "Feblio",
+    "tagline": "Gestiona tus proyectos de principio a fin",
+    "documentTitle": "Feblio · Gestiona tus proyectos de principio a fin"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "delete": "Borrar",
+    "edit": "Editar",
+    "create": "Crear",
+    "add": "Añadir",
+    "remove": "Quitar",
+    "continue": "Continuar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "retry": "Reintentar",
+    "confirm": "Confirmar",
+    "send": "Enviar",
+    "download": "Descargar",
+    "upload": "Subir",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "search": "Buscar",
+    "clearFilters": "Quitar filtros",
+    "open": "Abrir",
+    "view": "Ver",
+    "refresh": "Actualizar",
+    "signOut": "Cerrar sesión",
+    "signIn": "Iniciar sesión",
+    "help": "Ayuda",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "closeNotice": "Cerrar aviso",
+    "select": "Selecciona una opción…",
+    "saving": "Guardando…",
+    "sending": "Enviando…",
+    "loading": "Cargando…",
+    "oneMoment": "Un momento…",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "state": {
+    "loading": "Cargando…",
+    "saving": "Guardando…",
+    "empty": "Nada todavía",
+    "error": "Se ha producido un error",
+    "required": "obligatorio",
+    "optional": "Opcional",
+    "none": "Ninguno",
+    "unknown": "Desconocido",
+    "pending": "Pendiente",
+    "done": "Completado",
+    "active": "Activo",
+    "inactive": "Inactivo"
+  },
+  "errors": {
+    "generic": "No se pudo completar la operación.",
+    "network": "Sin conexión. Comprueba tu red e inténtalo de nuevo.",
+    "permission": "No tienes permiso para realizar esta acción.",
+    "notFound": "No se ha encontrado el recurso.",
+    "tryAgain": "Inténtalo de nuevo.",
+    "loadProfile": "No se pudo cargar tu perfil",
+    "loadProfileDetail": "Tu sesión es válida pero no encontramos tu perfil. Reintenta o cierra sesión."
+  },
+  "relative": {
+    "now": "ahora mismo",
+    "minutesAgo_one": "hace {{count}} min",
+    "minutesAgo_other": "hace {{count}} min",
+    "hoursAgo_one": "hace {{count}} h",
+    "hoursAgo_other": "hace {{count}} h",
+    "yesterday": "ayer",
+    "daysAgo_one": "hace {{count}} día",
+    "daysAgo_other": "hace {{count}} días",
+    "today": "hoy",
+    "tomorrow": "mañana",
+    "inDays_one": "en {{count}} día",
+    "inDays_other": "en {{count}} días"
+  },
+  "units": {
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "files_one": "{{count}} archivo",
+    "files_other": "{{count}} archivos",
+    "items_one": "{{count}} elemento",
+    "items_other": "{{count}} elementos"
+  },
+  "nav": {
+    "home": "Inicio",
+    "requests": "Solicitudes",
+    "templates": "Plantillas",
+    "settings": "Configuración",
+    "main": "Navegación principal",
+    "breadcrumbs": "Ruta de navegación",
+    "myCompany": "Mi empresa"
+  },
+  "roles": {
+    "admin": "Administrador",
+    "empresa": "Empresa",
+    "cliente": "Cliente"
+  },
+  "a11y": {
+    "notifications": "Notificaciones",
+    "notificationsUnread_one": "Notificaciones: {{count}} sin leer",
+    "notificationsUnread_other": "Notificaciones: {{count}} sin leer",
+    "requiredField": " (obligatorio)",
+    "skipToContent": "Ir al contenido"
+  },
+  "loading": {
+    "checkingAccount": "Comprobando tu cuenta…",
+    "preparingAccount": "Preparando tu cuenta…",
+    "default": "Cargando…"
+  },
+  "footer": {
+    "legalNotice": "Al continuar aceptas los Términos del servicio y la Política de privacidad.",
+    "terms": "Términos del servicio",
+    "privacy": "Política de privacidad"
+  }
+}

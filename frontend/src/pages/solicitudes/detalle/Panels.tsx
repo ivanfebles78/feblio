@@ -1,21 +1,22 @@
 import { useState } from 'react'
 import { Download, FileText, History } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { t } from '../../../i18n'
 import { Card, CardHeader, EmptyState, StatusPill } from '../../../components/v2/Card'
 import { Button } from '../../../components/v2/Button'
 import { FileUploader } from '../../../components/solicitudes/FileUploader'
-import { BASE_FIELDS } from '../../../lib/solicitudes/analysis'
+import { baseFieldLabel, baseFields } from '../../../lib/solicitudes/analysis'
 import { formatBytes, signedUrl } from '../../../lib/solicitudes/files'
-import { formatDateTime } from '../../../lib/solicitudes/format'
-import { REQUISITO_LABEL, STATUS_LABEL } from '../../../lib/solicitudes/status'
-import type { SolicitudDocumento, SolicitudEvento, SolicitudRequisito, SolicitudStatus } from '../../../lib/solicitudes/types'
+import { formatDateTime } from '../../../lib/intl'
+import { requisitoLabel, STATUS_ORDER, statusLabel } from '../../../lib/solicitudes/status'
+import type { RequisitoStatus, SolicitudDocumento, SolicitudEvento, SolicitudRequisito, SolicitudStatus } from '../../../lib/solicitudes/types'
 import type { SolicitudDetalle } from '../../../lib/solicitudes/api'
 
 /* ---------------- Datos recibidos ---------------- */
 
-const EXTRA_FIELDS = [{ key: 'budget', label: 'Presupuesto orientativo' }]
-
 export function DatosRecibidos({ formData, template, submittedAt }: { formData: Record<string, unknown>; template: SolicitudDetalle['template']; submittedAt: string | null }) {
-  const defs = [...BASE_FIELDS, ...EXTRA_FIELDS, ...(template?.fields ?? []).map((f) => ({ key: f.key, label: f.label }))]
+  const { t } = useTranslation()
+  const defs = [...baseFields(), { key: 'budget', label: baseFieldLabel('budget') }, ...(template?.fields ?? []).map((f) => ({ key: f.key, label: f.label }))]
   const seen = new Set<string>()
   const rows = defs
     .filter((d) => {
@@ -27,9 +28,9 @@ export function DatosRecibidos({ formData, template, submittedAt }: { formData: 
     .filter((r) => r.value !== undefined && r.value !== null && String(r.value).trim() !== '')
   return (
     <Card className="p-5">
-      <CardHeader title="Datos recibidos" description={submittedAt ? `Formulario enviado el ${formatDateTime(submittedAt)}` : 'El cliente todavía no ha enviado el formulario.'} />
+      <CardHeader title={t('requests.panels.data.title')} description={submittedAt ? t('requests.panels.data.submittedOn', { date: formatDateTime(submittedAt) }) : t('requests.panels.data.notSubmitted')} />
       {rows.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-500">Sin datos todavía.</p>
+        <p className="mt-3 text-sm text-slate-500">{t('requests.panels.data.empty')}</p>
       ) : (
         <dl className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2">
           {rows.map((r) => (
@@ -47,6 +48,7 @@ export function DatosRecibidos({ formData, template, submittedAt }: { formData: 
 /* ---------------- Información pendiente ---------------- */
 
 export function RequisitosPanel({ requisitos, onResolve, busy }: { requisitos: SolicitudRequisito[]; onResolve: (id: string, estado: 'resolved' | 'waived' | 'pending') => void; busy: boolean }) {
+  const { t } = useTranslation()
   const open = requisitos.filter((r) => r.status === 'pending' || r.status === 'received')
   const done = requisitos.filter((r) => r.status === 'resolved' || r.status === 'waived')
   const tone = (s: SolicitudRequisito['status']) => (s === 'pending' ? 'pending' : s === 'received' ? 'info' : s === 'resolved' ? 'success' : 'neutral')
@@ -55,24 +57,24 @@ export function RequisitosPanel({ requisitos, onResolve, busy }: { requisitos: S
       <div className="min-w-0">
         <p className="text-sm text-slate-800">{r.label}</p>
         <p className="text-xs text-slate-500">
-          {r.kind === 'document' ? 'Documento' : 'Dato'} · pedido {formatDateTime(r.requested_at)}
+          {t('requests.panels.requisitos.requestedAt', { kind: t(`requests.kind.${r.kind}`), date: formatDateTime(r.requested_at) })}
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <StatusPill tone={tone(r.status)}>{REQUISITO_LABEL[r.status]}</StatusPill>
+        <StatusPill tone={tone(r.status)}>{requisitoLabel(r.status)}</StatusPill>
         {(r.status === 'pending' || r.status === 'received') && (
           <>
             <Button size="sm" variant="secondary" onClick={() => onResolve(r.id, 'resolved')} disabled={busy}>
-              Resuelto
+              {t('requests.panels.requisitos.resolve')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => onResolve(r.id, 'waived')} disabled={busy}>
-              No necesario
+              {t('requests.panels.requisitos.waive')}
             </Button>
           </>
         )}
         {(r.status === 'resolved' || r.status === 'waived') && (
           <Button size="sm" variant="ghost" onClick={() => onResolve(r.id, 'pending')} disabled={busy}>
-            Volver a pedir
+            {t('requests.panels.requisitos.reask')}
           </Button>
         )}
       </div>
@@ -80,9 +82,9 @@ export function RequisitosPanel({ requisitos, onResolve, busy }: { requisitos: S
   )
   return (
     <Card className="p-5">
-      <CardHeader title="Información pendiente" description="Requisitos pedidos al cliente. Marca como resuelto lo que ya tengas." />
+      <CardHeader title={t('requests.panels.requisitos.title')} description={t('requests.panels.requisitos.description')} />
       {requisitos.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-500">No se ha pedido información adicional.</p>
+        <p className="mt-3 text-sm text-slate-500">{t('requests.panels.requisitos.empty')}</p>
       ) : (
         <>
           <ul className="mt-2 divide-y divide-slate-100">
@@ -93,7 +95,7 @@ export function RequisitosPanel({ requisitos, onResolve, busy }: { requisitos: S
           {done.length > 0 && (
             <details className="mt-2">
               <summary className="cursor-pointer text-sm text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-                {done.length} resueltos o no necesarios
+                {t('requests.panels.requisitos.doneCount', { count: done.length })}
               </summary>
               <ul className="divide-y divide-slate-100">
                 {done.map((r) => (
@@ -111,6 +113,7 @@ export function RequisitosPanel({ requisitos, onResolve, busy }: { requisitos: S
 /* ---------------- Documentos ---------------- */
 
 export function DocumentosPanel({ documentos, requisitos, onUpload, canUpload }: { documentos: SolicitudDocumento[]; requisitos: SolicitudRequisito[]; onUpload: (file: File, mime: string, ext: string) => Promise<void>; canUpload: boolean }) {
+  const { t } = useTranslation()
   const [opening, setOpening] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   async function open(d: SolicitudDocumento) {
@@ -120,7 +123,7 @@ export function DocumentosPanel({ documentos, requisitos, onUpload, canUpload }:
       const url = await signedUrl(d.storage_path)
       window.open(url, '_blank', 'noopener')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo abrir el archivo.')
+      setError(e instanceof Error ? e.message : t('requests.panels.documents.openFailed'))
     } finally {
       setOpening(null)
     }
@@ -128,10 +131,10 @@ export function DocumentosPanel({ documentos, requisitos, onUpload, canUpload }:
   const reqLabel = (id: string | null) => (id ? requisitos.find((r) => r.id === id)?.label : undefined)
   return (
     <Card className="p-5">
-      <CardHeader title="Documentos" description="Archivos privados. Los enlaces de descarga caducan a los 5 minutos." />
+      <CardHeader title={t('requests.panels.documents.title')} description={t('requests.panels.documents.description')} />
       {documentos.length === 0 ? (
         <div className="mt-3">
-          <EmptyState icon={<FileText className="h-5 w-5" aria-hidden="true" />} title="Sin documentos" description="Los archivos que suba el cliente o tu equipo aparecerán aquí." />
+          <EmptyState icon={<FileText className="h-5 w-5" aria-hidden="true" />} title={t('requests.panels.documents.empty')} description={t('requests.panels.documents.emptyHint')} />
         </div>
       ) : (
         <ul className="mt-3 divide-y divide-slate-100">
@@ -142,13 +145,13 @@ export function DocumentosPanel({ documentos, requisitos, onUpload, canUpload }:
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-slate-800">{d.original_name}</p>
                   <p className="text-xs text-slate-500">
-                    {formatBytes(d.size_bytes)} · {d.uploaded_by_kind === 'cliente' ? 'Cliente' : 'Tu equipo'} · {formatDateTime(d.created_at)}
+                    {formatBytes(d.size_bytes)} · {d.uploaded_by_kind === 'cliente' ? t('requests.panels.documents.byClient') : t('requests.panels.documents.byTeam')} · {formatDateTime(d.created_at)}
                     {reqLabel(d.requisito_id) && <> · {reqLabel(d.requisito_id)}</>}
                   </p>
                 </div>
               </div>
-              <Button size="sm" variant="secondary" onClick={() => void open(d)} disabled={opening === d.id} leading={<Download className="h-4 w-4" aria-hidden="true" />} aria-label={`Descargar ${d.original_name}`}>
-                {opening === d.id ? 'Abriendo…' : 'Descargar'}
+              <Button size="sm" variant="secondary" onClick={() => void open(d)} disabled={opening === d.id} leading={<Download className="h-4 w-4" aria-hidden="true" />} aria-label={t('requests.panels.documents.download', { name: d.original_name })}>
+                {opening === d.id ? t('requests.panels.documents.opening') : t('common.actions.download')}
               </Button>
             </li>
           ))}
@@ -161,7 +164,7 @@ export function DocumentosPanel({ documentos, requisitos, onUpload, canUpload }:
       )}
       {canUpload && (
         <div className="mt-4">
-          <FileUploader onUpload={onUpload} label="Adjuntar archivo (visible para el cliente)" compact />
+          <FileUploader onUpload={onUpload} label={t('requests.panels.documents.attach')} compact />
         </div>
       )}
     </Card>
@@ -170,39 +173,47 @@ export function DocumentosPanel({ documentos, requisitos, onUpload, canUpload }:
 
 /* ---------------- Cronología ---------------- */
 
-const EVENT_LABEL: Record<string, string> = {
-  'solicitud.created': 'Solicitud creada',
-  'solicitud.link_created': 'Enlace del cliente generado',
-  'solicitud.links_revoked': 'Enlaces revocados',
-  'solicitud.info_requested': 'Información solicitada al cliente',
-  'solicitud.analyzed': 'Comprobación de suficiencia',
-  'solicitud.message': 'Mensaje enviado al cliente',
-  'solicitud.client_message': 'El cliente escribió un mensaje',
-  'solicitud.submitted': 'El cliente envió el formulario',
-  'solicitud.document.added': 'Documento adjuntado',
+/** Clave de traducción por acción de auditoría (los códigos de acción son estables). */
+const EVENT_KEY: Record<string, string> = {
+  'solicitud.created': 'requests.events.created',
+  'solicitud.link_created': 'requests.events.linkCreated',
+  'solicitud.links_revoked': 'requests.events.linksRevoked',
+  'solicitud.info_requested': 'requests.events.infoRequested',
+  'solicitud.analyzed': 'requests.events.analyzed',
+  'solicitud.message': 'requests.events.message',
+  'solicitud.client_message': 'requests.events.clientMessage',
+  'solicitud.submitted': 'requests.events.submitted',
+  'solicitud.document.added': 'requests.events.documentAdded',
 }
+const REQUISITO_STATUSES: RequisitoStatus[] = ['pending', 'received', 'resolved', 'waived']
 
-function eventText(e: SolicitudEvento): string {
+/** Texto de un evento en el idioma actual (se llama en cada render, por lo que sigue al cambio de idioma). */
+export function eventText(e: SolicitudEvento): string {
   const m = e.metadata ?? {}
   if (e.action.startsWith('solicitud.status.')) {
-    const to = e.action.slice('solicitud.status.'.length) as SolicitudStatus
-    if (m.reason === 'reopen') return `Solicitud reabierta (${STATUS_LABEL[to] ?? to})`
-    return `Estado: ${STATUS_LABEL[to] ?? to}${typeof m.reason === 'string' && m.reason ? ` · ${m.reason}` : ''}`
+    const to = e.action.slice('solicitud.status.'.length)
+    const status = (STATUS_ORDER as string[]).includes(to) ? statusLabel(to as SolicitudStatus) : to
+    if (m.reason === 'reopen') return t('requests.events.reopened', { status })
+    return typeof m.reason === 'string' && m.reason ? t('requests.events.statusChangedReason', { status, reason: m.reason }) : t('requests.events.statusChanged', { status })
   }
-  if (e.action.startsWith('solicitud.requirement.')) return `Requisito marcado como ${REQUISITO_LABEL[e.action.slice('solicitud.requirement.'.length) as keyof typeof REQUISITO_LABEL] ?? e.action}`
-  const base = EVENT_LABEL[e.action] ?? e.action.replace('solicitud.', '').replace(/[._]/g, ' ')
-  if (e.action === 'solicitud.analyzed' && typeof m.completeness === 'number') return `${base}: ${m.completeness}%`
-  if (e.action === 'solicitud.submitted' && typeof m.completeness === 'number') return `${base} (${m.completeness}%)`
-  if (e.action === 'solicitud.document.added') return m.by === 'cliente' ? 'El cliente adjuntó un documento' : 'Tu equipo adjuntó un documento'
+  if (e.action.startsWith('solicitud.requirement.')) {
+    const st = e.action.slice('solicitud.requirement.'.length)
+    return t('requests.events.requirement', { status: (REQUISITO_STATUSES as string[]).includes(st) ? requisitoLabel(st as RequisitoStatus) : e.action })
+  }
+  const base = EVENT_KEY[e.action] ? t(EVENT_KEY[e.action]) : e.action.replace('solicitud.', '').replace(/[._]/g, ' ')
+  if (e.action === 'solicitud.analyzed' && typeof m.completeness === 'number') return t('requests.events.analyzedPct', { label: base, pct: m.completeness })
+  if (e.action === 'solicitud.submitted' && typeof m.completeness === 'number') return t('requests.events.submittedPct', { label: base, pct: m.completeness })
+  if (e.action === 'solicitud.document.added') return m.by === 'cliente' ? t('requests.events.clientDocument') : t('requests.events.teamDocument')
   return base
 }
 
 export function Cronologia({ eventos }: { eventos: SolicitudEvento[] }) {
+  const { t } = useTranslation()
   return (
     <Card className="p-5">
-      <CardHeader title="Cronología" as="h3" />
+      <CardHeader title={t('requests.panels.timeline.title')} as="h3" />
       {eventos.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-500">Sin actividad registrada.</p>
+        <p className="mt-3 text-sm text-slate-500">{t('requests.panels.timeline.empty')}</p>
       ) : (
         <ol className="mt-3 space-y-3 border-l border-slate-200 pl-4">
           {eventos.map((e) => (

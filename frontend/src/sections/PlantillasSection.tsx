@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Building2,
   FileText,
@@ -19,20 +20,14 @@ import {
 } from 'lucide-react'
 import { SectionCard, Badge, EmptyState } from '../components/ui'
 import { supabase } from '../lib/supabase'
-import {
-  formatEUR,
-  type DocumentType,
-  type Empresa,
-  type Template,
-  type ClientIntake,
-} from '../lib/types'
+import { formatCurrency, formatDateTime } from '../lib/intl'
+import { type Empresa, type Template, type ClientIntake } from '../lib/types'
 import { createIntakeSignedUrl, intakeFilePath, type IntakeFileRef } from '../lib/intakeFiles'
 
-/* Colores por pestaña */
+/* Colores por pestaña (el nombre se resuelve con t(`dashboard.templates.tabs.${key}`) al renderizar) */
 const SUBTABS = [
   {
     key: 'datos',
-    label: 'Datos de empresa',
     icon: Building2,
     active: 'bg-slate-800 text-white',
     idle: 'border-l-4 border-l-slate-800 text-slate-700 hover:bg-slate-50',
@@ -40,7 +35,6 @@ const SUBTABS = [
   },
   {
     key: 'presupuesto',
-    label: 'Presupuestos',
     icon: FileText,
     active: 'bg-blue-600 text-white',
     idle: 'border-l-4 border-l-blue-600 text-blue-700 hover:bg-blue-50',
@@ -48,7 +42,6 @@ const SUBTABS = [
   },
   {
     key: 'provision',
-    label: 'Provisiones',
     icon: Wallet,
     active: 'bg-amber-500 text-white',
     idle: 'border-l-4 border-l-amber-500 text-amber-700 hover:bg-amber-50',
@@ -56,7 +49,6 @@ const SUBTABS = [
   },
   {
     key: 'factura',
-    label: 'Facturas',
     icon: Receipt,
     active: 'bg-violet-600 text-white',
     idle: 'border-l-4 border-l-violet-600 text-violet-700 hover:bg-violet-50',
@@ -64,7 +56,6 @@ const SUBTABS = [
   },
   {
     key: 'formulario',
-    label: 'Formulario de clientes',
     icon: Link2,
     active: 'bg-teal-600 text-white',
     idle: 'border-l-4 border-l-teal-600 text-teal-700 hover:bg-teal-50',
@@ -73,31 +64,28 @@ const SUBTABS = [
 ] as const
 
 type SubKey = (typeof SUBTABS)[number]['key']
-const DOC_TITLE: Record<string, string> = {
-  presupuesto: 'PRESUPUESTO',
-  provision: 'PROVISIÓN DE FONDOS',
-  factura: 'FACTURA',
-}
+type TemplateType = Extract<SubKey, 'presupuesto' | 'provision' | 'factura'>
 
 export function PlantillasSection({ empresaId }: { empresaId: string }) {
+  const { t } = useTranslation()
   const [sub, setSub] = useState<SubKey>('datos')
   const current = SUBTABS.find((s) => s.key === sub)!
 
   return (
     <div className="space-y-6">
       <div className="surface flex flex-wrap gap-2 p-2">
-        {SUBTABS.map((t) => {
-          const on = t.key === sub
+        {SUBTABS.map((item) => {
+          const on = item.key === sub
           return (
             <button
-              key={t.key}
-              onClick={() => setSub(t.key)}
+              key={item.key}
+              onClick={() => setSub(item.key)}
               className={`flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-semibold transition ${
-                on ? t.active : `bg-white ${t.idle}`
+                on ? item.active : `bg-white ${item.idle}`
               }`}
             >
-              <t.icon className="h-4 w-4" />
-              {t.label}
+              <item.icon className="h-4 w-4" />
+              {t(`dashboard.templates.tabs.${item.key}`)}
             </button>
           )
         })}
@@ -106,7 +94,7 @@ export function PlantillasSection({ empresaId }: { empresaId: string }) {
       <div className={`rounded-2xl ${current.top}`}>
         {sub === 'datos' && <DatosEmpresa empresaId={empresaId} />}
         {(sub === 'presupuesto' || sub === 'provision' || sub === 'factura') && (
-          <TemplatesPanel empresaId={empresaId} type={sub as DocumentType} />
+          <TemplatesPanel empresaId={empresaId} type={sub} />
         )}
         {sub === 'formulario' && <FormularioClientes empresaId={empresaId} />}
       </div>
@@ -118,6 +106,7 @@ export function PlantillasSection({ empresaId }: { empresaId: string }) {
 /* Datos de empresa                                                    */
 /* ------------------------------------------------------------------ */
 function DatosEmpresa({ empresaId }: { empresaId: string }) {
+  const { t } = useTranslation()
   const [form, setForm] = useState<Partial<Empresa>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -158,31 +147,29 @@ function DatosEmpresa({ empresaId }: { empresaId: string }) {
 
   if (loading)
     return (
-      <SectionCard title="Datos de tu empresa">
-        <p className="text-slate-400">Cargando…</p>
+      <SectionCard title={t('dashboard.templates.company.title')}>
+        <p className="text-slate-400">{t('common.state.loading')}</p>
       </SectionCard>
     )
 
   return (
-    <SectionCard title="Datos de tu empresa (se replican en cada documento)">
+    <SectionCard title={t('dashboard.templates.company.titleFull')}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <DatoField label="Nombre / razón social" value={form.name ?? ''} onChange={(v) => set('name', v)} placeholder="Reformas del Sur SL" />
-        <DatoField label="CIF / NIF" value={form.cif ?? ''} onChange={(v) => set('cif', v)} placeholder="B12345678" />
-        <DatoField label="Email" value={form.email ?? ''} onChange={(v) => set('email', v)} placeholder="hola@empresa.com" />
-        <DatoField label="Teléfono" value={form.phone ?? ''} onChange={(v) => set('phone', v)} placeholder="+34 600 000 000" />
-        <DatoField label="Dirección" value={form.address ?? ''} onChange={(v) => set('address', v)} placeholder="Calle…" wide />
-        <DatoField label="Web" value={form.website ?? ''} onChange={(v) => set('website', v)} placeholder="www.empresa.com" />
-        <MaskedField label="IBAN (para cobros)" value={form.iban ?? ''} onChange={(v) => set('iban', v)} placeholder="ES00 0000 0000 0000" />
-        <DatoField label="URL del logo" value={form.logo_url ?? ''} onChange={(v) => set('logo_url', v)} placeholder="https://…/logo.png" wide />
+        <DatoField label={t('dashboard.templates.company.name')} value={form.name ?? ''} onChange={(v) => set('name', v)} placeholder={t('dashboard.templates.company.namePlaceholder')} />
+        <DatoField label={t('dashboard.templates.company.taxId')} value={form.cif ?? ''} onChange={(v) => set('cif', v)} placeholder={t('dashboard.templates.company.taxIdPlaceholder')} />
+        <DatoField label={t('dashboard.templates.company.email')} value={form.email ?? ''} onChange={(v) => set('email', v)} placeholder={t('dashboard.templates.company.emailPlaceholder')} />
+        <DatoField label={t('dashboard.templates.company.phone')} value={form.phone ?? ''} onChange={(v) => set('phone', v)} placeholder={t('dashboard.templates.company.phonePlaceholder')} />
+        <DatoField label={t('dashboard.templates.company.address')} value={form.address ?? ''} onChange={(v) => set('address', v)} placeholder={t('dashboard.templates.company.addressPlaceholder')} wide />
+        <DatoField label={t('dashboard.templates.company.website')} value={form.website ?? ''} onChange={(v) => set('website', v)} placeholder={t('dashboard.templates.company.websitePlaceholder')} />
+        <MaskedField label={t('dashboard.templates.company.iban')} value={form.iban ?? ''} onChange={(v) => set('iban', v)} placeholder={t('dashboard.templates.company.ibanPlaceholder')} />
+        <DatoField label={t('dashboard.templates.company.logoUrl')} value={form.logo_url ?? ''} onChange={(v) => set('logo_url', v)} placeholder={t('dashboard.templates.company.logoUrlPlaceholder')} wide />
         <label className="sm:col-span-2">
-          <span className="mb-1 block text-xs font-medium text-slate-500">
-            Disclosures / textos legales (pie de tus documentos)
-          </span>
+          <span className="mb-1 block text-xs font-medium text-slate-500">{t('dashboard.templates.company.disclosures')}</span>
           <textarea
             rows={3}
             value={form.disclosures ?? ''}
             onChange={(e) => set('disclosures', e.target.value)}
-            placeholder="Condiciones generales, aviso de protección de datos, etc."
+            placeholder={t('dashboard.templates.company.disclosuresPlaceholder')}
             className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
           />
         </label>
@@ -190,15 +177,15 @@ function DatosEmpresa({ empresaId }: { empresaId: string }) {
       <div className="mt-5 flex items-center gap-3">
         <button onClick={save} disabled={saving} className="btn-primary">
           <Save className="h-4 w-4" />
-          {saving ? 'Guardando…' : 'Guardar datos'}
+          {saving ? t('common.actions.saving') : t('dashboard.templates.company.save')}
         </button>
         {saved && (
           <span className="flex items-center gap-1 text-sm font-medium text-emerald-600">
-            <Check className="h-4 w-4" /> Guardado
+            <Check className="h-4 w-4" /> {t('dashboard.templates.company.saved')}
           </span>
         )}
         {form.logo_url && (
-          <img src={form.logo_url} alt="logo" className="ml-auto h-9 max-w-[120px] object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+          <img src={form.logo_url} alt={t('dashboard.templates.company.logoAlt')} className="ml-auto h-9 max-w-[120px] object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
         )}
       </div>
     </SectionCard>
@@ -256,6 +243,7 @@ function MaskedField({
   placeholder?: string
   wide?: boolean
 }) {
+  const { t } = useTranslation()
   const [show, setShow] = useState(false)
   return (
     <label className={wide ? 'sm:col-span-2' : ''}>
@@ -273,7 +261,7 @@ function MaskedField({
           type="button"
           onClick={() => setShow((s) => !s)}
           className="shrink-0 text-slate-400 hover:text-slate-600"
-          aria-label={show ? 'Ocultar' : 'Mostrar'}
+          aria-label={show ? t('dashboard.templates.company.hide') : t('dashboard.templates.company.show')}
         >
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
@@ -296,7 +284,8 @@ const emptyTpl = {
   disclosures: '',
 }
 
-function TemplatesPanel({ empresaId, type }: { empresaId: string; type: DocumentType }) {
+function TemplatesPanel({ empresaId, type }: { empresaId: string; type: TemplateType }) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<Template[]>([])
   const [empresa, setEmpresa] = useState<Empresa | null>(null)
   const [loading, setLoading] = useState(true)
@@ -369,96 +358,94 @@ function TemplatesPanel({ empresaId, type }: { empresaId: string; type: Document
     load()
   }
 
-  const label = SUBTABS.find((s) => s.key === type)?.label ?? 'Plantillas'
-
   return (
     <SectionCard
-      title={`Plantillas de ${label.toLowerCase()}`}
+      title={t(`dashboard.templates.editor.title.${type}`)}
       action={
         <button onClick={startNew} className="btn-primary !px-3 !py-2 text-sm">
-          <Plus className="h-4 w-4" /> Nueva
+          <Plus className="h-4 w-4" /> {t('dashboard.templates.editor.new')}
         </button>
       }
     >
       {editing && (
         <div className="mb-5 rounded-2xl border border-brand-200 bg-brand-50/40 p-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <TplInput label="Nombre de la plantilla" value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} wide />
+            <TplInput label={t('dashboard.templates.editor.name')} value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} wide />
             <label>
-              <span className="mb-1 block text-xs font-medium text-slate-500">Impuesto</span>
+              <span className="mb-1 block text-xs font-medium text-slate-500">{t('dashboard.templates.editor.tax')}</span>
               <select
                 value={draft.impuesto}
                 onChange={(e) => setDraft({ ...draft, impuesto: e.target.value, tasa: e.target.value === 'IGIC' ? '7' : '21' })}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
               >
-                <option value="IGIC">IGIC (Canarias)</option>
-                <option value="IVA">IVA (Península)</option>
-                <option value="EXENTO">Exento</option>
+                <option value="IGIC">{t('dashboard.templates.editor.taxIgic')}</option>
+                <option value="IVA">{t('dashboard.templates.editor.taxIva')}</option>
+                <option value="EXENTO">{t('dashboard.templates.editor.taxExempt')}</option>
               </select>
             </label>
-            <TplInput label={`Tasa ${draft.impuesto} (%)`} value={draft.tasa} onChange={(v) => setDraft({ ...draft, tasa: v })} />
-            <TplInput label="Moneda" value={draft.moneda} onChange={(v) => setDraft({ ...draft, moneda: v })} />
+            <TplInput label={t('dashboard.templates.editor.rate', { tax: draft.impuesto })} value={draft.tasa} onChange={(v) => setDraft({ ...draft, tasa: v })} />
+            <TplInput label={t('dashboard.templates.editor.currency')} value={draft.moneda} onChange={(v) => setDraft({ ...draft, moneda: v })} />
             {type === 'presupuesto' && (
-              <TplInput label="Validez (días)" value={draft.validez} onChange={(v) => setDraft({ ...draft, validez: v })} />
+              <TplInput label={t('dashboard.templates.editor.validity')} value={draft.validez} onChange={(v) => setDraft({ ...draft, validez: v })} />
             )}
-            <TplTextarea label="Condiciones" value={draft.condiciones} onChange={(v) => setDraft({ ...draft, condiciones: v })} />
-            <TplTextarea label="Notas al pie" value={draft.notas} onChange={(v) => setDraft({ ...draft, notas: v })} />
-            <TplTextarea label="Disclosures (si lo dejas vacío se usan las de la empresa)" value={draft.disclosures} onChange={(v) => setDraft({ ...draft, disclosures: v })} />
+            <TplTextarea label={t('dashboard.templates.editor.conditions')} value={draft.condiciones} onChange={(v) => setDraft({ ...draft, condiciones: v })} />
+            <TplTextarea label={t('dashboard.templates.editor.footnotes')} value={draft.notas} onChange={(v) => setDraft({ ...draft, notas: v })} />
+            <TplTextarea label={t('dashboard.templates.editor.disclosures')} value={draft.disclosures} onChange={(v) => setDraft({ ...draft, disclosures: v })} />
           </div>
           <div className="mt-3 flex gap-2">
             <button onClick={save} className="btn-primary !px-4 !py-2 text-sm">
-              <Save className="h-4 w-4" /> Guardar plantilla
+              <Save className="h-4 w-4" /> {t('dashboard.templates.editor.save')}
             </button>
             <button onClick={() => setEditing(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
-              Cancelar
+              {t('common.actions.cancel')}
             </button>
           </div>
         </div>
       )}
 
       {loading ? (
-        <p className="text-slate-400">Cargando…</p>
+        <p className="text-slate-400">{t('common.state.loading')}</p>
       ) : items.length === 0 ? (
-        <EmptyState text="Aún no tienes plantillas de este tipo. Crea la primera." />
+        <EmptyState text={t('dashboard.templates.editor.empty')} />
       ) : (
         <ul className="divide-y divide-slate-100">
-          {items.map((t) => {
-            const c = t.content as Record<string, unknown>
+          {items.map((tpl) => {
+            const c = tpl.content as Record<string, unknown>
+            const summaryVars = { tax: String(c.impuesto ?? 'IGIC'), rate: String(c.tasa ?? ''), currency: String(c.moneda ?? 'EUR'), days: String(c.validez ?? '') }
             return (
-              <li key={t.id} className="flex items-center justify-between gap-2 py-3">
+              <li key={tpl.id} className="flex items-center justify-between gap-2 py-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-slate-800">{t.name}</p>
-                    {t.is_default && (
+                    <p className="font-medium text-slate-800">{tpl.name}</p>
+                    {tpl.is_default && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-600 ring-1 ring-amber-200">
-                        <Star className="h-3 w-3" fill="currentColor" /> Por defecto
+                        <Star className="h-3 w-3" fill="currentColor" /> {t('dashboard.templates.editor.default')}
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-slate-400">
-                    {String(c.impuesto ?? 'IGIC')} {String(c.tasa ?? '')}% · {String(c.moneda ?? 'EUR')}
-                    {type === 'presupuesto' && c.validez ? ` · validez ${String(c.validez)}d` : ''}
+                    {type === 'presupuesto' && c.validez ? t('dashboard.templates.editor.summaryWithValidity', summaryVars) : t('dashboard.templates.editor.summary', summaryVars)}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <button
-                    onClick={() => setDefault(t.id, t.is_default)}
-                    title={t.is_default ? 'Quitar por defecto' : 'Marcar por defecto'}
+                    onClick={() => setDefault(tpl.id, tpl.is_default)}
+                    title={tpl.is_default ? t('dashboard.templates.editor.unsetDefault') : t('dashboard.templates.editor.setDefault')}
                     className={`grid h-8 w-8 place-items-center rounded-lg border transition ${
-                      t.is_default
+                      tpl.is_default
                         ? 'border-amber-200 bg-amber-50 text-amber-500'
                         : 'border-slate-200 text-slate-300 hover:text-amber-400'
                     }`}
                   >
-                    <Star className="h-4 w-4" fill={t.is_default ? 'currentColor' : 'none'} />
+                    <Star className="h-4 w-4" fill={tpl.is_default ? 'currentColor' : 'none'} />
                   </button>
-                  <button onClick={() => setPreview(t)} className="flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100">
-                    <Eye className="h-3.5 w-3.5" /> Ver
+                  <button onClick={() => setPreview(tpl)} className="flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100">
+                    <Eye className="h-3.5 w-3.5" /> {t('common.actions.view')}
                   </button>
-                  <button onClick={() => startEdit(t)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
-                    Editar
+                  <button onClick={() => startEdit(tpl)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                    {t('common.actions.edit')}
                   </button>
-                  <button onClick={() => remove(t.id)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label="Eliminar">
+                  <button onClick={() => remove(tpl.id)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label={t('dashboard.templates.editor.remove')}>
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -482,9 +469,10 @@ function TemplatePreview({
 }: {
   template: Template
   empresa: Empresa | null
-  type: DocumentType
+  type: TemplateType
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const c = template.content as Record<string, string | number>
   const base = 1000
   const tasa = Number(c.tasa ?? 0)
@@ -497,10 +485,8 @@ function TemplatePreview({
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4" onClick={onClose}>
       <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-float" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white/90 px-5 py-3 backdrop-blur">
-          <p className="text-sm font-semibold text-slate-700">
-            Vista previa · {template.name}
-          </p>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+          <p className="text-sm font-semibold text-slate-700">{t('dashboard.templates.preview.title', { name: template.name })}</p>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100" aria-label={t('common.actions.close')}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -512,11 +498,11 @@ function TemplatePreview({
               {empresa?.logo_url ? (
                 <img src={empresa.logo_url} alt="" className="mb-2 h-12 max-w-[160px] object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
               ) : (
-                <p className="text-lg font-extrabold text-brand-700">{empresa?.name ?? 'Tu empresa'}</p>
+                <p className="text-lg font-extrabold text-brand-700">{empresa?.name ?? t('dashboard.templates.preview.yourCompany')}</p>
               )}
               <p className="text-sm font-semibold">{empresa?.name}</p>
               <p className="text-xs text-slate-500">
-                {empresa?.cif && `CIF/NIF: ${empresa.cif}`}
+                {empresa?.cif && t('dashboard.templates.preview.taxId', { value: empresa.cif })}
                 {empresa?.address ? ` · ${empresa.address}` : ''}
               </p>
               <p className="text-xs text-slate-500">
@@ -524,35 +510,35 @@ function TemplatePreview({
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xl font-extrabold tracking-tight text-slate-900">{DOC_TITLE[type]}</p>
-              <p className="text-xs text-slate-500">Nº {type.slice(0, 3).toUpperCase()}-2026-001</p>
-              <p className="text-xs text-slate-500">Fecha: 16/07/2026</p>
+              <p className="text-xl font-extrabold tracking-tight text-slate-900">{t(`dashboard.templates.docTitle.${type}`)}</p>
+              <p className="text-xs text-slate-500">{t('dashboard.templates.preview.number', { number: `${type.slice(0, 3).toUpperCase()}-2026-001` })}</p>
+              <p className="text-xs text-slate-500">{t('dashboard.templates.preview.date', { date: '16/07/2026' })}</p>
               {type === 'presupuesto' && c.validez ? (
-                <p className="text-xs text-slate-500">Validez: {String(c.validez)} días</p>
+                <p className="text-xs text-slate-500">{t('dashboard.templates.preview.validity', { days: String(c.validez) })}</p>
               ) : null}
             </div>
           </div>
 
           <div className="mt-6 rounded-lg bg-slate-50 px-4 py-2 text-xs text-slate-500">
-            Cliente: <span className="font-medium text-slate-700">Cliente de ejemplo</span>
+            {t('dashboard.templates.preview.client')} <span className="font-medium text-slate-700">{t('dashboard.templates.preview.sampleClient')}</span>
           </div>
 
           {/* Tabla ejemplo */}
           <table className="mt-4 w-full text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400">
-                <th className="py-2">Concepto</th>
-                <th className="py-2 text-right">Cant.</th>
-                <th className="py-2 text-right">Precio</th>
-                <th className="py-2 text-right">Total</th>
+                <th className="py-2">{t('dashboard.templates.preview.concept')}</th>
+                <th className="py-2 text-right">{t('dashboard.templates.preview.quantity')}</th>
+                <th className="py-2 text-right">{t('dashboard.templates.preview.price')}</th>
+                <th className="py-2 text-right">{t('dashboard.templates.preview.total')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               <tr>
-                <td className="py-2">Concepto de ejemplo</td>
+                <td className="py-2">{t('dashboard.templates.preview.sampleConcept')}</td>
                 <td className="py-2 text-right">1</td>
-                <td className="py-2 text-right">{formatEUR(base)}</td>
-                <td className="py-2 text-right">{formatEUR(base)}</td>
+                <td className="py-2 text-right">{formatCurrency(base)}</td>
+                <td className="py-2 text-right">{formatCurrency(base)}</td>
               </tr>
             </tbody>
           </table>
@@ -560,28 +546,28 @@ function TemplatePreview({
           {/* Totales */}
           <div className="mt-4 ml-auto w-56 space-y-1 text-sm">
             <div className="flex justify-between text-slate-500">
-              <span>Base imponible</span>
-              <span>{formatEUR(base)}</span>
+              <span>{t('dashboard.templates.preview.taxBase')}</span>
+              <span>{formatCurrency(base)}</span>
             </div>
             <div className="flex justify-between text-slate-500">
-              <span>{exento ? 'Impuesto (exento)' : `${c.impuesto} (${tasa}%)`}</span>
-              <span>{formatEUR(tax)}</span>
+              <span>{exento ? t('dashboard.templates.preview.taxExempt') : t('dashboard.templates.preview.taxLine', { tax: String(c.impuesto), rate: tasa })}</span>
+              <span>{formatCurrency(tax)}</span>
             </div>
             <div className="flex justify-between border-t border-slate-200 pt-1 text-base font-bold text-slate-900">
-              <span>Total</span>
-              <span>{formatEUR(total)}</span>
+              <span>{t('dashboard.templates.preview.total')}</span>
+              <span>{formatCurrency(total)}</span>
             </div>
           </div>
 
           {c.condiciones ? (
             <div className="mt-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Condiciones</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('dashboard.templates.preview.conditions')}</p>
               <p className="mt-1 whitespace-pre-line text-sm text-slate-600">{String(c.condiciones)}</p>
             </div>
           ) : null}
           {c.notas ? <p className="mt-3 whitespace-pre-line text-sm text-slate-600">{String(c.notas)}</p> : null}
           {empresa?.iban && (
-            <p className="mt-3 text-xs text-slate-500">Pago por transferencia · IBAN: {empresa.iban}</p>
+            <p className="mt-3 text-xs text-slate-500">{t('dashboard.templates.preview.bankTransfer', { iban: empresa.iban })}</p>
           )}
           {disclosures && (
             <p className="mt-6 border-t border-slate-200 pt-3 text-[11px] leading-relaxed text-slate-400">
@@ -626,6 +612,7 @@ interface Submitted {
 }
 
 function FormularioClientes({ empresaId }: { empresaId: string }) {
+  const { t } = useTranslation()
   const [items, setItems] = useState<ClientIntake[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -686,7 +673,7 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
       .update({ intake_config: { project_types: types } })
       .eq('id', empresaId)
     setSavingCfg(false)
-    if (error) setCfgError(`No se pudo guardar: ${error.message}`)
+    if (error) setCfgError(t('dashboard.templates.form.saveError', { message: error.message }))
     else setCfgSaved(true)
   }
 
@@ -704,7 +691,7 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
     const { data, error } = await supabase.from('client_intake').insert(payload).select('token').single()
 
     if (error) {
-      setSendMsg({ ok: false, text: `No se pudo crear el enlace: ${error.message}` })
+      setSendMsg({ ok: false, text: t('dashboard.templates.form.createError', { message: error.message }) })
       setCreating(false)
       return
     }
@@ -717,12 +704,10 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
       if (fnErr || !(res as { ok?: boolean })?.ok) {
         setSendMsg({
           ok: false,
-          text:
-            (res as { error?: string })?.error ??
-            'Enlace creado, pero no se pudo enviar el email (¿falta configurar Resend?). Puedes copiarlo abajo.',
+          text: (res as { error?: string })?.error ?? t('dashboard.templates.form.emailFailed'),
         })
       } else {
-        setSendMsg({ ok: true, text: `Email enviado a ${email}.` })
+        setSendMsg({ ok: true, text: t('dashboard.templates.form.emailSent', { email }) })
       }
     }
     setClientEmail('')
@@ -737,7 +722,7 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
     setTimeout(() => setCopied(null), 1800)
   }
   async function remove(id: string) {
-    if (!window.confirm('¿Borrar este enlace? El cliente ya no podrá completarlo.')) return
+    if (!window.confirm(t('dashboard.templates.form.deleteLinkConfirm'))) return
     await supabase.from('client_intake').delete().eq('id', id)
     load()
   }
@@ -745,24 +730,22 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
   return (
     <div className="space-y-6">
       {/* Configuración: tipos de proyecto del desplegable */}
-      <SectionCard title="Configuración del formulario">
-        <p className="mb-3 text-sm text-slate-500">
-          Define las opciones del desplegable "Tipo de proyecto" que verá tu cliente.
-        </p>
+      <SectionCard title={t('dashboard.templates.form.configTitle')}>
+        <p className="mb-3 text-sm text-slate-500">{t('dashboard.templates.form.configHint')}</p>
         <div className="flex flex-wrap gap-2">
-          {types.map((t) => (
+          {types.map((type) => (
             <span
-              key={t}
+              key={type}
               className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 ring-1 ring-brand-100"
             >
-              {t}
-              <button onClick={() => removeType(t)} className="text-brand-400 hover:text-red-500" aria-label="Quitar">
+              {type}
+              <button onClick={() => removeType(type)} className="text-brand-400 hover:text-red-500" aria-label={t('common.actions.remove')}>
                 <X className="h-3.5 w-3.5" />
               </button>
             </span>
           ))}
           {types.length === 0 && (
-            <span className="text-sm text-slate-400">Sin opciones todavía.</span>
+            <span className="text-sm text-slate-400">{t('dashboard.templates.form.noOptions')}</span>
           )}
         </div>
         <div className="mt-3 flex gap-2">
@@ -770,71 +753,67 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
             value={newType}
             onChange={(e) => setNewType(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addType())}
-            placeholder="Ej: Reforma integral, Baño, Cocina…"
+            placeholder={t('dashboard.templates.form.typePlaceholder')}
             className="flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
           />
-          <button onClick={addType} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+          <button onClick={addType} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50" aria-label={t('common.actions.add')}>
             <Plus className="h-4 w-4" />
           </button>
         </div>
         <div className="mt-4 flex items-center gap-3">
           <button onClick={saveCfg} disabled={savingCfg} className="btn-primary !px-4 !py-2 text-sm">
-            <Save className="h-4 w-4" /> {savingCfg ? 'Guardando…' : 'Guardar opciones'}
+            <Save className="h-4 w-4" /> {savingCfg ? t('common.actions.saving') : t('dashboard.templates.form.saveOptions')}
           </button>
           {cfgError && <span className="text-sm font-medium text-red-600">{cfgError}</span>}
           {cfgSaved && !cfgError && (
             <span className="flex items-center gap-1 text-sm font-medium text-emerald-600">
-              <Check className="h-4 w-4" /> Guardado
+              <Check className="h-4 w-4" /> {t('dashboard.templates.form.saved')}
             </span>
           )}
         </div>
       </SectionCard>
 
       {/* Enlaces generados + respuestas */}
-      <SectionCard title="Enlaces para clientes">
-        <p className="mb-3 text-sm text-slate-500">
-          Escribe el email del cliente y pulsa enviar: le llegará el enlace por correo. También
-          puedes generar un enlace sin email para copiarlo tú.
-        </p>
+      <SectionCard title={t('dashboard.templates.form.linksTitle')}>
+        <p className="mb-3 text-sm text-slate-500">{t('dashboard.templates.form.linksHint')}</p>
         <div className="mb-2 flex flex-col gap-2 sm:flex-row">
           {formTemplates.length > 0 && (
             <label className="sm:w-56">
-              <span className="sr-only">Plantilla de formulario</span>
+              <span className="sr-only">{t('dashboard.templates.form.formTemplate')}</span>
               <select
                 value={formTemplateId}
                 onChange={(e) => setFormTemplateId(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
               >
-                <option value="">Formulario básico</option>
-                {formTemplates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                    {t.is_default ? ' (predeterminado)' : ''}
+                <option value="">{t('dashboard.templates.form.basicForm')}</option>
+                {formTemplates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.is_default ? t('dashboard.templates.form.defaultTemplate', { name: tpl.name }) : tpl.name}
                   </option>
                 ))}
               </select>
             </label>
           )}
           <label className="flex-1">
-            <span className="sr-only">Email del cliente (opcional)</span>
+            <span className="sr-only">{t('dashboard.templates.form.clientEmail')}</span>
             <input
               type="email"
               value={clientEmail}
               onChange={(e) => setClientEmail(e.target.value)}
-              placeholder="Email del cliente (opcional)"
+              placeholder={t('dashboard.templates.form.clientEmail')}
               className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
             />
           </label>
           <button onClick={generar} disabled={creating} className="btn-primary shrink-0">
             {creating ? (
-              'Un momento…'
+              t('common.actions.oneMoment')
             ) : clientEmail.trim() ? (
               <>
-                <Mail className="h-4 w-4" /> Generar y enviar
+                <Mail className="h-4 w-4" /> {t('dashboard.templates.form.generateAndSend')}
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4" /> Generar enlace
+                <Plus className="h-4 w-4" /> {t('dashboard.templates.form.generateLink')}
               </>
             )}
           </button>
@@ -849,9 +828,9 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
           </p>
         )}
         {loading ? (
-          <p className="text-slate-400">Cargando…</p>
+          <p className="text-slate-400">{t('common.state.loading')}</p>
         ) : items.length === 0 ? (
-          <EmptyState text="Aún no has generado ningún formulario." />
+          <EmptyState text={t('dashboard.templates.form.empty')} />
         ) : (
           <ul className="space-y-3">
             {items.map((f) => {
@@ -859,39 +838,37 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
               const s = (f.submitted ?? {}) as Submitted
               const isDone = f.status === 'completado'
               const open = expanded === f.id
-              const mailto = `mailto:${f.client_email ?? ''}?subject=${encodeURIComponent('Completa tus datos')}&body=${encodeURIComponent('Hola, por favor completa tus datos aquí: ' + link)}`
+              const mailto = `mailto:${f.client_email ?? ''}?subject=${encodeURIComponent(t('dashboard.templates.form.mailtoSubject'))}&body=${encodeURIComponent(t('dashboard.templates.form.mailtoBody', { link }))}`
               return (
                 <li key={f.id} className="rounded-xl border border-slate-200 p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       {isDone ? (
-                        <Badge tone="green"><Check className="mr-1 inline h-3 w-3" /> Completado</Badge>
+                        <Badge tone="green"><Check className="mr-1 inline h-3 w-3" /> {t('dashboard.templates.form.completed')}</Badge>
                       ) : (
-                        <Badge tone="amber"><Clock className="mr-1 inline h-3 w-3" /> Pendiente</Badge>
+                        <Badge tone="amber"><Clock className="mr-1 inline h-3 w-3" /> {t('dashboard.templates.form.pending')}</Badge>
                       )}
                       {isDone && s.name && (
                         <span className="text-sm font-medium text-slate-700">{s.name}</span>
                       )}
-                      <span className="text-xs text-slate-400">
-                        Generado el {fmtDateTime(f.created_at)}
-                      </span>
+                      <span className="text-xs text-slate-400">{t('dashboard.templates.form.generatedAt', { date: formatDateTime(f.created_at) })}</span>
                     </div>
                     <div className="flex gap-2">
                       {isDone ? (
                         <button onClick={() => setExpanded(open ? null : f.id)} className="flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100">
-                          <Eye className="h-3.5 w-3.5" /> {open ? 'Ocultar' : 'Ver respuesta'}
+                          <Eye className="h-3.5 w-3.5" /> {open ? t('dashboard.templates.form.hide') : t('dashboard.templates.form.viewResponse')}
                         </button>
                       ) : (
                         <>
                           <button onClick={() => copy(f.token)} className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
-                            {copied === f.token ? (<><Check className="h-3.5 w-3.5 text-emerald-600" /> Copiado</>) : (<><Copy className="h-3.5 w-3.5" /> Copiar enlace</>)}
+                            {copied === f.token ? (<><Check className="h-3.5 w-3.5 text-emerald-600" /> {t('common.actions.copied')}</>) : (<><Copy className="h-3.5 w-3.5" /> {t('dashboard.templates.form.copyLink')}</>)}
                           </button>
                           <a href={mailto} className="flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
-                            <Mail className="h-3.5 w-3.5" /> Enviar por email
+                            <Mail className="h-3.5 w-3.5" /> {t('dashboard.templates.form.sendByEmail')}
                           </a>
                         </>
                       )}
-                      <button onClick={() => remove(f.id)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label="Borrar enlace">
+                      <button onClick={() => remove(f.id)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500" aria-label={t('dashboard.templates.form.deleteLink')}>
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -901,20 +878,20 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
 
                   {isDone && open && (
                     <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 text-sm">
-                      <Row label="Email" value={s.email} />
-                      <Row label="Teléfono" value={s.phone} />
-                      <Row label="CIF / NIF" value={s.cif} />
-                      <Row label="Dirección" value={s.address} />
-                      <Row label="Tipo de proyecto" value={s.project_type} />
+                      <Row label={t('dashboard.templates.form.rowEmail')} value={s.email} />
+                      <Row label={t('dashboard.templates.form.rowPhone')} value={s.phone} />
+                      <Row label={t('dashboard.templates.form.rowTaxId')} value={s.cif} />
+                      <Row label={t('dashboard.templates.form.rowAddress')} value={s.address} />
+                      <Row label={t('dashboard.templates.form.rowProjectType')} value={s.project_type} />
                       {s.description && (
                         <div>
-                          <p className="text-xs font-medium text-slate-400">Descripción</p>
+                          <p className="text-xs font-medium text-slate-400">{t('dashboard.templates.form.description')}</p>
                           <p className="whitespace-pre-line text-slate-700">{s.description}</p>
                         </div>
                       )}
                       {s.files && s.files.length > 0 && (
                         <div>
-                          <p className="text-xs font-medium text-slate-400">Archivos adjuntos</p>
+                          <p className="text-xs font-medium text-slate-400">{t('dashboard.templates.form.attachments')}</p>
                           <ul className="mt-1 space-y-1">
                             {s.files.map((file, i) => (
                               <li key={file.path ?? file.url ?? i}>
@@ -938,6 +915,7 @@ function FormularioClientes({ empresaId }: { empresaId: string }) {
 
 /** Enlace a un adjunto del bucket privado: genera una URL firmada (10 min) al pulsar. */
 function IntakeFileLink({ file }: { file: IntakeFileRef }) {
+  const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const path = intakeFilePath(file)
@@ -948,31 +926,21 @@ function IntakeFileLink({ file }: { file: IntakeFileRef }) {
     const { url, error } = await createIntakeSignedUrl(path)
     setBusy(false)
     if (!url) {
-      setErr(error ?? 'No se pudo generar el enlace.')
+      setErr(error ?? t('dashboard.templates.form.linkError'))
       return
     }
     window.open(url, '_blank', 'noopener,noreferrer')
   }
-  if (!path) return <span className="text-slate-400">{file.name} (no disponible)</span>
+  if (!path) return <span className="text-slate-400">{t('dashboard.templates.form.fileUnavailable', { name: file.name })}</span>
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
       <button type="button" onClick={open} disabled={busy} className="inline-flex items-center gap-1.5 text-brand-600 hover:underline disabled:opacity-60">
         <FileText className="h-3.5 w-3.5" aria-hidden="true" /> {file.name}
-        {busy && <span className="text-xs text-slate-400">(generando enlace…)</span>}
+        {busy && <span className="text-xs text-slate-400">{t('dashboard.templates.form.generatingLink')}</span>}
       </button>
       {err && <span className="text-xs text-red-600" role="alert">{err}</span>}
     </span>
   )
-}
-
-function fmtDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 function Row({ label, value }: { label: string; value?: string }) {

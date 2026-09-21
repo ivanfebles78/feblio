@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { setUserLanguage } from '../i18n'
 import type { ClienteVista } from '../lib/solicitudes/types'
 
 const api = vi.hoisted(() => ({
@@ -193,5 +194,73 @@ describe('<SolicitudCliente />', () => {
     expect(fakeWin.close).toHaveBeenCalled()
     expect(fakeWin.location.href).toBe('')
     open.mockRestore()
+  })
+})
+
+describe('<SolicitudCliente /> · idioma del enlace público', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    api.clienteMarcarLeido.mockResolvedValue(undefined)
+  })
+
+  it('sin preferencia guardada usa el idioma de la empresa (en): <html lang="en"> y botones en inglés', async () => {
+    api.clienteObtener.mockResolvedValue(vista({}, { empresa: { name: 'Reformas Norte', logo_url: null, language: 'en' } }))
+    setup()
+    expect(await screen.findByRole('button', { name: 'Save draft' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send request' })).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('en')
+    expect(screen.getByText('To be completed')).toBeInTheDocument()
+    expect(screen.getByText(/secure link · valid until/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/full name/i)).toHaveValue('Ana López')
+    expect(screen.queryByText(/guardar borrador/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /interface language/i })).toBeInTheDocument()
+  })
+
+  it('la elección manual del visitante (es) prevalece sobre el idioma de la empresa (en)', async () => {
+    setUserLanguage('es')
+    api.clienteObtener.mockResolvedValue(vista({}, { empresa: { name: 'Reformas Norte', logo_url: null, language: 'en' } }))
+    setup()
+    expect(await screen.findByRole('button', { name: /guardar borrador/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /enviar solicitud/i })).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('es')
+    expect(screen.queryByText('Save draft')).not.toBeInTheDocument()
+  })
+
+  it('un idioma de empresa no soportado (de) cae al español', async () => {
+    api.clienteObtener.mockResolvedValue(vista({}, { empresa: { name: 'Reformas Norte', logo_url: null, language: 'de' } }))
+    setup()
+    expect(await screen.findByRole('button', { name: /guardar borrador/i })).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('es')
+    expect(screen.getByText('Pendiente de completar')).toBeInTheDocument()
+  })
+
+  it('el mensaje neutro de enlace no válido existe en inglés', async () => {
+    setUserLanguage('en')
+    api.clienteObtener.mockRejectedValue(new Error('Invalid link'))
+    setup()
+    expect(await screen.findByRole('heading', { name: /this link is not available/i })).toBeInTheDocument()
+    expect(screen.getByText(/it may have expired or been deactivated/i)).toBeInTheDocument()
+    expect(screen.queryByText(/42501|token|hash/i)).not.toBeInTheDocument()
+  })
+
+  it('el selector de idioma cambia la página sin recargar y no traduce nombres ni mensajes', async () => {
+    api.clienteObtener.mockResolvedValue(
+      vista(
+        { status: 'missing_information' },
+        {
+          requisitos: [{ id: 'r1', kind: 'document', key: 'planos', label: 'Planos actuales', status: 'pending', requested_at: '2026-09-19T09:00:00Z' }],
+          mensajes: [{ id: 'm1', author_kind: 'sistema', author_name: 'Sistema', kind: 'system', body: 'El cliente ha enviado el formulario.', created_at: '2026-09-19T09:00:00Z', read: true }],
+        },
+      ),
+    )
+    const user = setup()
+    expect(await screen.findByRole('heading', { name: /necesita lo siguiente/i })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'English' }))
+    expect(await screen.findByRole('heading', { name: 'Reformas Norte needs the following' })).toBeInTheDocument()
+    expect(screen.getByText('We need more information')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Send information' })).toBeInTheDocument()
+    expect(screen.getByText(/planos actuales/i, { selector: 'li' })).toBeInTheDocument()
+    expect(screen.getByText(/El cliente ha enviado el formulario\./)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Reforma de cocina' })).toBeInTheDocument()
   })
 })

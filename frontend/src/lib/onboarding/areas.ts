@@ -1,3 +1,4 @@
+import { t } from '../../i18n'
 import { STEPS } from './steps'
 import type { OnboardingStepKey, StepStatus } from './types'
 
@@ -16,19 +17,41 @@ export type SetupAreaKey = 'company' | 'documents' | 'channels' | 'automation' |
 
 export interface SetupAreaDefinition {
   key: SetupAreaKey
-  title: string
-  description: string
+  /** Título traducido (getter: se resuelve al leerlo según el idioma activo). */
+  readonly title: string
+  readonly description: string
   steps: OnboardingStepKey[]
   /** Minutos estimados para completar el área (orientativo). */
   minutes: number
 }
 
+export function areaTitle(key: SetupAreaKey): string {
+  return t(`onboarding.areas.${key}.title`)
+}
+export function areaDescription(key: SetupAreaKey): string {
+  return t(`onboarding.areas.${key}.description`)
+}
+
+function defineArea(key: SetupAreaKey, steps: OnboardingStepKey[], minutes: number): SetupAreaDefinition {
+  return {
+    key,
+    steps,
+    minutes,
+    get title() {
+      return areaTitle(key)
+    },
+    get description() {
+      return areaDescription(key)
+    },
+  }
+}
+
 export const SETUP_AREAS: SetupAreaDefinition[] = [
-  { key: 'company', title: 'Perfil de empresa', description: 'Datos fiscales, contacto, logotipo y horario.', steps: ['company'], minutes: 4 },
-  { key: 'documents', title: 'Documentos y formularios', description: 'Dónde se guardan las carpetas de cada proyecto y el formulario de alta de clientes.', steps: ['repository', 'forms'], minutes: 6 },
-  { key: 'channels', title: 'Canales de comunicación', description: 'Correo, WhatsApp, SMS y llamadas. Todos opcionales.', steps: ['email', 'whatsapp', 'sms', 'voice'], minutes: 6 },
-  { key: 'automation', title: 'Automatizaciones', description: 'Qué hace Feblio solo y qué requiere tu aprobación.', steps: ['automation'], minutes: 3 },
-  { key: 'billing', title: 'Facturación y activación', description: 'Series, impuestos, anticipo y activación de la cuenta.', steps: ['billing', 'review'], minutes: 5 },
+  defineArea('company', ['company'], 4),
+  defineArea('documents', ['repository', 'forms'], 6),
+  defineArea('channels', ['email', 'whatsapp', 'sms', 'voice'], 6),
+  defineArea('automation', ['automation'], 3),
+  defineArea('billing', ['billing', 'review'], 5),
 ]
 
 // Comprobación estática: cada paso real pertenece exactamente a un área.
@@ -78,7 +101,7 @@ export function computeSetupProgress(statuses: StepStatuses, onboardingStatus?: 
       status = 'current'
       currentAssigned = true
     }
-    return { ...a, status, nextStep, completedSteps: done }
+    return { ...a, status, nextStep, completedSteps: done, get title() { return areaTitle(a.key) }, get description() { return areaDescription(a.key) } }
   })
   const completedAreas = areas.filter((a) => a.status === 'done').length
   const nextArea = areas.find((a) => a.status === 'current') ?? null

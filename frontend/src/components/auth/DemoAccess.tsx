@@ -1,4 +1,5 @@
 import { User } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { demoAccounts, isDemoMode, type DemoAccount } from '../../lib/env'
 
 interface DemoAccessProps {
@@ -15,6 +16,7 @@ interface DemoAccessProps {
  * Decisión documentada en docs/onboarding.md → "Modo demo".
  */
 export function DemoAccess({ onPick }: DemoAccessProps) {
+  const { t } = useTranslation()
   if (!isDemoMode()) return null
   const accounts = demoAccounts()
   if (accounts.length === 0) return null
@@ -22,7 +24,7 @@ export function DemoAccess({ onPick }: DemoAccessProps) {
   return (
     <div className="mt-6 border-t border-slate-100 pt-5" data-testid="demo-access">
       <p className="mb-2.5 flex items-center justify-center gap-1.5 text-center text-xs font-medium uppercase tracking-wide text-slate-400">
-        <User className="h-3.5 w-3.5" aria-hidden="true" /> Cuentas de demostración
+        <User className="h-3.5 w-3.5" aria-hidden="true" /> {t('auth.demo.title')}
       </p>
       <div className="grid grid-cols-3 gap-2">
         {accounts.map((d) => (
@@ -36,9 +38,7 @@ export function DemoAccess({ onPick }: DemoAccessProps) {
           </button>
         ))}
       </div>
-      <p className="mt-2 text-center text-[11px] text-slate-400">
-        Elige una cuenta y escribe la contraseña que te haya facilitado el administrador.
-      </p>
+      <p className="mt-2 text-center text-[11px] text-slate-400">{t('auth.demo.hint')}</p>
     </div>
   )
 }

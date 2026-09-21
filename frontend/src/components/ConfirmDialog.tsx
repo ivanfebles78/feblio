@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -20,13 +21,14 @@ export function ConfirmDialog({
   open,
   title,
   children,
-  confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar',
+  confirmLabel,
+  cancelLabel,
   tone = 'default',
   busy = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation()
   const titleId = useId()
   const descId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -99,7 +101,7 @@ export function ConfirmDialog({
             disabled={busy}
             className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
           >
-            {cancelLabel}
+            {cancelLabel ?? t('common.actions.cancel')}
           </button>
           <button
             type="button"
@@ -107,7 +109,7 @@ export function ConfirmDialog({
             disabled={busy}
             className={`rounded-xl px-4 py-2 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 disabled:opacity-60 ${confirmCls}`}
           >
-            {busy ? 'Un momento…' : confirmLabel}
+            {busy ? t('common.actions.oneMoment') : (confirmLabel ?? t('common.actions.confirm'))}
           </button>
         </div>
       </div>

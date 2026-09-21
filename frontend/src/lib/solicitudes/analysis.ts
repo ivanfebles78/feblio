@@ -1,4 +1,5 @@
 import type { FormDocDef, FormFieldDef } from '../onboarding/types'
+import { t } from '../../i18n'
 import type { AnalysisItem, RequisitoKind, RequisitoStatus } from './types'
 
 /**
@@ -31,14 +32,27 @@ export interface AnalysisProvider {
   analyze(input: AnalysisInput): Promise<AnalysisResult> | AnalysisResult
 }
 
-export const BASE_FIELDS: AnalysisItem[] = [
-  { key: 'contact_name', label: 'Nombre de contacto' },
-  { key: 'contact_email', label: 'Correo electrónico' },
-  { key: 'needs', label: 'Qué necesita' },
-  { key: 'objectives', label: 'Objetivos' },
-  { key: 'scope', label: 'Alcance' },
-  { key: 'timeline', label: 'Plazos' },
-]
+/** Claves de los campos base (estables; las etiquetas se traducen en el momento de uso). */
+export const BASE_FIELD_KEYS = ['contact_name', 'contact_email', 'needs', 'objectives', 'scope', 'timeline'] as const
+export type BaseFieldKey = (typeof BASE_FIELD_KEYS)[number]
+
+export function baseFieldLabel(key: BaseFieldKey | 'budget'): string {
+  return t(`requests.baseFields.${key}`)
+}
+
+/** Campos base con su etiqueta en el idioma actual. */
+/**
+ * Etiqueta visible de un elemento de análisis: los campos base (generados por el servidor con
+ * etiqueta en español) se traducen por su clave; el resto (campos/documentos definidos por la
+ * empresa) se muestra tal cual.
+ */
+export function analysisItemLabel(item: { key: string; label: string }): string {
+  return (BASE_FIELD_KEYS as readonly string[]).includes(item.key) || item.key === 'budget' ? baseFieldLabel(item.key as BaseFieldKey | 'budget') : item.label
+}
+
+export function baseFields(): AnalysisItem[] {
+  return BASE_FIELD_KEYS.map((key) => ({ key, label: baseFieldLabel(key) }))
+}
 
 const filled = (v: unknown) => typeof v === 'string' ? v.trim().length > 0 : v !== null && v !== undefined && v !== ''
 const DONE: RequisitoStatus[] = ['received', 'resolved', 'waived']
@@ -61,7 +75,7 @@ export class RulesAnalysisProvider implements AnalysisProvider {
       } else if (doc) missingDocuments.push(item)
       else missing.push(item)
     }
-    for (const f of BASE_FIELDS) {
+    for (const f of baseFields()) {
       const value = input.formData[f.key] ?? (f.key === 'contact_name' ? input.contact.name : f.key === 'contact_email' ? input.contact.email : null)
       consider(f, filled(value))
     }
@@ -78,13 +92,13 @@ export class RulesAnalysisProvider implements AnalysisProvider {
         consider({ key: d.key, label: d.label, kind: 'document' }, has, true)
       }
     }
-    const baseKeys = new Set(BASE_FIELDS.map((b) => b.key))
+    const baseKeys = new Set<string>(BASE_FIELD_KEYS)
     for (const r of input.requisitos) {
       if (!r.required || templateKeys.has(r.key) || baseKeys.has(r.key)) continue
       consider({ key: r.key, label: r.label, kind: r.kind }, DONE.includes(r.status), r.kind === 'document')
     }
     const completeness = total === 0 ? 100 : Math.round((100 * ok) / total)
-    return { provider: this.id, completeness, received, missing, missingDocuments, summary: `${ok} de ${total} elementos recibidos` }
+    return { provider: this.id, completeness, received, missing, missingDocuments, summary: t('requests.analysis.summary', { ok, total }) }
   }
 }
 

@@ -1,0 +1,45 @@
+{
+  "loading": "Cargando…",
+  "invalidLink": "Este enlace no es válido o ha caducado. Solicita uno nuevo.",
+  "sandbox": "Formulario de prueba (sandbox)",
+  "footer": "Formulario seguro · Feblio",
+  "done": {
+    "title": "¡Datos enviados!",
+    "message": "Gracias. {{company}} ya tiene tus datos y se pondrá en contacto contigo."
+  },
+  "intro": {
+    "template": "<strong>{{company}}</strong> · {{form}}. Completa los datos solicitados.",
+    "basic": "Completa tus datos para que <strong>{{company}}</strong> pueda darte de alta como cliente."
+  },
+  "fields": {
+    "name": "Nombre o razón social",
+    "email": "Email",
+    "phone": "Teléfono",
+    "taxId": "CIF / NIF",
+    "address": "Dirección",
+    "projectType": "Tipo de proyecto",
+    "description": "Describe lo que necesitas",
+    "descriptionPlaceholder": "Cuéntanos qué proyecto tienes en mente…"
+  },
+  "attachments": {
+    "label": "Archivos adjuntos (planos, fotos, documentos…)",
+    "uploading": "Subiendo…",
+    "add": "Añadir archivos",
+    "attach": "Adjuntar archivo",
+    "replaceOrAdd": "Sustituir o añadir otro archivo",
+    "fileFor": "Archivo para {{key}}",
+    "removeNamed": "Quitar {{name}}",
+    "uploadFailed": "No se pudo subir {{name}}: {{message}}"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio.",
+    "invalidEmail": "Email no válido.",
+    "consentRequired": "Es necesario aceptar para continuar.",
+    "documentRequired": "Adjunta este documento."
+  },
+  "submit": {
+    "button": "Enviar mis datos",
+    "failedRetry": "No se pudo enviar. Inténtalo de nuevo.",
+    "failed": "No se pudo enviar."
+  }
+}

@@ -1,0 +1,419 @@
+{
+  "status": {
+    "draft": "Draft",
+    "awaiting_client": "Awaiting client",
+    "submitted": "Received",
+    "under_review": "Under review",
+    "missing_information": "Missing information",
+    "ready_for_scope": "Ready for scoping",
+    "closed": "Closed"
+  },
+  "clientStatus": {
+    "draft": "To be completed",
+    "awaiting_client": "To be completed",
+    "submitted": "Received",
+    "under_review": "Under review",
+    "missing_information": "We need more information",
+    "ready_for_scope": "Information complete",
+    "closed": "Closed"
+  },
+  "channel": {
+    "llamada": "Phone call",
+    "email": "Email",
+    "sms": "SMS",
+    "whatsapp": "WhatsApp",
+    "portal": "Portal",
+    "otro": "Other"
+  },
+  "requisito": {
+    "pending": "Pending",
+    "received": "Received",
+    "resolved": "Resolved",
+    "waived": "Not needed"
+  },
+  "kind": {
+    "document": "Document",
+    "field": "Detail"
+  },
+  "actions": {
+    "link": "Client link",
+    "review": "Mark as under review",
+    "requestInfo": "Request information",
+    "reanalyze": "Check again",
+    "ready": "Ready to prepare the scope",
+    "close": "Close request",
+    "reopen": "Reopen",
+    "groupLabel": "Actions"
+  },
+  "backToList": "Back to requests",
+  "baseFields": {
+    "contact_name": "Contact name",
+    "contact_email": "Email address",
+    "needs": "What they need",
+    "objectives": "Objectives",
+    "scope": "Scope",
+    "timeline": "Timeline",
+    "budget": "Indicative budget"
+  },
+  "analysis": {
+    "summary": "{{ok}} of {{total}} items received"
+  },
+  "files": {
+    "notAllowed": "File type not allowed. Use PDF, Word, Excel, PNG or JPG.",
+    "mimeMismatch": "The file contents do not match its extension.",
+    "empty": "The file is empty.",
+    "tooLarge": "The file exceeds the maximum size (10 MB).",
+    "uploadForbidden": "You do not have permission to upload this file.",
+    "signedUrlFailed": "The download link could not be generated."
+  },
+  "api": {
+    "migrationMissing": "Migration 0014 has not been applied (function not found).",
+    "notFound": "This request does not exist or you do not have access to it.",
+    "loadList": "The requests could not be loaded.",
+    "loadOne": "The request could not be loaded.",
+    "create": "The request could not be created.",
+    "generateLink": "The link could not be generated.",
+    "revokeLinks": "The links could not be revoked.",
+    "changeStatus": "The status could not be changed.",
+    "requestInfo": "The request could not be sent.",
+    "updateRequisito": "The requirement could not be updated.",
+    "analyze": "The check could not be run.",
+    "sendMessage": "The message could not be sent.",
+    "markRead": "It could not be marked as read.",
+    "registerFile": "The file could not be registered.",
+    "loadClients": "The clients could not be loaded.",
+    "loadTemplates": "The templates could not be loaded.",
+    "invalidLink": "Invalid link",
+    "saveDraft": "The draft could not be saved.",
+    "submitForm": "The form could not be sent.",
+    "downloadRateLimited": "Too many downloads in a row. Try again in a few minutes.",
+    "downloadUnavailable": "The file is not available. If the link has expired, ask the company for a new one.",
+    "defaultFileName": "file",
+    "loadNotifications": "The notifications could not be loaded."
+  },
+  "notifications": {
+    "markOneFailed": "The notification could not be marked.",
+    "markAllFailed": "The notifications could not be marked."
+  },
+  "inbox": {
+    "title": "Requests",
+    "subtitle": "Client requests: intake, pending information and conversation.",
+    "new": "New request",
+    "searchLabel": "Search by client, contact or subject",
+    "searchPlaceholder": "Search client, contact or subject",
+    "statusFilter": "Status",
+    "allStatuses": "All statuses",
+    "channelFilter": "Channel",
+    "allChannels": "All channels",
+    "onlyPending": "Pending only",
+    "loading": "Loading requests…",
+    "emptyFiltered": "No requests match the filters",
+    "emptyFilteredHint": "Try changing the search or the filters.",
+    "empty": "No requests yet",
+    "emptyHint": "Create the first one from a call, an email or a message and send the client their secure link.",
+    "count": "{{visible}} of {{total}} requests",
+    "completenessLabel": "Completeness {{value}}%",
+    "unreadMessages_one": "{{count}} unread message",
+    "unreadMessages_other": "{{count}} unread messages",
+    "columns": {
+      "client": "Client / contact",
+      "subject": "Subject",
+      "completeness": "Completeness",
+      "status": "Status",
+      "lastActivity": "Last activity",
+      "unread": "Unread"
+    }
+  },
+  "new": {
+    "title": "New request",
+    "subtitle": "Record what the client asked for by phone, email or message. You can then send them a secure link to complete the details.",
+    "validation": {
+      "pickClient": "Choose a client.",
+      "contactName": "Enter the name of the contact person.",
+      "email": "Enter a valid email address.",
+      "title": "Summarise in one line what the client is asking for."
+    },
+    "client": {
+      "title": "Client",
+      "description": "Choose an existing client or register a new contact.",
+      "legend": "Client type",
+      "newLabel": "New contact",
+      "newDescription": "Not in your client list yet.",
+      "existingLabel": "Existing client",
+      "existingDescription": "You already work with this person or company.",
+      "select": "Client",
+      "selectPlaceholder": "Select a client…",
+      "noClients": "You have no clients yet"
+    },
+    "fields": {
+      "contactName": "Contact person",
+      "email": "Email address",
+      "emailHint": "Optional; the client will be able to fill it in.",
+      "phone": "Phone",
+      "channel": "Source channel",
+      "serviceType": "Service type",
+      "serviceTypePlaceholder": "Renovation, consultancy, design…",
+      "subject": "Subject",
+      "subjectPlaceholder": "Full renovation of a retail unit",
+      "notes": "Conversation notes",
+      "notesHint": "What the client told you. It will be shown on the request as the initial description.",
+      "deadline": "Indicative deadline",
+      "template": "Form for the client",
+      "templateDefault": "{{name}} (default)",
+      "templatePlaceholder": "Default template",
+      "noTemplates": "No active templates",
+      "templateHint": "Defines which questions and documents are requested."
+    },
+    "request": {
+      "title": "What they asked for",
+      "description": "A brief summary. The client will provide the details in the form."
+    },
+    "generateLink": "Generate the secure client link now",
+    "generateLinkHint": "You can copy it on the next screen. It expires after 30 days and can be revoked.",
+    "creating": "Creating…",
+    "submit": "Create request"
+  },
+  "detail": {
+    "loading": "Loading request…",
+    "actionFailed": "The action could not be completed.",
+    "statusUpdated": "Status updated: {{status}}.",
+    "accessRevoked": "Client access revoked.",
+    "requestSent": "Request sent to the client.",
+    "closed": "Request closed.",
+    "checkUpdated": "Check updated.",
+    "createdOn": "created on {{date}}",
+    "conversation": {
+      "title": "Conversation",
+      "description": "Visible to the client on their link. There are no private internal messages.",
+      "closed": "The request is closed. Reopen it to keep talking."
+    },
+    "summary": {
+      "title": "Summary",
+      "client": "Client",
+      "noClientRecord": "Contact without a client record",
+      "contact": "Contact",
+      "service": "Service",
+      "notes": "Initial notes",
+      "deadline": "Deadline",
+      "noDeadline": "Not set",
+      "lastActivity": "Last activity",
+      "clientLink": "Client link",
+      "activeLink": "Active · expires on {{date}}",
+      "activeLinkUsed": "Active · expires on {{date}} · last used {{lastUsed}}",
+      "noActiveLink": "No active link",
+      "closeReason": "Reason for closing"
+    }
+  },
+  "completeness": {
+    "title": "Information completeness",
+    "checkInfo": "Check v{{version}} · {{date}} · deterministic rules",
+    "noChecks": "No checks yet.",
+    "ringLabel": "Completeness",
+    "received": "Received",
+    "receivedEmpty": "Nothing yet.",
+    "missing": "Pending information",
+    "missingEmpty": "Nothing pending.",
+    "missingDocs": "Pending documents",
+    "missingDocsEmpty": "No documents pending."
+  },
+  "dialogs": {
+    "link": {
+      "title": "Client link",
+      "description": "The client opens the form without creating an account. The link expires and can be revoked at any time.",
+      "copyWarning": "Copy the link now: for security it will not be shown again. If you lose it, generate a new one (the previous one will stop working).",
+      "secureLink": "Secure link",
+      "expiresOn": "Expires on {{date}}.",
+      "revoke": "Revoke access",
+      "activeInfo": "There is an active link that expires on <strong>{{date}}</strong>. For security it is not stored in plain text: if you need to send it again, generate a new one.",
+      "generating": "Generating…",
+      "generateNew": "Generate new link",
+      "noActive": "There is no active link for this request.",
+      "generate": "Generate link (30 days)"
+    },
+    "requestInfo": {
+      "title": "Request information from the client",
+      "description": "The client will see the list of pending items on their link and will be notified. The request will move to \"Missing information\".",
+      "validation": "Choose at least one item or write a message.",
+      "submit": "Send request",
+      "suggestedLegend": "Pending according to the latest check",
+      "addCustom": "Add another requirement",
+      "customLabel": "Requirement description",
+      "customPlaceholder": "Current floor plans of the premises",
+      "typeLabel": "Type",
+      "addedList": "Added requirements",
+      "remove": "Remove {{label}}",
+      "message": "Message for the client",
+      "messageHint": "Optional. If left empty, a standard text with the list will be sent."
+    },
+    "close": {
+      "title": "Close request",
+      "description": "The client will be notified. You can reopen it as long as there is no associated quote.",
+      "validation": "Enter the reason for closing.",
+      "failed": "The request could not be closed.",
+      "closing": "Closing…",
+      "reason": "Reason",
+      "reasonPlaceholder": "The client withdrew / duplicate / out of service…"
+    }
+  },
+  "panels": {
+    "data": {
+      "title": "Received details",
+      "submittedOn": "Form sent on {{date}}",
+      "notSubmitted": "The client has not sent the form yet.",
+      "empty": "No details yet."
+    },
+    "requisitos": {
+      "title": "Pending information",
+      "description": "Requirements requested from the client. Mark as resolved whatever you already have.",
+      "requestedAt": "{{kind}} · requested {{date}}",
+      "resolve": "Resolved",
+      "waive": "Not needed",
+      "reask": "Request again",
+      "empty": "No additional information has been requested.",
+      "doneCount_one": "{{count}} resolved or not needed",
+      "doneCount_other": "{{count}} resolved or not needed"
+    },
+    "documents": {
+      "title": "Documents",
+      "description": "Private files. Download links expire after 5 minutes.",
+      "empty": "No documents",
+      "emptyHint": "Files uploaded by the client or your team will appear here.",
+      "byClient": "Client",
+      "byTeam": "Your team",
+      "download": "Download {{name}}",
+      "opening": "Opening…",
+      "openFailed": "The file could not be opened.",
+      "attach": "Attach file (visible to the client)"
+    },
+    "timeline": {
+      "title": "Timeline",
+      "empty": "No activity recorded."
+    }
+  },
+  "events": {
+    "created": "Request created",
+    "linkCreated": "Client link generated",
+    "linksRevoked": "Links revoked",
+    "infoRequested": "Information requested from the client",
+    "analyzed": "Completeness check",
+    "message": "Message sent to the client",
+    "clientMessage": "The client wrote a message",
+    "submitted": "The client sent the form",
+    "documentAdded": "Document attached",
+    "reopened": "Request reopened ({{status}})",
+    "statusChanged": "Status: {{status}}",
+    "statusChangedReason": "Status: {{status}} · {{reason}}",
+    "requirement": "Requirement marked as {{status}}",
+    "analyzedPct": "{{label}}: {{pct}}%",
+    "submittedPct": "{{label}} ({{pct}}%)",
+    "clientDocument": "The client attached a document",
+    "teamDocument": "Your team attached a document"
+  },
+  "public": {
+    "invalidTitle": "This link is not available",
+    "invalidText": "It may have expired or been deactivated. If you need to continue with your request, contact the company that sent it to you so they can provide a new one.",
+    "loading": "Loading your request…",
+    "draftSaved": "Draft saved. You can come back to this link whenever you like.",
+    "saveFailed": "It could not be saved.",
+    "fixFields": "Check the highlighted fields before sending.",
+    "submitted": "Form sent. We will let you know through this same link if we need anything else.",
+    "submitFailed": "It could not be sent.",
+    "fallbackTitle": "Request",
+    "secureLink": "Secure link · valid until {{date}}",
+    "intro": "Fill in the information and attach whatever you have. You can save and come back later.",
+    "submittedOn": "Sent on {{date}}.",
+    "theCompany": "The company",
+    "theCompanyLower": "the company",
+    "needsTitle": "{{company}} needs the following",
+    "kind": {
+      "document": "document",
+      "field": "detail"
+    },
+    "fieldsHint": "You can provide the details in the form or reply in the conversation below.",
+    "privacy": "Your details are only seen by {{company}}.",
+    "saveDraft": "Save draft",
+    "sendInfo": "Send information",
+    "submit": "Send request",
+    "conversationTitle": "Conversation with {{company}}",
+    "conversationHint": "If you have any questions or want to add something, write it here.",
+    "conversationClosed": "This request is closed.",
+    "messagePlaceholder": "Write your message…",
+    "noMessages": "No messages yet. If you have any questions, write to us.",
+    "footer": "Secure form managed with Feblio."
+  },
+  "clientForm": {
+    "validation": {
+      "name": "Enter your name.",
+      "email": "Enter an email address so we can reply to you.",
+      "emailInvalid": "The email address is not valid.",
+      "needs": "Tell us what you need.",
+      "required": "This field is required.",
+      "consent": "You must accept it to send."
+    },
+    "progress": "Information provided",
+    "you": {
+      "title": "Your details",
+      "description": "So we can get back to you.",
+      "name": "Full name",
+      "email": "Email address",
+      "phone": "Phone"
+    },
+    "project": {
+      "title": "Your project",
+      "description": "The more detail you give, the sooner we can prepare a proposal for you.",
+      "needs": "What you need",
+      "needsPlaceholder": "Describe in your own words the work or service you are looking for.",
+      "objectives": "Objectives",
+      "objectivesPlaceholder": "What you want to achieve with this work.",
+      "scope": "Scope",
+      "scopePlaceholder": "What is included and what is not; spaces, units, size…",
+      "timeline": "Timeline",
+      "timelinePlaceholder": "When you need to start or finish",
+      "budget": "Indicative budget",
+      "budgetHint": "Optional.",
+      "budgetPlaceholder": "For example, between €5,000 and €8,000"
+    },
+    "questions": {
+      "title": "Questions from {{company}}",
+      "description": "Information specific to your case."
+    },
+    "documents": {
+      "title": "Documents",
+      "description": "Attach whatever you have to hand; you can add the rest later from this same link.",
+      "attached_one": "{{count}} attachment",
+      "attached_other": "{{count}} attachments",
+      "pending": "Pending",
+      "addAnother": "Add another file",
+      "attach": "Attach file"
+    },
+    "other": {
+      "title": "Other files",
+      "description": "Photos, plans, previous quotes… anything that helps. Here you will also see whatever {{company}} shares with you."
+    },
+    "consents": "Consents"
+  },
+  "docList": {
+    "unavailable": "The file is not available.",
+    "sharedBy": "shared by {{company}}",
+    "uploadedByYou": "uploaded by you",
+    "download": "Download {{name}}",
+    "preparing": "Preparing…"
+  },
+  "uploader": {
+    "attach": "Attach file",
+    "uploadFailed": "could not be uploaded.",
+    "uploading": "Uploading {{name}}…",
+    "hint": "PDF, Word, Excel, PNG or JPG · maximum {{max}} per file."
+  },
+  "thread": {
+    "placeholder": "Write a message…",
+    "empty": "No messages yet.",
+    "listLabel": "Messages",
+    "infoRequestPrefix": "Information requested · ",
+    "read": "Read",
+    "sent": "Sent",
+    "composerLabel": "New message",
+    "closed": "The conversation is closed.",
+    "hint": "The other party will be notified. Ctrl+Enter to send."
+  }
+}

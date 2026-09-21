@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import { Paperclip, Upload } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { ACCEPT_ATTR, checkFile, formatBytes, MAX_FILE_BYTES } from '../../lib/solicitudes/files'
 
 export interface FileUploaderProps {
@@ -14,7 +15,8 @@ export interface FileUploaderProps {
  * Selector de archivo accesible con validación en cliente (extensión, MIME, tamaño) antes de subir.
  * La validación definitiva la hace el servidor (sol_validar_archivo).
  */
-export function FileUploader({ onUpload, disabled = false, label = 'Adjuntar archivo', compact = false }: FileUploaderProps) {
+export function FileUploader({ onUpload, disabled = false, label, compact = false }: FileUploaderProps) {
+  const { t } = useTranslation()
   const id = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -33,7 +35,7 @@ export function FileUploader({ onUpload, disabled = false, label = 'Adjuntar arc
       try {
         await onUpload(file, check.mime, check.ext)
       } catch (e) {
-        setError(`${file.name}: ${e instanceof Error ? e.message : 'no se pudo subir.'}`)
+        setError(`${file.name}: ${e instanceof Error ? e.message : t('requests.uploader.uploadFailed')}`)
       } finally {
         setBusy(null)
       }
@@ -51,10 +53,10 @@ export function FileUploader({ onUpload, disabled = false, label = 'Adjuntar arc
         } ${disabled || busy ? 'cursor-not-allowed border-slate-200 text-slate-400' : 'border-slate-300 text-slate-700 hover:border-brand-400 hover:bg-brand-50/40'}`}
       >
         {busy ? <Upload className="h-4 w-4 animate-pulse" aria-hidden="true" /> : <Paperclip className="h-4 w-4" aria-hidden="true" />}
-        {busy ? `Subiendo ${busy}…` : label}
+        {busy ? t('requests.uploader.uploading', { name: busy }) : (label ?? t('requests.uploader.attach'))}
       </label>
       <p id={`${id}-hint`} className="mt-1 text-xs text-slate-500">
-        PDF, Word, Excel, PNG o JPG · máximo {formatBytes(MAX_FILE_BYTES)} por archivo.
+        {t('requests.uploader.hint', { max: formatBytes(MAX_FILE_BYTES) })}
       </p>
       {error && (
         <p className="mt-1 text-sm text-red-700" role="alert">

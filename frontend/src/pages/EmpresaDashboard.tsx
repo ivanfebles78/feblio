@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { FileText, Inbox, LayoutDashboard, LogOut, PartyPopper, Settings, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { AppShell, type ShellNavItem } from '../components/v2/AppShell'
 import { NotificationsBell } from '../components/v2/NotificationsBell'
 import { PlantillasSection } from '../sections/PlantillasSection'
@@ -19,13 +20,19 @@ const NuevaSolicitud = lazy(() => import('./solicitudes/NuevaSolicitud'))
 const SolicitudDetalle = lazy(() => import('./solicitudes/SolicitudDetalle'))
 
 type Section = 'home' | 'solicitudes' | 'templates' | 'settings'
-const NAV: ShellNavItem[] = [
-  { key: 'home', label: 'Inicio', icon: <LayoutDashboard className="h-5 w-5" /> },
-  { key: 'solicitudes', label: 'Solicitudes', icon: <Inbox className="h-5 w-5" /> },
-  { key: 'templates', label: 'Plantillas', icon: <FileText className="h-5 w-5" /> },
-  { key: 'settings', label: 'Configuración', icon: <Settings className="h-5 w-5" /> },
+/** Claves de traducción de cada sección (el texto se resuelve con t() al renderizar). */
+const SECTION_LABEL_KEY: Record<Section, string> = {
+  home: 'common.nav.home',
+  solicitudes: 'common.nav.requests',
+  templates: 'common.nav.templates',
+  settings: 'common.nav.settings',
+}
+const NAV: Omit<ShellNavItem, 'label'>[] = [
+  { key: 'home', icon: <LayoutDashboard className="h-5 w-5" /> },
+  { key: 'solicitudes', icon: <Inbox className="h-5 w-5" /> },
+  { key: 'templates', icon: <FileText className="h-5 w-5" /> },
+  { key: 'settings', icon: <Settings className="h-5 w-5" /> },
 ]
-const TITLES: Record<Section, string> = { home: 'Inicio', solicitudes: 'Solicitudes', templates: 'Plantillas', settings: 'Configuración' }
 const SECTION_PATH: Record<Section, string> = {
   home: EMPRESA_PATHS.home,
   solicitudes: EMPRESA_PATHS.solicitudes,
@@ -55,6 +62,7 @@ export interface EmpresaSummary {
  * Compatibilidad: `/empresa?settings=<tab>` sigue abriendo Configuración en esa pestaña.
  */
 export default function EmpresaDashboard() {
+  const { t } = useTranslation()
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -111,7 +119,13 @@ export default function EmpresaDashboard() {
 
   const empresaName = empresa?.trade_name || empresa?.name || ''
   const trialDays = empresa?.trial_ends_at ? Math.max(0, Math.ceil((new Date(empresa.trial_ends_at).getTime() - Date.now()) / 86_400_000)) : null
-  const subtitle = empresa?.subscription_status === 'trial' && trialDays !== null ? `Prueba · ${trialDays} días restantes` : empresa?.subscription_status === 'active' ? 'Cuenta activa' : undefined
+  const subtitle =
+    empresa?.subscription_status === 'trial' && trialDays !== null
+      ? t('dashboard.shell.trialDaysLeft', { count: trialDays })
+      : empresa?.subscription_status === 'active'
+        ? t('dashboard.shell.activeAccount')
+        : undefined
+  const companyLabel = empresaName || t('common.nav.myCompany')
   const go = (section: Section) => {
     if (section === 'settings') setSettingsTab('empresa')
     navigate(SECTION_PATH[section])
@@ -119,15 +133,19 @@ export default function EmpresaDashboard() {
 
   return (
     <AppShell
-      nav={NAV.map((n) => (n.key === 'solicitudes' && notifications.unread > 0 ? { ...n, badge: String(notifications.unread) } : n))}
+      nav={NAV.map((n) => ({
+        ...n,
+        label: t(SECTION_LABEL_KEY[n.key as Section]),
+        ...(n.key === 'solicitudes' && notifications.unread > 0 ? { badge: String(notifications.unread) } : {}),
+      }))}
       active={active}
       onNavigate={(key) => go(key as Section)}
-      breadcrumbs={[empresaName || 'Mi empresa', TITLES[active]]}
-      user={{ name: profile?.full_name || profile?.email || '', email: profile?.email ?? '', company: empresaName || 'Mi empresa', initials, subtitle }}
+      breadcrumbs={[companyLabel, t(SECTION_LABEL_KEY[active])]}
+      user={{ name: profile?.full_name || profile?.email || '', email: profile?.email ?? '', company: companyLabel, initials, subtitle }}
       bell={<NotificationsBell items={notifications.items} unread={notifications.unread} loading={notifications.loading} error={notifications.error} onMarkOne={(id) => void notifications.markOne(id)} onMarkAll={() => void notifications.markAll()} onOpen={(path) => navigate(path)} />}
       menu={[
-        { key: 'settings', label: 'Configuración', icon: <Settings className="h-4 w-4" />, onSelect: () => go('settings') },
-        { key: 'signout', label: 'Cerrar sesión', icon: <LogOut className="h-4 w-4" />, onSelect: () => void signOut() },
+        { key: 'settings', label: t('common.nav.settings'), icon: <Settings className="h-4 w-4" />, onSelect: () => go('settings') },
+        { key: 'signout', label: t('common.actions.signOut'), icon: <LogOut className="h-4 w-4" />, onSelect: () => void signOut() },
       ]}
     >
       {welcome && (
@@ -135,19 +153,18 @@ export default function EmpresaDashboard() {
           <p className="flex items-start gap-2">
             <PartyPopper className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>
-              <strong>¡Feblio está activo!</strong> Tu configuración se ha completado. Puedes ajustar canales, formularios, automatizaciones y facturación en cualquier
-              momento desde Configuración.
+              <strong>{t('dashboard.shell.welcomeTitle')}</strong> {t('dashboard.shell.welcomeBody')}
             </span>
           </p>
-          <button type="button" onClick={() => setWelcome(false)} className="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-label="Cerrar aviso">
+          <button type="button" onClick={() => setWelcome(false)} className="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-label={t('common.actions.closeNotice')}>
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       )}
       {!empresaId ? (
-        <p className="text-slate-600">No hay empresa asociada a tu cuenta.</p>
+        <p className="text-slate-600">{t('dashboard.shell.noCompany')}</p>
       ) : (
-        <Suspense fallback={<p className="text-slate-600">Cargando…</p>}>
+        <Suspense fallback={<p className="text-slate-600">{t('common.state.loading')}</p>}>
           <Routes>
             <Route index element={<EmpresaHome empresaId={empresaId} empresa={empresa} highlightSetup={highlightSetup} />} />
             <Route path="solicitudes" element={<SolicitudesInbox />} />

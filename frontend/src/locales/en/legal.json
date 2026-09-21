@@ -1,0 +1,99 @@
+{
+  "layout": {
+    "backHome": "Back to home",
+    "back": "Back",
+    "version": "Version {{version}}"
+  },
+  "draftNotice": "Document under review: this text is a structured draft pending legal validation.",
+  "translationNote": "This English translation is provided for convenience. In the event of any discrepancy, the Spanish version prevails.",
+  "terms": {
+    "title": "Terms of Service",
+    "s1": {
+      "title": "1. Purpose",
+      "p1": "Feblio is a cloud-based service that enables companies and professionals to manage client requests, quotes, advance payments, invoices, documentation and communications relating to their projects. These terms govern access to and use of the service by the entity that registers a company account (hereinafter, \"the Company\") and by the persons acting on its behalf."
+    },
+    "s2": {
+      "title": "2. Registration and account",
+      "p1": "To use Feblio you must register an account, providing the details of the responsible person and of the Company. The Company warrants that the information provided is accurate and undertakes to keep it up to date. Access credentials are personal and non-transferable; the Company is responsible for safeguarding them and for any actions carried out from its account."
+    },
+    "s3": {
+      "title": "3. Trial period and subscription",
+      "p1": "Once the email address has been verified, the Company is entitled to a free 14-day trial period. At the end of the trial, continued use requires an active subscription under the terms and prices in force as communicated within the service itself."
+    },
+    "s4": {
+      "title": "4. Third-party integrations",
+      "p1": "At the Company's request, Feblio may connect to third-party services (document repositories, email, messaging, telephony or payment gateways). The Company expressly authorises each connection, may revoke it at any time from Settings and accepts the terms of use of each third party. Feblio does not store the credentials of these services in the browser."
+    },
+    "s5": {
+      "title": "5. Automation and human oversight",
+      "p1": "By default, Feblio only prepares drafts (Level 1), and any sending or action directed at clients or public bodies requires human approval. The Company may increase the level of automation at its sole responsibility and is responsible for reviewing generated content before using it."
+    },
+    "s6": {
+      "title": "6. Company content and data",
+      "p1": "The Company retains ownership of the data, documents and content it enters into Feblio and grants Feblio a limited licence to process them for the sole purpose of providing the service. The Company warrants that it has a lawful basis for processing the data of its end clients."
+    },
+    "s7": {
+      "title": "7. Prohibited uses",
+      "p1": "It is prohibited to use Feblio for unlawful activities, to send unsolicited communications without consent, to infringe the rights of third parties or to attempt to access the data of other user companies."
+    },
+    "s8": {
+      "title": "8. Availability and liability",
+      "p1": "Feblio is provided \"as is\" with reasonable efforts to ensure availability. Except in cases of wilful misconduct or gross negligence, Feblio's total liability towards the Company is limited to the amounts paid during the twelve months preceding the event giving rise to the claim."
+    },
+    "s9": {
+      "title": "9. Termination and cancellation",
+      "p1": "The Company may cancel its account at any time. After cancellation, data is retained for the period required to comply with legal obligations and is then deleted or anonymised."
+    },
+    "s10": {
+      "title": "10. Amendments",
+      "p1": "Feblio may update these terms. Each version is identified by its date; material changes will be communicated with reasonable notice and, where necessary, renewed acceptance will be requested."
+    },
+    "s11": {
+      "title": "11. Governing law and jurisdiction",
+      "p1": "These terms are governed by Spanish law. Any dispute shall be submitted to the courts and tribunals having jurisdiction under the applicable regulations."
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "s1": {
+      "title": "1. Data controller",
+      "p1": "The controller of the personal data of Feblio users is the owner of the platform. The contact details of the controller and, where applicable, of the data protection officer will be published on this page once the final domain is operational."
+    },
+    "s2": {
+      "title": "2. Data we process",
+      "p1": "Registration data (full name, email address, encrypted password), company data (company name, tax identification number, address, contact details), channel and integration configuration data (with no passwords or tokens in plain text), usage data and technical logs (IP address, browser, date and time), and the end-client data that the Company enters into the platform."
+    },
+    "s3": {
+      "title": "3. Purposes and legal basis",
+      "li1": "To provide the contracted service and manage the account (performance of the contract).",
+      "li2": "To verify identity and email address, and to prevent fraud (legitimate interest and legal obligation).",
+      "li3": "To record acceptance of the legal texts and consent preferences (legal obligation).",
+      "li4": "To send news and marketing communications, only where express and revocable consent has been given.",
+      "li5": "To connect with third-party services chosen by the Company (consent and performance of the contract)."
+    },
+    "s4": {
+      "title": "4. Feblio as data processor",
+      "p1": "With regard to the end-client data that the Company enters into Feblio, the Company is the data controller and Feblio acts as the data processor, processing that data solely in accordance with the Company's instructions and the terms of the data processing agreement that forms part of the Terms of Service."
+    },
+    "s5": {
+      "title": "5. Recipients and processors",
+      "p1": "We use infrastructure and email delivery providers located in the European Union or offering adequate safeguards. Third-party integrations (Google, Microsoft, Meta, SMS, telephony or payment providers) are only activated at the Company's request and are additionally governed by each provider's policies."
+    },
+    "s6": {
+      "title": "6. Retention",
+      "p1": "Data is retained while the account remains active and, thereafter, for the periods required by tax, commercial and data protection regulations. Consent and audit records are retained to demonstrate compliance with legal obligations."
+    },
+    "s7": {
+      "title": "7. Your rights",
+      "p1": "Data subjects may exercise their rights of access, rectification, erasure, objection, restriction and portability, and may withdraw any consent given, by writing to the contact address indicated on this page. They may also lodge a complaint with the Spanish Data Protection Agency (Agencia Española de Protección de Datos)."
+    },
+    "s8": {
+      "title": "8. Security",
+      "p1": "We apply appropriate technical and organisational measures: encryption in transit and at rest, isolation between companies through row-level security policies, encryption of integration credentials, access control and audit logging."
+    },
+    "s9": {
+      "title": "9. Changes",
+      "p1": "This policy may be updated. Each version is identified by its date and material changes will be communicated to users."
+    }
+  }
+}

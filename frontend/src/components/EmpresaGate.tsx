@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { t as translate } from '../i18n'
 import { useAuth } from '../context/AuthContext'
 import { getEmpresaAccessState, claimNativeVerification } from '../lib/onboarding/api'
 import { WELCOME_PATH, resolveEmpresaDestination, type OnboardingStatus } from '../lib/routing'
@@ -29,6 +31,7 @@ interface AccessState {
  * del servidor contradice la ruta actual.
  */
 export function EmpresaGate({ mode, children }: EmpresaGateProps) {
+  const { t } = useTranslation()
   const { profile, signOut } = useAuth()
   const location = useLocation()
   const empresaId = profile?.empresa_id ?? null
@@ -66,7 +69,8 @@ export function EmpresaGate({ mode, children }: EmpresaGateProps) {
         },
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo comprobar el estado de la cuenta.')
+      // `translate` (instancia i18n) y no `t` del hook: la carga no debe repetirse al cambiar de idioma.
+      setError(e instanceof Error ? e.message : translate('auth.gate.checkFailed'))
     } finally {
       setLoading(false)
     }
@@ -86,7 +90,7 @@ export function EmpresaGate({ mode, children }: EmpresaGateProps) {
     return <ErrorScreen message={error} onRetry={reload} onSignOut={signOut} />
   }
   // Mientras el estado no corresponda al modo actual no se decide nada (evita el render intermedio).
-  if (loading || !state || state.forMode !== mode) return <LoadingScreen text="Comprobando tu cuenta…" />
+  if (loading || !state || state.forMode !== mode) return <LoadingScreen text={t('common.loading.checkingAccount')} />
   const access = state.data
 
   const destination = resolveEmpresaDestination({

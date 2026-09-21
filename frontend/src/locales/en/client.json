@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "project": "My project",
+    "documents": "Documents",
+    "invoices": "Invoices"
+  },
+  "loading": "Loading data…",
+  "noProjects": "There is no project assigned to your account yet.",
+  "project": {
+    "yourProject": "Your project",
+    "progress": "Project progress"
+  },
+  "stats": {
+    "budgetTotal": "Total budget",
+    "invoiced": "Invoiced",
+    "pendingPayments": "Pending payments"
+  },
+  "documents": {
+    "title": "Project documents",
+    "empty": "No documents available."
+  },
+  "invoices": {
+    "title": "Invoices",
+    "empty": "No invoices yet."
+  },
+  "documentType": {
+    "presupuesto": "Quote",
+    "provision": "Advance payment",
+    "factura": "Invoice",
+    "contrato": "Contract",
+    "otro": "Other"
+  },
+  "status": {
+    "borrador": "Draft",
+    "en_progreso": "In progress",
+    "completado": "Completed",
+    "cancelado": "Cancelled"
+  }
+}

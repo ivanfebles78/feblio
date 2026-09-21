@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { t } from '../../i18n'
 import { listNotificaciones, marcarNotificacion, marcarTodasNotificaciones, subscribeNotificaciones } from './api'
 import type { Notificacion } from './types'
 
@@ -35,7 +36,7 @@ export function useNotifications(empresaId: string | null): NotificationsState {
       setError(null)
     } catch (e) {
       if (!alive.current) return
-      setError(e instanceof Error ? e.message : 'No se pudieron cargar las notificaciones.')
+      setError(e instanceof Error ? e.message : t('requests.api.loadNotifications'))
     } finally {
       if (alive.current) setLoading(false)
     }
@@ -64,7 +65,7 @@ export function useNotifications(empresaId: string | null): NotificationsState {
       await marcarNotificacion(id)
     } catch (e) {
       setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: null } : n)))
-      setError(e instanceof Error ? e.message : 'No se pudo marcar la notificación.')
+      setError(e instanceof Error ? e.message : t('requests.notifications.markOneFailed'))
     }
   }, [])
 
@@ -76,7 +77,7 @@ export function useNotifications(empresaId: string | null): NotificationsState {
       await marcarTodasNotificaciones()
     } catch (e) {
       setItems(snapshot)
-      setError(e instanceof Error ? e.message : 'No se pudieron marcar las notificaciones.')
+      setError(e instanceof Error ? e.message : t('requests.notifications.markAllFailed'))
     }
   }, [items])
 

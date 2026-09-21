@@ -14,6 +14,7 @@ import { RESET_PASSWORD_PATH } from '../lib/routing'
 import { LEGAL_VERSIONS } from '../lib/legal'
 import { normalizeTaxId } from '../lib/validation'
 import { taxTypeForEntity, type EntityType, type Profile, type TaxType, type UserRole } from '../lib/types'
+import { applyCompanyLanguage, currentLanguage, t, toLanguage, type Language } from '../i18n'
 
 export interface SignUpParams {
   email: string
@@ -29,6 +30,8 @@ export interface SignUpParams {
   taxId?: string
   termsAccepted: boolean
   marketingConsent?: boolean
+  /** Idioma de la interfaz en el momento del registro ('es' | 'en'); si falta, el actual. */
+  language?: string
 }
 
 export interface SignUpResult {
@@ -61,6 +64,16 @@ const AuthContext = createContext<AuthState | undefined>(undefined)
 
 const PROFILE_COLUMNS = 'id, email, full_name, role, empresa_id, cliente_id, contact_email, phone, job_title, is_onboarding_owner'
 
+/**
+ * Idioma configurado en la empresa del perfil (empresas.language). Solo se aplica si el usuario
+ * no ha elegido idioma manualmente; nunca sobrescribe su preferencia.
+ */
+async function applyProfileLanguage(profile: Profile | null): Promise<void> {
+  if (!profile?.empresa_id) return
+  const { data } = await supabase.from('empresas').select('language').eq('id', profile.empresa_id).maybeSingle()
+  applyCompanyLanguage((data as { language?: string } | null)?.language ?? null)
+}
+
 async function loadProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase.from('profiles').select(PROFILE_COLUMNS).eq('id', userId).single()
   if (error) {
@@ -79,6 +92,11 @@ async function loadProfile(userId: string): Promise<Profile | null> {
   return data as Profile
 }
 
+/** Idioma válido para los metadatos del registro: el indicado si es 'es' | 'en'; si no, el actual de la interfaz. */
+export function signUpLanguage(value: unknown): Language {
+  return toLanguage(value) ?? currentLanguage()
+}
+
 /** Metadatos que handle_new_user() usa para crear empresa, perfil y consentimientos. */
 export function buildSignUpMetadata(p: SignUpParams, userAgent = ''): Record<string, string | boolean> {
   const entityType = p.entityType ?? (p.taxType === 'NIF' ? 'self_employed' : 'company')
@@ -94,6 +112,8 @@ export function buildSignUpMetadata(p: SignUpParams, userAgent = ''): Record<str
     terms_version: LEGAL_VERSIONS.terms,
     privacy_version: LEGAL_VERSIONS.privacy,
     marketing_consent: p.marketingConsent ?? false,
+    // Idioma de la interfaz al registrarse (solo 'es' | 'en'); base para correos bilingües
+    language: signUpLanguage(p.language),
     user_agent: userAgent.slice(0, 512),
   }
 }
@@ -113,8 +133,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session)
       if (data.session?.user) {
         setProfileLoading(true)
-        setProfile(await loadProfile(data.session.user.id))
+        const p = await loadProfile(data.session.user.id)
+        setProfile(p)
         setProfileLoading(false)
+        void applyProfileLanguage(p)
       }
       setLoading(false)
     })
@@ -126,8 +148,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s)
       if (s?.user) {
         setProfileLoading(true)
-        setProfile(await loadProfile(s.user.id))
+        const p = await loadProfile(s.user.id)
+        setProfile(p)
         setProfileLoading(false)
+        void applyProfileLanguage(p)
       } else {
         setProfile(null)
       }
@@ -146,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(async (params: SignUpParams): Promise<SignUpResult> => {
     if (!params.termsAccepted) {
-      return { error: 'Debes aceptar los Términos del servicio y la Política de privacidad.', needsConfirmation: false }
+      return { error: t('auth.register.termsRequiredShort'), needsConfirmation: false }
     }
     const { data, error } = await supabase.auth.signUp({
       email: params.email.trim().toLowerCase(),

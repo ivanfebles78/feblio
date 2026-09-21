@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FolderKanban, LockKeyhole, MailCheck, MessagesSquare, ReceiptText, ShieldCheck } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
+import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { Logo } from '../components/Logo'
 import { RegisterForm } from '../components/auth/RegisterForm'
 import { ButtonLink } from '../components/v2/Button'
 import { useAuth, type SignUpParams } from '../context/AuthContext'
+import { currentLanguage } from '../i18n'
 import { homePathForRole } from '../lib/routing'
 
+/** Ventajas de la columna lateral: claves de auth.register.benefits.* */
 const BENEFITS = [
-  { icon: FolderKanban, title: 'Proyectos y documentos en orden', text: 'Cada proyecto con sus carpetas, presupuestos y facturas en un solo sitio.' },
-  { icon: MessagesSquare, title: 'Clientes atendidos sin perder nada', text: 'Correo, WhatsApp y formularios se convierten en solicitudes con seguimiento.' },
-  { icon: ReceiptText, title: 'Cobros y facturación sin sorpresas', text: 'Series, anticipos e impuestos configurados una vez y aplicados siempre.' },
-]
+  { icon: FolderKanban, key: 'projects' },
+  { icon: MessagesSquare, key: 'clients' },
+  { icon: ReceiptText, key: 'billing' },
+] as const
 
 /**
  * Registro público de empresa (/registro). Dos columnas en escritorio, una en móvil.
@@ -19,6 +23,7 @@ const BENEFITS = [
  * Los mensajes son neutros: no revelan si un correo ya estaba registrado.
  */
 export default function RegisterPage() {
+  const { t } = useTranslation()
   const { session, profile, signUp } = useAuth()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
@@ -33,9 +38,10 @@ export default function RegisterPage() {
     setError(null)
     setBusy(true)
     try {
-      const { error, needsConfirmation } = await signUp(params)
+      // Idioma de la interfaz en el momento de enviar (base de los correos bilingües)
+      const { error, needsConfirmation } = await signUp({ ...params, language: currentLanguage() })
       if (error) {
-        setError(traducirRegistro(error))
+        setError(translateRegisterError(error, t))
         return
       }
       if (needsConfirmation) setSentTo(params.email.trim().toLowerCase())
@@ -50,22 +56,20 @@ export default function RegisterPage() {
       <aside className="relative overflow-hidden bg-slate-900 px-6 py-8 text-white sm:px-10 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between lg:px-14 lg:py-12">
         <div className="pointer-events-none absolute inset-0 opacity-[.07]" aria-hidden="true" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         <div className="relative">
-          <Link to="/" className="inline-flex rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label="Feblio, ir al inicio">
+          <Link to="/" className="inline-flex rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label={t('auth.register.logoLabel')}>
             <Logo tone="white" size={30} />
           </Link>
-          <h1 className="mt-8 max-w-md text-2xl font-semibold leading-tight tracking-tight sm:text-3xl lg:mt-14 lg:text-[2rem]">
-            Gestiona tus proyectos, clientes y documentos desde un solo lugar
-          </h1>
-          <p className="mt-3 max-w-md text-base leading-relaxed text-slate-300">Crea tu empresa en dos minutos. Configura el resto cuando quieras desde Feblio</p>
-          <ul className="mt-8 hidden space-y-5 lg:block" aria-label="Ventajas de Feblio">
+          <h1 className="mt-8 max-w-md text-2xl font-semibold leading-tight tracking-tight sm:text-3xl lg:mt-14 lg:text-[2rem]">{t('auth.register.heroTitle')}</h1>
+          <p className="mt-3 max-w-md text-base leading-relaxed text-slate-300">{t('auth.register.heroSubtitle')}</p>
+          <ul className="mt-8 hidden space-y-5 lg:block" aria-label={t('auth.register.benefitsLabel')}>
             {BENEFITS.map((b) => (
-              <li key={b.title} className="flex gap-4">
+              <li key={b.key} className="flex gap-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-brand-200 ring-1 ring-white/15" aria-hidden="true">
                   <b.icon className="h-5 w-5" />
                 </span>
                 <div>
-                  <p className="font-medium text-white">{b.title}</p>
-                  <p className="mt-0.5 text-sm text-slate-300">{b.text}</p>
+                  <p className="font-medium text-white">{t(`auth.register.benefits.${b.key}Title`)}</p>
+                  <p className="mt-0.5 text-sm text-slate-300">{t(`auth.register.benefits.${b.key}Text`)}</p>
                 </div>
               </li>
             ))}
@@ -73,37 +77,40 @@ export default function RegisterPage() {
         </div>
         <div className="relative mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-300 lg:mt-0">
           <span className="inline-flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4 text-emerald-300" aria-hidden="true" /> Datos alojados en la UE · RGPD
+            <ShieldCheck className="h-4 w-4 text-emerald-300" aria-hidden="true" /> {t('auth.register.badgeEu')}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <LockKeyhole className="h-4 w-4 text-emerald-300" aria-hidden="true" /> Cifrado en tránsito y en reposo
+            <LockKeyhole className="h-4 w-4 text-emerald-300" aria-hidden="true" /> {t('auth.register.badgeEncryption')}
           </span>
         </div>
       </aside>
 
       <main className="flex items-start justify-center px-4 py-8 sm:px-8 lg:py-10">
         <div className="w-full max-w-xl lg:max-w-3xl">
+          <div className="mb-4 flex justify-end">
+            <LanguageSwitcher />
+          </div>
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,.04)] sm:p-8">
             {sentTo ? (
               <div role="status" aria-live="polite">
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" aria-hidden="true">
                   <MailCheck className="h-6 w-6" />
                 </span>
-                <h2 className="mt-4 text-xl font-semibold tracking-tight">Revisa tu correo</h2>
+                <h2 className="mt-4 text-xl font-semibold tracking-tight">{t('auth.register.checkEmailTitle')}</h2>
                 <p className="mt-2 text-base text-slate-700">
-                  Si <span className="font-medium text-slate-900">{sentTo}</span> es válido, recibirás un enlace para confirmarlo. Ábrelo y después inicia sesión para entrar en tu empresa.
+                  <Trans i18nKey="auth.register.checkEmailBody" values={{ email: sentTo }} components={{ email: <span className="font-medium text-slate-900" /> }} />
                 </p>
-                <p className="mt-2 text-sm text-slate-600">¿No llega? Revisa la carpeta de spam o inténtalo de nuevo en unos minutos.</p>
+                <p className="mt-2 text-sm text-slate-600">{t('auth.register.notArriving')}</p>
                 <div className="mt-6">
                   <ButtonLink to="/" variant="secondary" block>
-                    Ir a iniciar sesión
+                    {t('auth.register.goToSignIn')}
                   </ButtonLink>
                 </div>
               </div>
             ) : (
               <>
-                <h2 className="text-xl font-semibold tracking-tight">Crea tu empresa en Feblio</h2>
-                <p className="mt-1 text-base text-slate-600">Solo los datos imprescindibles. Sin tarjeta, 14 días de prueba.</p>
+                <h2 className="text-xl font-semibold tracking-tight">{t('auth.register.title')}</h2>
+                <p className="mt-1 text-base text-slate-600">{t('auth.register.subtitle')}</p>
                 <div className="mt-6">
                   <RegisterForm busy={busy} onSubmit={handleRegister} />
                 </div>
@@ -115,15 +122,15 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <p className="mt-5 text-center text-sm text-slate-600">
-                  ¿Ya tienes cuenta?{' '}
+                  {t('auth.register.haveAccount')}{' '}
                   <Link to="/" className="font-semibold text-brand-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-                    Inicia sesión
+                    {t('auth.register.signInLink')}
                   </Link>
                 </p>
               </>
             )}
           </div>
-          <p className="mt-4 text-center text-sm text-slate-500">Al crear la empresa no configurarás nada más: canales, documentos, automatizaciones y facturación se ajustan después, a tu ritmo.</p>
+          <p className="mt-4 text-center text-sm text-slate-500">{t('auth.register.footnote')}</p>
         </div>
       </main>
     </div>
@@ -131,13 +138,11 @@ export default function RegisterPage() {
 }
 
 /** Mensajes seguros: no confirman si un correo existe ni detallan la política interna. */
-function traducirRegistro(msg: string): string {
+function translateRegisterError(msg: string, t: (key: string) => string): string {
   const m = msg.toLowerCase()
-  if (m.includes('rate limit') || m.includes('too many')) return 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.'
-  if (m.includes('password')) return 'La contraseña no cumple los requisitos. Revísala e inténtalo de nuevo.'
-  if (m.includes('is invalid') || m.includes('invalid email') || m.includes('email_address_invalid')) return 'Revisa el correo electrónico: el formato o el dominio no son válidos.'
-  if (m.includes('already registered') || m.includes('already exists')) {
-    return 'No hemos podido completar el registro con ese correo. Si ya tienes cuenta, inicia sesión; si no, revisa el correo e inténtalo de nuevo.'
-  }
-  return 'No hemos podido crear la empresa en este momento. Inténtalo de nuevo en unos minutos.'
+  if (m.includes('rate limit') || m.includes('too many')) return t('auth.register.errors.rateLimit')
+  if (m.includes('password')) return t('auth.register.errors.password')
+  if (m.includes('is invalid') || m.includes('invalid email') || m.includes('email_address_invalid')) return t('auth.register.errors.invalidEmail')
+  if (m.includes('already registered') || m.includes('already exists')) return t('auth.register.errors.alreadyRegistered')
+  return t('auth.register.errors.generic')
 }

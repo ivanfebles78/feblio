@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { FolderTree, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { RadioCards, TextField } from '../../../components/forms/Field'
 import { IntegrationCard } from '../../../components/onboarding/IntegrationCard'
 import { useOnboarding } from '../../../lib/onboarding/OnboardingContext'
@@ -15,6 +16,7 @@ import type { StepProps } from './types'
 const FOLDER_RE = /^[\w\-. ]{1,60}$/
 
 export function DocumentRepositoryStep({ errors, showErrors, mode }: StepProps) {
+  const { t } = useTranslation()
   const ctx = useOnboarding()
   const data = ctx.getStepData<RepositoryStepData & Record<string, unknown>>('repository', defaultRepositoryData as () => RepositoryStepData & Record<string, unknown>)
   const integration = useIntegration('document_repository')
@@ -59,7 +61,7 @@ export function DocumentRepositoryStep({ errors, showErrors, mode }: StepProps) 
     setLoadingRemote(true)
     const res = await listRemoteFolders('document_repository')
     setRemoteFolders(res.ok && res.folders ? res.folders : [])
-    if (!res.ok) integration.setResult({ ok: false, message: res.message ?? 'No se pudieron listar las carpetas.', checkedAt: new Date().toISOString() })
+    if (!res.ok) integration.setResult({ ok: false, message: res.message ?? t('onboarding.repository.listFoldersFailed'), checkedAt: new Date().toISOString() })
     setLoadingRemote(false)
   }
 
@@ -78,11 +80,11 @@ export function DocumentRepositoryStep({ errors, showErrors, mode }: StepProps) 
   function addFolder() {
     const v = newFolder.trim()
     if (!FOLDER_RE.test(v)) {
-      setFolderError('Usa letras, números, guiones o puntos (máx. 60).')
+      setFolderError(t('onboarding.repository.folderRule'))
       return
     }
     if (folders.includes(v)) {
-      setFolderError('Esa carpeta ya existe.')
+      setFolderError(t('onboarding.repository.folderExists'))
       return
     }
     const next = [...folders, v]
@@ -110,16 +112,16 @@ export function DocumentRepositoryStep({ errors, showErrors, mode }: StepProps) 
   return (
     <div className="space-y-8">
       <RadioCards<RepositoryProvider>
-        legend="¿Dónde se guardarán los documentos de tus proyectos?"
+        legend={t('onboarding.repository.legend')}
         name="repository_provider"
         value={data.provider}
         onChange={choose}
         error={err('provider')}
         options={[
-          { value: 'feblio_storage', label: 'Almacenamiento interno de Feblio', description: 'Recomendado para empezar. Sin configuración, cifrado y aislado por empresa.', badge: <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">Listo ya</span> },
-          { value: 'google_drive', label: 'Google Drive', description: 'Carpeta raíz o unidad compartida de tu Google Workspace.' },
-          { value: 'onedrive', label: 'Microsoft OneDrive / SharePoint', description: 'OneDrive o biblioteca de documentos de SharePoint.' },
-          { value: 'later', label: 'Configurar más adelante', description: 'Podrás elegir después, pero es necesario para activar Feblio.' },
+          { value: 'feblio_storage', label: t('onboarding.repository.internal'), description: t('onboarding.repository.internalDescription'), badge: <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">{t('onboarding.repository.ready')}</span> },
+          { value: 'google_drive', label: t('onboarding.repository.googleDrive'), description: t('onboarding.repository.googleDriveDescription') },
+          { value: 'onedrive', label: t('onboarding.repository.onedrive'), description: t('onboarding.repository.onedriveDescription') },
+          { value: 'later', label: t('onboarding.repository.later'), description: t('onboarding.repository.laterDescription') },
         ]}
       />
 
@@ -127,21 +129,21 @@ export function DocumentRepositoryStep({ errors, showErrors, mode }: StepProps) 
         <IntegrationCard adapter={chosenAdapter} actions={integration} settings={settings} returnTo={returnTo}>
           {(data.provider === 'google_drive' || data.provider === 'onedrive') && integration.connection?.status === 'connected' && (
             <div className="rounded-xl border border-slate-200 p-3">
-              <p className="text-xs font-medium text-slate-600">Carpeta raíz o unidad compartida</p>
-              <p className="text-xs text-slate-500">Actual: {data.root_folder_name ?? 'raíz de la cuenta'}</p>
+              <p className="text-xs font-medium text-slate-600">{t('onboarding.repository.rootFolder')}</p>
+              <p className="text-xs text-slate-500">{t('onboarding.repository.current', { name: data.root_folder_name ?? t('onboarding.repository.accountRoot') })}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button type="button" onClick={loadRemote} disabled={loadingRemote} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                  {loadingRemote ? 'Cargando…' : 'Elegir carpeta'}
+                  {loadingRemote ? t('onboarding.repository.loading') : t('onboarding.repository.chooseFolder')}
                 </button>
                 {data.root_folder_id && (
                   <button type="button" onClick={() => set({ root_folder_id: undefined, root_folder_name: undefined })} className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100">
-                    Usar la raíz
+                    {t('onboarding.repository.useRoot')}
                   </button>
                 )}
               </div>
               {remoteFolders && (
-                <ul className="mt-2 max-h-48 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-100" aria-label="Carpetas disponibles">
-                  {remoteFolders.length === 0 && <li className="px-3 py-2 text-xs text-slate-400">No hay carpetas en la raíz.</li>}
+                <ul className="mt-2 max-h-48 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-100" aria-label={t('onboarding.repository.availableFolders')}>
+                  {remoteFolders.length === 0 && <li className="px-3 py-2 text-xs text-slate-400">{t('onboarding.repository.noFolders')}</li>}
                   {remoteFolders.map((f) => (
                     <li key={f.id}>
                       <button type="button" onClick={() => set({ root_folder_id: f.id, root_folder_name: f.name })} className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-brand-50 ${data.root_folder_id === f.id ? 'bg-brand-50 font-semibold text-brand-700' : 'text-slate-700'}`}>
@@ -160,27 +162,27 @@ export function DocumentRepositoryStep({ errors, showErrors, mode }: StepProps) 
         <section aria-labelledby="sec-folders">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 id="sec-folders" className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <FolderTree className="h-4 w-4 text-brand-600" aria-hidden="true" /> Plantilla de carpetas por proyecto
+              <FolderTree className="h-4 w-4 text-brand-600" aria-hidden="true" /> {t('onboarding.repository.templateTitle')}
             </h2>
             <button type="button" onClick={resetFolders} className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700">
-              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Restaurar estándar
+              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> {t('onboarding.repository.restoreDefault')}
             </button>
           </div>
           <TextField
-            label="Ruta raíz"
+            label={t('onboarding.repository.rootPath')}
             value={rootPattern}
             onChange={(e) => {
               setRootPattern(e.target.value)
               persistTemplate(folders, e.target.value)
             }}
-            hint="Variables disponibles: {codigo_proyecto}, {nombre_cliente}, {anio}."
+            hint={t('onboarding.repository.rootPathHint')}
             spellCheck={false}
           />
-          <ol className="mt-3 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/60 p-3 font-mono text-xs text-slate-700" aria-label="Subcarpetas">
+          <ol className="mt-3 space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/60 p-3 font-mono text-xs text-slate-700" aria-label={t('onboarding.repository.subfolders')}>
             {folders.map((f) => (
               <li key={f} className="flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-1.5 ring-1 ring-slate-100">
                 <span>{f}/</span>
-                <button type="button" onClick={() => removeFolder(f)} className="rounded-md p-1 text-slate-400 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400" aria-label={`Quitar carpeta ${f}`}>
+                <button type="button" onClick={() => removeFolder(f)} className="rounded-md p-1 text-slate-400 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400" aria-label={t('onboarding.repository.removeFolder', { name: f })}>
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </li>
@@ -188,7 +190,7 @@ export function DocumentRepositoryStep({ errors, showErrors, mode }: StepProps) 
           </ol>
           <div className="mt-2 flex items-start gap-2">
             <TextField
-              label="Nueva subcarpeta"
+              label={t('onboarding.repository.newSubfolder')}
               value={newFolder}
               onChange={(e) => setNewFolder(e.target.value)}
               onKeyDown={(e) => {
@@ -201,7 +203,7 @@ export function DocumentRepositoryStep({ errors, showErrors, mode }: StepProps) 
               className="flex-1"
               spellCheck={false}
             />
-            <button type="button" onClick={addFolder} className="mt-5 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50" aria-label="Añadir subcarpeta">
+            <button type="button" onClick={addFolder} className="mt-5 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50" aria-label={t('onboarding.repository.addSubfolder')}>
               <Plus className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>

@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Circle, CircleDot, MinusCircle, XCircle, type LucideIcon } from 'lucide-react'
-import { STEP_STATUS_LABEL } from '../../lib/onboarding/steps'
+import { useTranslation } from 'react-i18next'
+import { stepStatusLabel } from '../../lib/onboarding/steps'
 import type { StepStatus } from '../../lib/onboarding/types'
 
 const META: Record<StepStatus, { icon: LucideIcon; cls: string }> = {
@@ -13,22 +14,24 @@ const META: Record<StepStatus, { icon: LucideIcon; cls: string }> = {
 
 /** Estado de un paso: icono + texto (nunca solo color). */
 export function StepStatusBadge({ status, compact = false }: { status: StepStatus; compact?: boolean }) {
+  useTranslation()
   const m = META[status]
   const Icon = m.icon
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${m.cls}`}>
       <Icon className="h-3 w-3" aria-hidden="true" />
-      {compact ? <span className="sr-only">{STEP_STATUS_LABEL[status]}</span> : STEP_STATUS_LABEL[status]}
+      {compact ? <span className="sr-only">{stepStatusLabel(status)}</span> : stepStatusLabel(status)}
     </span>
   )
 }
 
 export function StepStatusIcon({ status, className = 'h-4 w-4' }: { status: StepStatus; className?: string }) {
+  useTranslation()
   const Icon = META[status].icon
   return (
     <>
       <Icon className={className} aria-hidden="true" />
-      <span className="sr-only">{STEP_STATUS_LABEL[status]}</span>
+      <span className="sr-only">{stepStatusLabel(status)}</span>
     </>
   )
 }

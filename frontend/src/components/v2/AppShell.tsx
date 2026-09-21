@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Bell, ChevronRight, HelpCircle, Menu, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Logo } from '../Logo'
+import { LanguageSwitcher } from '../LanguageSwitcher'
 
 /**
  * Estructura de aplicación v2: sidebar claro y sobrio + topbar con migas, ayuda,
@@ -47,6 +49,7 @@ export interface AppShellProps {
 }
 
 export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notifications = 0, menu = [], onHelp, bell, children }: AppShellProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -73,11 +76,11 @@ export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notificat
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center justify-between px-5">
         <Logo size={28} />
-        <button type="button" onClick={() => setOpen(false)} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden" aria-label="Cerrar menú">
+        <button type="button" onClick={() => setOpen(false)} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden" aria-label={t('common.actions.closeMenu')}>
           <X className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
-      <nav className="flex-1 space-y-0.5 px-3 py-2" aria-label="Navegación principal">
+      <nav className="flex-1 space-y-0.5 px-3 py-2" aria-label={t('common.nav.main')}>
         {nav.map((item) => {
           const isActive = item.key === active
           return (
@@ -98,7 +101,7 @@ export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notificat
               </span>
               <span className="flex-1 text-left">{item.label}</span>
               {item.badge && (
-                <span className="whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200" aria-label={`${item.badge} pendientes`}>
+                <span className="whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200" aria-label={t('dashboard.shell.badgePending', { badge: item.badge })}>
                   {item.badge}
                 </span>
               )}
@@ -127,7 +130,7 @@ export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notificat
 
       {/* Cajón móvil */}
       {open && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menú de navegación">
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label={t('dashboard.shell.navDialog')}>
           <div className="absolute inset-0 bg-slate-900/40" onClick={() => setOpen(false)} aria-hidden="true" />
           <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-white shadow-xl">{sidebar}</aside>
         </div>
@@ -136,10 +139,10 @@ export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notificat
       <div className="lg:pl-64">
         <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
-            <button type="button" onClick={() => setOpen(true)} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden" aria-label="Abrir menú" aria-expanded={open}>
+            <button type="button" onClick={() => setOpen(true)} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 lg:hidden" aria-label={t('common.actions.openMenu')} aria-expanded={open}>
               <Menu className="h-5 w-5" aria-hidden="true" />
             </button>
-            <nav aria-label="Ruta de navegación" className="min-w-0 flex-1">
+            <nav aria-label={t('common.nav.breadcrumbs')} className="min-w-0 flex-1">
               <ol className="flex items-center gap-1 text-sm">
                 {breadcrumbs.map((b, i) => {
                   const last = i === breadcrumbs.length - 1
@@ -154,14 +157,15 @@ export function AppShell({ nav, active, onNavigate, breadcrumbs, user, notificat
                 })}
               </ol>
             </nav>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
+              <LanguageSwitcher className="mr-1" />
               {onHelp && (
-                <button type="button" onClick={onHelp} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Ayuda">
+                <button type="button" onClick={onHelp} className="rounded-md p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={t('common.actions.help')}>
                   <HelpCircle className="h-5 w-5" aria-hidden="true" />
                 </button>
               )}
               {bell ?? (
-                <button type="button" className="relative rounded-md p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={notifications ? `Notificaciones: ${notifications} sin leer` : 'Notificaciones'}>
+                <button type="button" className="relative rounded-md p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={notifications ? t('common.a11y.notificationsUnread', { count: notifications }) : t('common.a11y.notifications')}>
                   <Bell className="h-5 w-5" aria-hidden="true" />
                   {notifications > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" aria-hidden="true" />}
                 </button>

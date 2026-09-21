@@ -1,0 +1,127 @@
+{
+  "language": {
+    "switcher": "Interface language",
+    "es": "Español",
+    "en": "English"
+  },
+  "brand": {
+    "name": "Feblio",
+    "tagline": "Manage your projects from start to finish",
+    "documentTitle": "Feblio · Manage your projects from start to finish"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "add": "Add",
+    "remove": "Remove",
+    "continue": "Continue",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "retry": "Retry",
+    "confirm": "Confirm",
+    "send": "Send",
+    "download": "Download",
+    "upload": "Upload",
+    "copy": "Copy",
+    "copied": "Copied",
+    "search": "Search",
+    "clearFilters": "Clear filters",
+    "open": "Open",
+    "view": "View",
+    "refresh": "Refresh",
+    "signOut": "Sign out",
+    "signIn": "Sign in",
+    "help": "Help",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "closeNotice": "Dismiss notice",
+    "select": "Select an option…",
+    "saving": "Saving…",
+    "sending": "Sending…",
+    "loading": "Loading…",
+    "oneMoment": "One moment…",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "state": {
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "empty": "Nothing yet",
+    "error": "Something went wrong",
+    "required": "required",
+    "optional": "Optional",
+    "none": "None",
+    "unknown": "Unknown",
+    "pending": "Pending",
+    "done": "Completed",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "errors": {
+    "generic": "The operation could not be completed.",
+    "network": "No connection. Check your network and try again.",
+    "permission": "You do not have permission to perform this action.",
+    "notFound": "The resource was not found.",
+    "tryAgain": "Please try again.",
+    "loadProfile": "Your profile could not be loaded",
+    "loadProfileDetail": "Your session is valid but we could not find your profile. Retry or sign out."
+  },
+  "relative": {
+    "now": "just now",
+    "minutesAgo_one": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} min ago",
+    "hoursAgo_one": "{{count}} h ago",
+    "hoursAgo_other": "{{count}} h ago",
+    "yesterday": "yesterday",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "today": "today",
+    "tomorrow": "tomorrow",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days"
+  },
+  "units": {
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items"
+  },
+  "nav": {
+    "home": "Home",
+    "requests": "Requests",
+    "templates": "Templates",
+    "settings": "Settings",
+    "main": "Main navigation",
+    "breadcrumbs": "Breadcrumb",
+    "myCompany": "My company"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "empresa": "Company",
+    "cliente": "Client"
+  },
+  "a11y": {
+    "notifications": "Notifications",
+    "notificationsUnread_one": "Notifications: {{count}} unread",
+    "notificationsUnread_other": "Notifications: {{count}} unread",
+    "requiredField": " (required)",
+    "skipToContent": "Skip to content"
+  },
+  "loading": {
+    "checkingAccount": "Checking your account…",
+    "preparingAccount": "Preparing your account…",
+    "default": "Loading…"
+  },
+  "footer": {
+    "legalNotice": "By continuing you accept the Terms of Service and the Privacy Policy.",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy"
+  }
+}

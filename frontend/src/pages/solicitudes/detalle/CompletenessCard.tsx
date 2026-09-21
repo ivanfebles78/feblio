@@ -1,9 +1,11 @@
 import { AlertCircle, CheckCircle2, FileWarning, RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardHeader } from '../../../components/v2/Card'
 import { ProgressRing } from '../../../components/v2/Progress'
 import { Button } from '../../../components/v2/Button'
-import { formatDateTime } from '../../../lib/solicitudes/format'
+import { formatDateTime } from '../../../lib/intl'
 import type { AnalysisItem, SolicitudAnalisis } from '../../../lib/solicitudes/types'
+import { analysisItemLabel } from '../../../lib/solicitudes/analysis'
 
 export interface CompletenessCardProps {
   analysis: SolicitudAnalisis | null
@@ -21,7 +23,7 @@ function ItemList({ items, icon, tone, empty }: { items: AnalysisItem[]; icon: R
           <span className="mt-0.5 shrink-0" aria-hidden="true">
             {icon}
           </span>
-          {it.label}
+          {analysisItemLabel(it)}
         </li>
       ))}
     </ul>
@@ -30,6 +32,7 @@ function ItemList({ items, icon, tone, empty }: { items: AnalysisItem[]; icon: R
 
 /** Tarjeta de suficiencia: % de completitud, recibido, pendiente y documentos que faltan. */
 export function CompletenessCard({ analysis, completeness, onReanalyze, busy = false }: CompletenessCardProps) {
+  const { t } = useTranslation()
   const received = analysis?.received ?? []
   const missing = analysis?.missing ?? []
   const missingDocs = analysis?.missing_documents ?? []
@@ -37,33 +40,33 @@ export function CompletenessCard({ analysis, completeness, onReanalyze, busy = f
     <Card className="p-5">
       <CardHeader
         className="flex-wrap"
-        title="Completitud de la información"
-        description={analysis ? `Comprobación v${analysis.version} · ${formatDateTime(analysis.created_at)} · reglas deterministas` : 'Sin comprobaciones todavía.'}
+        title={t('requests.completeness.title')}
+        description={analysis ? t('requests.completeness.checkInfo', { version: analysis.version, date: formatDateTime(analysis.created_at) }) : t('requests.completeness.noChecks')}
         action={
           onReanalyze && (
             <Button variant="secondary" size="sm" onClick={onReanalyze} disabled={busy} leading={<RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} aria-hidden="true" />}>
-              Volver a comprobar
+              {t('requests.actions.reanalyze')}
             </Button>
           )
         }
       />
       <div className="mt-4 grid gap-5 sm:grid-cols-[auto_1fr]">
         <div className="flex flex-col items-center gap-1">
-          <ProgressRing value={completeness} size={88} stroke={8} label="Completitud" />
+          <ProgressRing value={completeness} size={88} stroke={8} label={t('requests.completeness.ringLabel')} />
           <p className="text-xs text-slate-500">{analysis?.summary ?? ''}</p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           <div>
-            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Recibido</h3>
-            <ItemList items={received} icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />} tone="text-slate-700" empty="Nada todavía." />
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.completeness.received')}</h3>
+            <ItemList items={received} icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />} tone="text-slate-700" empty={t('requests.completeness.receivedEmpty')} />
           </div>
           <div>
-            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Información pendiente</h3>
-            <ItemList items={missing} icon={<AlertCircle className="h-4 w-4 text-amber-600" />} tone="text-slate-800" empty="Nada pendiente." />
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.completeness.missing')}</h3>
+            <ItemList items={missing} icon={<AlertCircle className="h-4 w-4 text-amber-600" />} tone="text-slate-800" empty={t('requests.completeness.missingEmpty')} />
           </div>
           <div>
-            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Documentos pendientes</h3>
-            <ItemList items={missingDocs} icon={<FileWarning className="h-4 w-4 text-amber-600" />} tone="text-slate-800" empty="Ningún documento pendiente." />
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.completeness.missingDocs')}</h3>
+            <ItemList items={missingDocs} icon={<FileWarning className="h-4 w-4 text-amber-600" />} tone="text-slate-800" empty={t('requests.completeness.missingDocsEmpty')} />
           </div>
         </div>
       </div>

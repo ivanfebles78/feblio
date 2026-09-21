@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { setUserLanguage } from '../../i18n'
 import type { SolicitudResumen } from '../../lib/solicitudes/types'
 
 const api = vi.hoisted(() => ({ listSolicitudes: vi.fn() }))
@@ -113,5 +114,47 @@ describe('<SolicitudesInbox />', () => {
     api.listSolicitudes.mockRejectedValue(new Error('No se pudieron cargar las solicitudes.'))
     setup()
     expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudieron cargar/i)
+  })
+})
+
+describe('<SolicitudesInbox /> en inglés', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setUserLanguage('en')
+  })
+
+  it('cabeceras de tabla, filtros, estados y canales en inglés; nombres y asuntos sin traducir', async () => {
+    api.listSolicitudes.mockResolvedValue(ROWS)
+    setup()
+    const table = await screen.findByRole('table')
+    expect(screen.getByRole('heading', { name: 'Requests' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'New request' }).length).toBeGreaterThan(0)
+    for (const col of ['Client / contact', 'Subject', 'Completeness', 'Status', 'Last activity']) expect(within(table).getByRole('columnheader', { name: col })).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Search by client, contact or subject' })).toHaveAttribute('placeholder', 'Search client, contact or subject')
+    expect(screen.getByRole('option', { name: 'All statuses' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Awaiting client' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'All channels' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Phone call' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Pending only' })).toBeInTheDocument()
+    expect(within(table).getByText('Closed')).toBeInTheDocument()
+    expect(within(table).getByRole('img', { name: /completeness 88%/i })).toBeInTheDocument()
+    expect(within(table).getByLabelText('2 unread messages')).toBeInTheDocument()
+    expect(within(table).getByText('Reforma cocina')).toBeInTheDocument()
+    expect(within(table).getByText('Norte SL')).toBeInTheDocument()
+    expect(screen.getByText('3 of 3 requests')).toBeInTheDocument()
+    expect(screen.queryByText(/solicitudes/i)).not.toBeInTheDocument()
+    expect(within(table).queryByText('Cerrada')).not.toBeInTheDocument() // el asunto «Cerrada antigua» (dato del usuario) sí se mantiene
+    expect(within(table).getByText('Cerrada antigua')).toBeInTheDocument()
+  })
+
+  it('estado vacío y vacío con filtros en inglés', async () => {
+    api.listSolicitudes.mockResolvedValue([])
+    const user = setup()
+    expect(await screen.findByText('No requests yet')).toBeInTheDocument()
+    expect(screen.getByText(/create the first one from a call/i)).toBeInTheDocument()
+    await user.type(screen.getByRole('searchbox', { name: /search/i }), 'zzz')
+    expect(await screen.findByText('No requests match the filters')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+    expect(screen.queryByText(/todavía no hay solicitudes/i)).not.toBeInTheDocument()
   })
 })

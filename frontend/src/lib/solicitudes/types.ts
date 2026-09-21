@@ -134,7 +134,8 @@ export interface Notificacion {
 export interface ClienteVista {
   access_id: string
   expires_at: string
-  empresa: { name: string; logo_url: string | null } | null
+  /** `language` ('es' | 'en') llega desde 0015; se usa para el idioma inicial del enlace público. */
+  empresa: { name: string; logo_url: string | null; language?: string } | null
   solicitud: {
     title: string
     service_type: string | null

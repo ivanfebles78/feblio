@@ -1,5 +1,7 @@
 import { AlertTriangle, CheckCircle2, Circle, Clock, Loader2, PlugZap, XCircle, Unplug, type LucideIcon } from 'lucide-react'
-import { STATUS_LABEL } from '../../lib/integrations/adapters'
+import { useTranslation } from 'react-i18next'
+import { integrationStatusLabel } from '../../lib/integrations/adapters'
+import { formatDateTime } from '../../lib/intl'
 import type { HealthCheckResult, IntegrationStatus } from '../../lib/onboarding/types'
 
 const META: Record<IntegrationStatus, { icon: LucideIcon; cls: string }> = {
@@ -15,18 +17,20 @@ const META: Record<IntegrationStatus, { icon: LucideIcon; cls: string }> = {
 
 /** Estado de conexión de una integración (icono + texto). */
 export function ConnectionStatus({ status }: { status: IntegrationStatus }) {
+  useTranslation()
   const m = META[status]
   const Icon = m.icon
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${m.cls}`}>
       <Icon className={`h-3 w-3 ${status === 'connecting' ? 'animate-spin motion-reduce:animate-none' : ''}`} aria-hidden="true" />
-      {STATUS_LABEL[status]}
+      {integrationStatusLabel(status)}
     </span>
   )
 }
 
 /** Resultado de una prueba de conexión. */
 export function ConnectionTestResult({ result }: { result: HealthCheckResult | null }) {
+  const { t } = useTranslation()
   if (!result) return null
   return (
     <div
@@ -49,7 +53,7 @@ export function ConnectionTestResult({ result }: { result: HealthCheckResult | n
         </dl>
       )}
       <p className="mt-1 text-[11px] opacity-70">
-        Probado el <time dateTime={result.checkedAt}>{new Date(result.checkedAt).toLocaleString('es-ES')}</time>
+        {t('onboarding.connection.testedAt')} <time dateTime={result.checkedAt}>{formatDateTime(result.checkedAt)}</time>
       </p>
     </div>
   )

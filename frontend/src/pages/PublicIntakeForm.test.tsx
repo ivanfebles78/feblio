@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { setUserLanguage } from '../i18n'
 
 const sb = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -12,6 +13,8 @@ vi.mock('../lib/supabase', () => ({
 }))
 
 import PublicIntakeForm from './PublicIntakeForm'
+
+const BASIC_FORM = { status: 'pendiente', empresa: 'RALM', logo_url: null, project_types: [], form: null }
 
 function renderForm(token = '11111111-1111-1111-1111-111111111111') {
   return render(
@@ -59,5 +62,51 @@ describe('<PublicIntakeForm /> con bucket privado', () => {
     renderForm()
     expect(await screen.findByText(/no es válido o ha caducado/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /enviar mis datos/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('<PublicIntakeForm /> idioma de la empresa (get_intake_form.language)', () => {
+  it('con language "en" y sin preferencia guardada se muestra en inglés', async () => {
+    sb.rpc.mockResolvedValue({ data: { ...BASIC_FORM, language: 'en' }, error: null })
+    renderForm()
+    expect(await screen.findByRole('button', { name: /send my details/i })).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('en')
+    expect(screen.getByLabelText(/name or company name/i)).toBeInTheDocument()
+    expect(screen.getByText(/secure form/i)).toBeInTheDocument()
+    expect(screen.queryByText(/enviar mis datos/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('group', { name: /interface language/i })).toBeInTheDocument()
+  })
+
+  it('la elección manual del visitante (es) prevalece sobre language "en"', async () => {
+    setUserLanguage('es')
+    sb.rpc.mockResolvedValue({ data: { ...BASIC_FORM, language: 'en' }, error: null })
+    renderForm()
+    expect(await screen.findByRole('button', { name: /enviar mis datos/i })).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('es')
+    expect(screen.queryByText(/send my details/i)).not.toBeInTheDocument()
+  })
+
+  it('un idioma no soportado ("xx") se muestra en español', async () => {
+    sb.rpc.mockResolvedValue({ data: { ...BASIC_FORM, language: 'xx' }, error: null })
+    renderForm()
+    expect(await screen.findByRole('button', { name: /enviar mis datos/i })).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('es')
+  })
+
+  it('sin language en la respuesta se mantiene el español por defecto', async () => {
+    sb.rpc.mockResolvedValue({ data: BASIC_FORM, error: null })
+    renderForm()
+    expect(await screen.findByRole('button', { name: /enviar mis datos/i })).toBeInTheDocument()
+    expect(document.documentElement.lang).toBe('es')
+  })
+
+  it('el selector permite cambiar a inglés sin recargar y el nombre de la empresa no se traduce', async () => {
+    sb.rpc.mockResolvedValue({ data: { ...BASIC_FORM, empresa: 'Reformas Norte' }, error: null })
+    const user = userEvent.setup()
+    renderForm()
+    await screen.findByRole('button', { name: /enviar mis datos/i })
+    await user.click(screen.getByRole('button', { name: 'English' }))
+    expect(await screen.findByRole('button', { name: /send my details/i })).toBeInTheDocument()
+    expect(screen.getAllByText('Reformas Norte').length).toBeGreaterThan(0)
   })
 })

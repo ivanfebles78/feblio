@@ -1,5 +1,6 @@
 import { Check, Circle, CircleDot } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /** Barra de progreso accesible (role=progressbar con valor anunciado). */
 export function ProgressBar({ value, label, className = '' }: { value: number; label: string; className?: string }) {
@@ -75,10 +76,10 @@ function StatusIcon({ status }: { status: ChecklistStatus }) {
   )
 }
 
-const STATUS_TEXT: Record<ChecklistStatus, string> = { done: 'Completado', current: 'Siguiente paso', pending: 'Pendiente' }
-
 /** Lista de pasos con estado explícito en texto (no solo color) y acción por fila. */
-export function Checklist({ items, onAction, actionLabel = 'Configurar' }: { items: ChecklistItemData[]; onAction?: (key: string) => void; actionLabel?: string }) {
+export function Checklist({ items, onAction, actionLabel }: { items: ChecklistItemData[]; onAction?: (key: string) => void; actionLabel?: string }) {
+  const { t } = useTranslation()
+  const action = actionLabel ?? t('dashboard.checklist.configure')
   return (
     <ol className="divide-y divide-slate-200">
       {items.map((it, i) => (
@@ -87,11 +88,11 @@ export function Checklist({ items, onAction, actionLabel = 'Configurar' }: { ite
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-slate-900">
               <span className="text-slate-500">{i + 1}.</span>&nbsp;{it.title}
-              <span className="sr-only">— {STATUS_TEXT[it.status]}</span>
+              <span className="sr-only">— {t(`dashboard.checklist.${it.status}`)}</span>
             </p>
             <p className="text-xs text-slate-600">{it.description}</p>
           </div>
-          <span className="hidden shrink-0 text-xs tabular-nums text-slate-500 sm:inline">{it.minutes} min</span>
+          <span className="hidden shrink-0 text-xs tabular-nums text-slate-500 sm:inline">{t('dashboard.checklist.minutes', { count: it.minutes })}</span>
           {onAction && it.status !== 'done' && (
             <button
               type="button"
@@ -100,7 +101,7 @@ export function Checklist({ items, onAction, actionLabel = 'Configurar' }: { ite
                 it.status === 'current' ? 'bg-brand-600 text-white hover:bg-brand-700' : 'text-brand-700 hover:bg-brand-50'
               }`}
             >
-              {actionLabel}
+              {action}
             </button>
           )}
         </li>

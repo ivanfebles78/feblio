@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Building2, CheckCircle2, Clock3, FileText, MessagesSquare, ReceiptText, Workflow } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
+import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { Logo } from '../components/Logo'
 import { Button } from '../components/v2/Button'
 import { ProgressBar } from '../components/v2/Progress'
@@ -18,6 +20,7 @@ const AREA_ICONS = [Building2, FileText, MessagesSquare, Workflow, ReceiptText]
  * como vista (RPC idempotente); "Ir al dashboard" no obliga a configurar nada.
  */
 export default function WelcomePage() {
+  const { t } = useTranslation()
   const { profile } = useAuth()
   const navigate = useNavigate()
   const [companyName, setCompanyName] = useState('')
@@ -47,7 +50,7 @@ export default function WelcomePage() {
       await markWelcomeSeen()
       navigate(target === 'configure' ? onboardingStepPath('company') : '/empresa', { replace: true })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo continuar. Inténtalo de nuevo.')
+      setError(e instanceof Error ? e.message : t('auth.welcome.continueError'))
       setBusy(null)
     }
   }
@@ -55,28 +58,35 @@ export default function WelcomePage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
           <Logo size={28} />
-          <span className="truncate text-sm text-slate-600">{profile?.email}</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="truncate text-sm text-slate-600">{profile?.email}</span>
+            <LanguageSwitcher />
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-10">
         <div className="mx-auto max-w-2xl text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">
-            <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Correo confirmado
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> {t('auth.welcome.emailConfirmed')}
           </span>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{firstName ? `Hola, ${firstName}. ` : ''}Tu empresa ya está creada.</h1>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{firstName ? t('auth.welcome.titleWithName', { name: firstName }) : t('auth.welcome.title')}</h1>
           <p className="mt-3 text-lg text-slate-700">
-            {companyName && <span className="font-semibold text-slate-900">{companyName} </span>}ya puede usar Feblio: crea proyectos, sube documentos y da de alta clientes desde hoy.
+            {companyName ? (
+              <Trans i18nKey="auth.welcome.introWithCompany" values={{ company: companyName }} components={{ company: <span className="font-semibold text-slate-900" /> }} />
+            ) : (
+              t('auth.welcome.intro')
+            )}
           </p>
-          <p className="mt-2 text-sm text-slate-600">La configuración es progresiva: cada área se puede completar cuando te venga bien, y nada queda bloqueado mientras tanto.</p>
+          <p className="mt-2 text-sm text-slate-600">{t('auth.welcome.progressive')}</p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <Button size="lg" onClick={() => go('configure')} disabled={busy !== null} trailing={<ArrowRight className="h-4 w-4" aria-hidden="true" />}>
-              {busy === 'configure' ? 'Abriendo…' : 'Configurar Feblio'}
+              {busy === 'configure' ? t('auth.welcome.opening') : t('auth.welcome.configure')}
             </Button>
             <Button size="lg" variant="secondary" onClick={() => go('dashboard')} disabled={busy !== null}>
-              {busy === 'dashboard' ? 'Abriendo…' : 'Ir al dashboard'}
+              {busy === 'dashboard' ? t('auth.welcome.opening') : t('auth.welcome.dashboard')}
             </Button>
           </div>
           <div aria-live="assertive">
@@ -92,15 +102,15 @@ export default function WelcomePage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 id="areas-title" className="text-lg font-semibold">
-                Cinco áreas para dejar Feblio a tu medida
+                {t('auth.welcome.areasTitle')}
               </h2>
-              <p className="mt-1 text-sm text-slate-600">Puedes hacerlas en cualquier orden. Te recomendamos empezar por el perfil de empresa.</p>
+              <p className="mt-1 text-sm text-slate-600">{t('auth.welcome.areasHint')}</p>
             </div>
             <p className="inline-flex items-center gap-1.5 text-sm text-slate-600">
-              <Clock3 className="h-4 w-4" aria-hidden="true" /> Unos {SETUP_TOTAL_MINUTES} minutos en total
+              <Clock3 className="h-4 w-4" aria-hidden="true" /> {t('auth.welcome.totalMinutes', { count: SETUP_TOTAL_MINUTES })}
             </p>
           </div>
-          <ProgressBar value={0} label="Configuración completada" className="mt-5" />
+          <ProgressBar value={0} label={t('auth.welcome.progressLabel')} className="mt-5" />
           <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {SETUP_AREAS.map((a, i) => {
               const Icon = AREA_ICONS[i]
@@ -114,14 +124,14 @@ export default function WelcomePage() {
                   </div>
                   <p className="mt-3 text-sm font-semibold text-slate-900">{a.title}</p>
                   <p className="mt-1 text-sm leading-relaxed text-slate-600">{a.description}</p>
-                  <p className="mt-2 text-sm text-slate-500">{a.minutes} min</p>
+                  <p className="mt-2 text-sm text-slate-500">{t('common.units.minutes', { count: a.minutes })}</p>
                 </li>
               )
             })}
           </ol>
         </section>
 
-        <p className="mt-6 text-center text-sm text-slate-600">¿Prefieres explorar primero? Podrás retomar la configuración en cualquier momento desde el panel de inicio.</p>
+        <p className="mt-6 text-center text-sm text-slate-600">{t('auth.welcome.exploreFirst')}</p>
       </main>
     </div>
   )

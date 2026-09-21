@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   FolderKanban,
   Inbox,
@@ -32,19 +33,19 @@ import { cleanupTestData } from '../lib/onboarding/api'
 import { useAuth } from '../context/AuthContext'
 import { PENDING_FOR_EMPRESA } from '../lib/solicitudes/status'
 import { EMPRESA_PATHS } from '../lib/routing'
+import { formatCurrency, formatRelative } from '../lib/intl'
 import type { EmpresaSummary } from '../pages/EmpresaDashboard'
 import {
-  formatEUR,
-  STATUS_LABEL,
+  DOCUMENT_TYPES,
+  PROJECT_STATUSES,
+  documentTypePluralLabel,
+  projectStatusLabel,
   type Cliente,
   type DocumentRow,
   type Project,
   type ProjectStatus,
   type Task,
-  type DocumentType,
 } from '../lib/types'
-
-const STATUS_OPTIONS: ProjectStatus[] = ['borrador', 'en_progreso', 'completado', 'cancelado']
 
 const STATUS_TONE: Record<string, string> = {
   en_progreso: 'blue',
@@ -52,27 +53,13 @@ const STATUS_TONE: Record<string, string> = {
   borrador: 'slate',
   cancelado: 'red',
 }
-const DOC_GROUP: { type: DocumentType; label: string }[] = [
-  { type: 'presupuesto', label: 'Presupuestos' },
-  { type: 'provision', label: 'Provisiones de fondos' },
-  { type: 'factura', label: 'Facturas' },
-  { type: 'contrato', label: 'Contratos' },
-  { type: 'otro', label: 'Otros documentos' },
-]
 
+/** Prioridad de tarea: clave de traducción, tono e icono (el texto se resuelve al renderizar). */
 const PRIORITY = {
-  1: { label: 'Alta', tone: 'red', icon: AlertTriangle },
-  2: { label: 'Media', tone: 'amber', icon: CircleDot },
-  3: { label: 'Baja', tone: 'slate', icon: Circle },
+  1: { key: 'high', tone: 'red', icon: AlertTriangle },
+  2: { key: 'medium', tone: 'amber', icon: CircleDot },
+  3: { key: 'low', tone: 'slate', icon: Circle },
 } as const
-
-function diasDesde(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime()
-  const d = Math.floor(ms / 86400000)
-  if (d <= 0) return 'hoy'
-  if (d === 1) return 'hace 1 día'
-  return `hace ${d} días`
-}
 
 interface EmpresaHomeProps {
   empresaId: string
@@ -82,6 +69,7 @@ interface EmpresaHomeProps {
 }
 
 export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: EmpresaHomeProps) {
+  const { t } = useTranslation()
   const { profile } = useAuth()
   const setup = useSetupProgress(empresaId, empresa?.onboarding_status ?? null)
   const firstName = (profile?.full_name ?? '').trim().split(/\s+/)[0] || ''
@@ -127,7 +115,7 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
   const solicitudesPending = solicitudes.filter((x) => (PENDING_FOR_EMPRESA as string[]).includes(x.status)).length
 
   async function deleteProject(id: string) {
-    if (!window.confirm('¿Borrar este proyecto y todos sus documentos?')) return
+    if (!window.confirm(t('dashboard.home.projects.deleteConfirm'))) return
     await supabase.from('projects').delete().eq('id', id)
     load()
   }
@@ -165,16 +153,16 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
     try {
       const res = await cleanupTestData()
       const d = res.deleted
-      setCleanupMsg({ ok: true, text: `Datos de prueba eliminados (${d.projects} proyectos, ${d.clientes} clientes, ${d.tasks} pendientes, ${d.documents} documentos).` })
+      setCleanupMsg({ ok: true, text: t('dashboard.home.testData.deleted', { projects: d.projects, clientes: d.clientes, tasks: d.tasks, documents: d.documents }) })
       await load()
     } catch (e) {
-      setCleanupMsg({ ok: false, text: e instanceof Error ? e.message : 'No se pudieron eliminar los datos de prueba.' })
+      setCleanupMsg({ ok: false, text: e instanceof Error ? e.message : t('dashboard.home.testData.deleteError') })
     } finally {
       setCleaning(false)
     }
   }
 
-  if (loading) return <p className="text-slate-400">Cargando…</p>
+  if (loading) return <p className="text-slate-400">{t('common.state.loading')}</p>
 
   return (
     <div className="space-y-6">
@@ -193,8 +181,8 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
           <p>
             {hasTestData ? (
               <>
-                <strong>Datos de prueba del asistente:</strong> {testCounts.projects} proyecto(s), {testCounts.clientes} cliente(s) y{' '}
-                {testCounts.tasks} pendiente(s) marcados como prueba. No son datos reales.
+                <strong>{t('dashboard.home.testData.title')}</strong>{' '}
+                {t('dashboard.home.testData.summary', { projects: testCounts.projects, clientes: testCounts.clientes, tasks: testCounts.tasks })}
               </>
             ) : (
               cleanupMsg?.text
@@ -208,29 +196,32 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
               disabled={cleaning}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
             >
-              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {cleaning ? 'Eliminando…' : 'Eliminar datos de prueba'}
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" /> {cleaning ? t('dashboard.home.testData.deleting') : t('dashboard.home.testData.delete')}
             </button>
           )}
         </div>
       )}
-      <ConfirmDialog open={confirmCleanup} title="Eliminar datos de prueba" tone="danger" confirmLabel="Eliminar" busy={cleaning} onConfirm={cleanupSandbox} onCancel={() => setConfirmCleanup(false)}>
-        Se borrarán el cliente, el proyecto, los documentos, las tareas y el formulario creados por la prueba guiada. Tus datos reales y tu
-        configuración no se tocan.
+      <ConfirmDialog
+        open={confirmCleanup}
+        title={t('dashboard.home.testData.confirmTitle')}
+        tone="danger"
+        confirmLabel={t('dashboard.home.testData.confirmAction')}
+        busy={cleaning}
+        onConfirm={cleanupSandbox}
+        onCancel={() => setConfirmCleanup(false)}
+      >
+        {t('dashboard.home.testData.confirmBody')}
       </ConfirmDialog>
 
       {/* Cabecera */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{firstName ? `Hola, ${firstName}` : 'Hola'}</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {projects.length === 0 && clientes.length === 0
-              ? 'Tu empresa está lista. Empieza creando tu primer proyecto o completa la configuración.'
-              : 'Esto es lo que necesita tu atención hoy.'}
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{firstName ? t('dashboard.home.greeting', { name: firstName }) : t('dashboard.home.greetingAnonymous')}</h1>
+          <p className="mt-1 text-sm text-slate-600">{projects.length === 0 && clientes.length === 0 ? t('dashboard.home.introEmpty') : t('dashboard.home.intro')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {setupPending ? <StatusPill tone="pending">Configuración pendiente</StatusPill> : <StatusPill tone="success">Configuración completa</StatusPill>}
-          {empresa?.subscription_status === 'trial' && <StatusPill tone="info">Periodo de prueba</StatusPill>}
+          {setupPending ? <StatusPill tone="pending">{t('dashboard.home.setupPending')}</StatusPill> : <StatusPill tone="success">{t('dashboard.home.setupComplete')}</StatusPill>}
+          {empresa?.subscription_status === 'trial' && <StatusPill tone="info">{t('dashboard.home.trial')}</StatusPill>}
         </div>
       </div>
 
@@ -244,50 +235,48 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
 
       {/* Métricas */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <MetricCard icon={Inbox} label="Solicitudes" value={String(solicitudesOpen)} hint={solicitudesOpen ? `${solicitudesPending} requieren tu atención` : 'Ninguna abierta'} to={EMPRESA_PATHS.solicitudes} />
-        <MetricCard icon={FolderKanban} label="Proyectos" value={String(projects.length)} hint={projects.length ? `${projects.filter((p) => p.status === 'en_progreso').length} en progreso` : 'Ninguno todavía'} />
-        <MetricCard icon={Users} label="Clientes" value={String(clientesCount)} hint={clientesCount ? undefined : 'Ninguno todavía'} />
-        <MetricCard icon={Wallet} label="Facturado" value={formatEUR(invoiced)} hint={invoiced ? undefined : 'Sin facturación aún'} />
-        <MetricCard icon={ListTodo} label="Pendientes" value={String(tasks.length)} hint={tasks.length ? 'Requieren atención' : 'Todo al día'} />
+        <MetricCard
+          icon={Inbox}
+          label={t('common.nav.requests')}
+          value={String(solicitudesOpen)}
+          hint={solicitudesOpen ? t('dashboard.home.metrics.requestsHint', { count: solicitudesPending }) : t('dashboard.home.metrics.requestsNone')}
+          to={EMPRESA_PATHS.solicitudes}
+        />
+        <MetricCard
+          icon={FolderKanban}
+          label={t('dashboard.home.metrics.projects')}
+          value={String(projects.length)}
+          hint={projects.length ? t('dashboard.home.metrics.projectsHint', { count: projects.filter((p) => p.status === 'en_progreso').length }) : t('dashboard.home.metrics.noneYet')}
+        />
+        <MetricCard icon={Users} label={t('dashboard.home.metrics.clients')} value={String(clientesCount)} hint={clientesCount ? undefined : t('dashboard.home.metrics.noneYet')} />
+        <MetricCard icon={Wallet} label={t('dashboard.home.metrics.invoiced')} value={formatCurrency(invoiced)} hint={invoiced ? undefined : t('dashboard.home.metrics.noInvoicing')} />
+        <MetricCard icon={ListTodo} label={t('dashboard.home.metrics.pending')} value={String(tasks.length)} hint={tasks.length ? t('dashboard.home.metrics.needAttention') : t('dashboard.home.metrics.allClear')} />
       </div>
 
       {/* Pendientes */}
-      <SectionCard
-        title="Cosas pendientes"
-        action={<Badge tone={tasks.length ? 'amber' : 'green'}>{tasks.length} por resolver</Badge>}
-      >
+      <SectionCard title={t('dashboard.home.pending.title')} action={<Badge tone={tasks.length ? 'amber' : 'green'}>{t('dashboard.home.pending.toResolve', { count: tasks.length })}</Badge>}>
         {tasks.length === 0 ? (
-          <EmptyState icon={<CheckCircle2 className="h-5 w-5" />} title="Todo al día" description="Las tareas que Feblio te proponga y los pendientes de tus proyectos aparecerán aquí." />
+          <EmptyState icon={<CheckCircle2 className="h-5 w-5" />} title={t('dashboard.home.pending.emptyTitle')} description={t('dashboard.home.pending.emptyDescription')} />
         ) : (
           <ul className="space-y-2">
-            {tasks.map((t) => {
-              const pr = PRIORITY[(t.priority as 1 | 2 | 3) ?? 2] ?? PRIORITY[2]
+            {tasks.map((task) => {
+              const pr = PRIORITY[(task.priority as 1 | 2 | 3) ?? 2] ?? PRIORITY[2]
               return (
-                <li
-                  key={t.id}
-                  className="flex items-start gap-3 rounded-xl border border-slate-200 p-3.5"
-                >
-                  <span className={`mt-0.5 shrink-0 rounded-lg p-1.5 ${
-                    pr.tone === 'red' ? 'bg-red-50 text-red-500'
-                    : pr.tone === 'amber' ? 'bg-amber-50 text-amber-500'
-                    : 'bg-slate-100 text-slate-400'
-                  }`}>
+                <li key={task.id} className="flex items-start gap-3 rounded-xl border border-slate-200 p-3.5">
+                  <span className={`mt-0.5 shrink-0 rounded-lg p-1.5 ${pr.tone === 'red' ? 'bg-red-50 text-red-500' : pr.tone === 'amber' ? 'bg-amber-50 text-amber-500' : 'bg-slate-100 text-slate-400'}`}>
                     <pr.icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium text-slate-800">{t.title}</p>
-                      {t.is_test && <Badge tone="amber">Prueba</Badge>}
-                      <Badge tone={pr.tone}>Prioridad {pr.label}</Badge>
-                      <span className="text-xs text-slate-400">{diasDesde(t.created_at)}</span>
+                      <p className="font-medium text-slate-800">{task.title}</p>
+                      {task.is_test && <Badge tone="amber">{t('dashboard.home.pending.test')}</Badge>}
+                      <Badge tone={pr.tone}>{t('dashboard.home.pending.priority', { level: t(`dashboard.priority.${pr.key}`) })}</Badge>
+                      <span className="text-xs text-slate-400">{formatRelative(task.created_at)}</span>
                     </div>
-                    {t.detail && <p className="mt-0.5 text-sm text-slate-500">{t.detail}</p>}
+                    {task.detail && <p className="mt-0.5 text-sm text-slate-500">{task.detail}</p>}
                   </div>
-                  <button
-                    onClick={() => resolver(t.id)}
-                    className="flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Resolver
+                  <button onClick={() => resolver(task.id)} className="flex shrink-0 items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {t('dashboard.home.pending.resolve')}
                   </button>
                 </li>
               )
@@ -298,12 +287,12 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
 
       {/* Proyectos desplegables */}
       <SectionCard
-        title="Tus proyectos"
+        title={t('dashboard.home.projects.title')}
         action={
           <div className="flex items-center gap-2">
             <Badge tone="blue">{projects.length}</Badge>
             <Button size="sm" onClick={() => setEditing('new')} leading={<Plus className="h-4 w-4" aria-hidden="true" />}>
-              Nuevo proyecto
+              {t('dashboard.home.projects.new')}
             </Button>
           </div>
         }
@@ -311,11 +300,11 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
         {projects.length === 0 ? (
           <EmptyState
             icon={<FolderKanban className="h-5 w-5" />}
-            title="Aún no tienes proyectos"
-            description="Crea el primero para empezar a organizar documentos, presupuestos y clientes. No necesitas completar la configuración."
+            title={t('dashboard.home.projects.emptyTitle')}
+            description={t('dashboard.home.projects.emptyDescription')}
             action={
               <Button size="sm" onClick={() => setEditing('new')} leading={<Plus className="h-4 w-4" aria-hidden="true" />}>
-                Crear proyecto
+                {t('dashboard.home.projects.create')}
               </Button>
             }
           />
@@ -326,78 +315,60 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
               const docs = documents.filter((d) => d.project_id === p.id)
               return (
                 <li key={p.id} className="overflow-hidden rounded-xl border border-slate-200">
-                  <button
-                    onClick={() => toggle(p.id)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50"
-                  >
-                    {isOpen ? (
-                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
-                    )}
+                  <button onClick={() => toggle(p.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-50">
+                    {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" /> : <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />}
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2 font-semibold text-slate-800">
                         {p.name}
-                        {p.is_test && <Badge tone="amber">Prueba</Badge>}
+                        {p.is_test && <Badge tone="amber">{t('dashboard.home.projects.test')}</Badge>}
                       </span>
-                      <span className="text-xs text-slate-400">
-                        {docs.length} documento{docs.length === 1 ? '' : 's'} · {p.progress}% completado
-                      </span>
+                      <span className="text-xs text-slate-400">{t('dashboard.home.projects.summary', { count: docs.length, progress: p.progress })}</span>
                     </span>
-                    <Badge tone={STATUS_TONE[p.status]}>{STATUS_LABEL[p.status]}</Badge>
+                    <Badge tone={STATUS_TONE[p.status]}>{projectStatusLabel(p.status)}</Badge>
                   </button>
 
                   {isOpen && (
                     <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-4">
                       {/* Acciones */}
                       <div className="mb-4 flex justify-end gap-2">
-                        <button
-                          onClick={() => setEditing(p)}
-                          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                        >
-                          <Pencil className="h-3.5 w-3.5" /> Editar
+                        <button onClick={() => setEditing(p)} className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                          <Pencil className="h-3.5 w-3.5" /> {t('common.actions.edit')}
                         </button>
-                        <button
-                          onClick={() => deleteProject(p.id)}
-                          className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Borrar
+                        <button onClick={() => deleteProject(p.id)} className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
+                          <Trash2 className="h-3.5 w-3.5" /> {t('common.actions.delete')}
                         </button>
                       </div>
                       {/* Cifras */}
                       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {[
-                          ['Presupuesto', p.budget_total],
-                          ['Facturado', p.invoiced],
-                          ['Provisión', p.provision_funds],
-                          ['Pendiente', p.pending_payments],
-                        ].map(([label, val]) => (
-                          <div key={label as string} className="rounded-lg bg-white p-2.5 ring-1 ring-slate-100">
-                            <p className="text-[11px] text-slate-400">{label as string}</p>
-                            <p className="text-sm font-bold text-slate-800">{formatEUR(val as number)}</p>
+                        {(
+                          [
+                            ['budget', p.budget_total],
+                            ['invoiced', p.invoiced],
+                            ['provision', p.provision_funds],
+                            ['pending', p.pending_payments],
+                          ] as const
+                        ).map(([key, val]) => (
+                          <div key={key} className="rounded-lg bg-white p-2.5 ring-1 ring-slate-100">
+                            <p className="text-[11px] text-slate-400">{t(`dashboard.home.projects.${key}`)}</p>
+                            <p className="text-sm font-bold text-slate-800">{formatCurrency(val)}</p>
                           </div>
                         ))}
                       </div>
 
                       {/* Documentos por apartado */}
                       {docs.length === 0 ? (
-                        <p className="text-sm text-slate-400">Este proyecto no tiene documentos todavía.</p>
+                        <p className="text-sm text-slate-400">{t('dashboard.home.projects.noDocuments')}</p>
                       ) : (
                         <div className="space-y-3">
-                          {DOC_GROUP.map((g) => {
-                            const list = docs.filter((d) => d.type === g.type)
+                          {DOCUMENT_TYPES.map((type) => {
+                            const list = docs.filter((d) => d.type === type)
                             if (list.length === 0) return null
                             return (
-                              <div key={g.type}>
-                                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                                  {g.label}
-                                </p>
+                              <div key={type}>
+                                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">{documentTypePluralLabel(type)}</p>
                                 <ul className="space-y-1.5">
                                   {list.map((d) => (
-                                    <li
-                                      key={d.id}
-                                      className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-100"
-                                    >
+                                    <li key={d.id} className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-slate-100">
                                       <FileText className="h-3.5 w-3.5 shrink-0 text-brand-500" />
                                       <span className="min-w-0 flex-1 truncate text-slate-700">{d.name}</span>
                                       {d.status && <Badge tone="slate">{d.status}</Badge>}
@@ -435,11 +406,12 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
   )
 }
 
-const NUM_FIELDS: { key: keyof Project; label: string }[] = [
-  { key: 'budget_total', label: 'Presupuesto total' },
-  { key: 'invoiced', label: 'Facturado' },
-  { key: 'provision_funds', label: 'Provisión de fondos' },
-  { key: 'pending_payments', label: 'Pagos pendientes' },
+/** Campos de importe del formulario de proyecto: clave del modelo → clave de traducción. */
+const NUM_FIELDS: { key: 'budget_total' | 'invoiced' | 'provision_funds' | 'pending_payments'; labelKey: string }[] = [
+  { key: 'budget_total', labelKey: 'dashboard.home.projectForm.budgetTotal' },
+  { key: 'invoiced', labelKey: 'dashboard.home.projectForm.invoiced' },
+  { key: 'provision_funds', labelKey: 'dashboard.home.projectForm.provisionFunds' },
+  { key: 'pending_payments', labelKey: 'dashboard.home.projectForm.pendingPayments' },
 ]
 
 function ProjectForm({
@@ -455,6 +427,7 @@ function ProjectForm({
   onClose: () => void
   onSaved: () => void
 }) {
+  const { t } = useTranslation()
   const [form, setForm] = useState({
     name: project?.name ?? '',
     cliente_id: project?.cliente_id ?? '',
@@ -484,52 +457,34 @@ function ProjectForm({
       pending_payments: Number(form.pending_payments) || 0,
       progress: Math.min(100, Math.max(0, Number(form.progress) || 0)),
     }
-    const { error } = project
-      ? await supabase.from('projects').update(payload).eq('id', project.id)
-      : await supabase.from('projects').insert(payload)
+    const { error } = project ? await supabase.from('projects').update(payload).eq('id', project.id) : await supabase.from('projects').insert(payload)
     setSaving(false)
     if (error) setError(error.message)
     else onSaved()
   }
 
-  const inputCls =
-    'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100'
+  const inputCls = 'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100'
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4" onClick={onClose}>
-      <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-float"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-float" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
-          <p className="font-semibold text-slate-800">
-            {project ? 'Editar proyecto' : 'Nuevo proyecto'}
-          </p>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+          <p className="font-semibold text-slate-800">{project ? t('dashboard.home.projectForm.editTitle') : t('dashboard.home.projectForm.newTitle')}</p>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100" aria-label={t('common.actions.close')}>
             <X className="h-4 w-4" />
           </button>
         </div>
         <form onSubmit={save} className="space-y-3 p-5">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-500">Nombre del proyecto</span>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Reforma Integral Edificio Central"
-              className={inputCls}
-              required
-            />
+            <span className="mb-1 block text-xs font-medium text-slate-500">{t('dashboard.home.projectForm.name')}</span>
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('dashboard.home.projectForm.namePlaceholder')} className={inputCls} required />
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-500">Cliente</span>
-              <select
-                value={form.cliente_id}
-                onChange={(e) => setForm({ ...form, cliente_id: e.target.value })}
-                className={inputCls}
-              >
-                <option value="">Sin cliente</option>
+              <span className="mb-1 block text-xs font-medium text-slate-500">{t('dashboard.home.projectForm.client')}</span>
+              <select value={form.cliente_id} onChange={(e) => setForm({ ...form, cliente_id: e.target.value })} className={inputCls}>
+                <option value="">{t('dashboard.home.projectForm.noClient')}</option>
                 {clientes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -538,15 +493,11 @@ function ProjectForm({
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-slate-500">Estado</span>
-              <select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value as ProjectStatus })}
-                className={inputCls}
-              >
-                {STATUS_OPTIONS.map((s) => (
+              <span className="mb-1 block text-xs font-medium text-slate-500">{t('dashboard.home.projectForm.status')}</span>
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as ProjectStatus })} className={inputCls}>
+                {PROJECT_STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {STATUS_LABEL[s]}
+                    {projectStatusLabel(s)}
                   </option>
                 ))}
               </select>
@@ -556,43 +507,25 @@ function ProjectForm({
           <div className="grid gap-3 sm:grid-cols-2">
             {NUM_FIELDS.map((f) => (
               <label key={f.key} className="block">
-                <span className="mb-1 block text-xs font-medium text-slate-500">{f.label} (€)</span>
-                <input
-                  type="number"
-                  value={form[f.key as keyof typeof form] as string}
-                  onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
-                  className={inputCls}
-                />
+                <span className="mb-1 block text-xs font-medium text-slate-500">{t('dashboard.home.projectForm.amountLabel', { label: t(f.labelKey) })}</span>
+                <input type="number" value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} className={inputCls} />
               </label>
             ))}
           </div>
 
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-500">
-              Progreso: {form.progress}%
-            </span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={form.progress}
-              onChange={(e) => setForm({ ...form, progress: e.target.value })}
-              className="w-full accent-brand-600"
-            />
+            <span className="mb-1 block text-xs font-medium text-slate-500">{t('dashboard.home.projectForm.progress', { value: form.progress })}</span>
+            <input type="range" min={0} max={100} value={form.progress} onChange={(e) => setForm({ ...form, progress: e.target.value })} className="w-full accent-brand-600" />
           </label>
 
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
           <div className="flex gap-2 pt-1">
             <button type="submit" disabled={saving} className="btn-primary">
-              <Save className="h-4 w-4" /> {saving ? 'Guardando…' : 'Guardar proyecto'}
+              <Save className="h-4 w-4" /> {saving ? t('common.actions.saving') : t('dashboard.home.projectForm.save')}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-            >
-              Cancelar
+            <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              {t('common.actions.cancel')}
             </button>
           </div>
         </form>
@@ -617,20 +550,22 @@ function MetricCard({ icon: Icon, label, value, hint, to }: { icon: LucideIcon; 
       </div>
     </>
   )
-  if (to) return (
-    <Link to={to} className={`${cls} hover:border-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}>
-      {body}
-    </Link>
-  )
+  if (to)
+    return (
+      <Link to={to} className={`${cls} hover:border-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}>
+        {body}
+      </Link>
+    )
   return <div className={cls}>{body}</div>
 }
 
 function DocActions({ path }: { path: string | null }) {
+  const { t } = useTranslation()
   const url = path && /^https?:\/\//.test(path) ? path : null
   const base = 'grid h-7 w-7 place-items-center rounded-md transition'
   if (!url)
     return (
-      <span className="flex gap-1" title="Documento de ejemplo (sin archivo todavía)">
+      <span className="flex gap-1" title={t('dashboard.home.projects.sampleDocument')}>
         <span className={`${base} text-slate-300`}>
           <Eye className="h-3.5 w-3.5" />
         </span>
@@ -641,21 +576,10 @@ function DocActions({ path }: { path: string | null }) {
     )
   return (
     <span className="flex gap-1">
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        title="Ver"
-        className={`${base} text-slate-500 hover:bg-brand-50 hover:text-brand-600`}
-      >
+      <a href={url} target="_blank" rel="noreferrer" title={t('common.actions.view')} className={`${base} text-slate-500 hover:bg-brand-50 hover:text-brand-600`}>
         <Eye className="h-3.5 w-3.5" />
       </a>
-      <a
-        href={url}
-        download
-        title="Descargar"
-        className={`${base} text-slate-500 hover:bg-brand-50 hover:text-brand-600`}
-      >
+      <a href={url} download title={t('common.actions.download')} className={`${base} text-slate-500 hover:bg-brand-50 hover:text-brand-600`}>
         <Download className="h-3.5 w-3.5" />
       </a>
     </span>

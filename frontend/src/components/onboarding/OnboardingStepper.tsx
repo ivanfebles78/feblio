@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
-import { STEPS } from '../../lib/onboarding/steps'
+import { useTranslation } from 'react-i18next'
+import { STEPS, stepStatusLabel } from '../../lib/onboarding/steps'
 import { onboardingStepPath } from '../../lib/routing'
 import type { OnboardingStepKey, StepStatus } from '../../lib/onboarding/types'
 import { StepStatusIcon } from './StepStatusBadge'
-import { STEP_STATUS_LABEL } from '../../lib/onboarding/steps'
 
 interface OnboardingStepperProps {
   current: OnboardingStepKey
@@ -23,23 +23,24 @@ const TONE: Record<StepStatus, string> = {
 
 /** Stepper lateral (escritorio) y compacto (móvil). Los pasos son enlaces reales. */
 export function OnboardingStepper({ current, statuses, onNavigate }: OnboardingStepperProps) {
+  const { t } = useTranslation()
   const currentDef = STEPS.find((s) => s.key === current)!
   const done = STEPS.filter((s) => statuses[s.key] === 'completed' || statuses[s.key] === 'skipped').length
 
   return (
-    <nav aria-label="Pasos de la configuración">
+    <nav aria-label={t('onboarding.stepper.label')}>
       {/* Móvil */}
       <div className="lg:hidden">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold text-slate-800">
-            Paso {currentDef.order} de {STEPS.length}
+            {t('onboarding.layout.stepOf', { order: currentDef.order, total: STEPS.length })}
           </span>
-          <span className="text-xs text-slate-500">{done} completados</span>
+          <span className="text-xs text-slate-500">{t('onboarding.stepper.completedCount', { count: done })}</span>
         </div>
-        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuemin={0} aria-valuemax={STEPS.length} aria-valuenow={done} aria-label="Progreso de la configuración">
+        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-valuemin={0} aria-valuemax={STEPS.length} aria-valuenow={done} aria-label={t('onboarding.stepper.progress')}>
           <div className="h-full rounded-full bg-brand-600 transition-[width] motion-reduce:transition-none" style={{ width: `${(done / STEPS.length) * 100}%` }} />
         </div>
-        <ol className="mt-3 flex gap-1.5 overflow-x-auto pb-1" aria-label="Lista de pasos">
+        <ol className="mt-3 flex gap-1.5 overflow-x-auto pb-1" aria-label={t('onboarding.stepper.list')}>
           {STEPS.map((s) => {
             const st = statuses[s.key]
             const isCurrent = s.key === current
@@ -55,9 +56,9 @@ export function OnboardingStepper({ current, statuses, onNavigate }: OnboardingS
                     isCurrent ? 'border-brand-600 bg-brand-600 text-white' : `border-slate-200 bg-white ${TONE[st]}`
                   }`}
                 >
-                  <span className="sr-only">Paso {s.order}: </span>
+                  <span className="sr-only">{t('onboarding.stepper.stepPrefix', { order: s.order })}</span>
                   {s.short}
-                  <span className="sr-only"> ({STEP_STATUS_LABEL[st]})</span>
+                  <span className="sr-only"> ({stepStatusLabel(st)})</span>
                 </Link>
               </li>
             )
@@ -88,8 +89,8 @@ export function OnboardingStepper({ current, statuses, onNavigate }: OnboardingS
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{s.title}</span>
                   <span className={`block text-[11px] ${TONE[st]}`}>
-                    {STEP_STATUS_LABEL[st]}
-                    {!s.required && ' · opcional'}
+                    {stepStatusLabel(st)}
+                    {!s.required && t('onboarding.layout.optionalSuffix')}
                   </span>
                 </span>
                 <span className={TONE[st]}>

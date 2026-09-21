@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight, SkipForward } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface OnboardingNavigationProps {
   canGoBack: boolean
@@ -14,6 +15,7 @@ interface OnboardingNavigationProps {
 }
 
 export function OnboardingNavigation({ canGoBack, canProceed, isLast, skippable, busy, blockedReason, onBack, onNext, onSkip }: OnboardingNavigationProps) {
+  const { t } = useTranslation()
   return (
     <div className="mt-8 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -23,7 +25,7 @@ export function OnboardingNavigation({ canGoBack, canProceed, isLast, skippable,
           disabled={!canGoBack || busy}
           className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:opacity-40"
         >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Anterior
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t('onboarding.nav.previous')}
         </button>
       </div>
       <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
@@ -39,12 +41,12 @@ export function OnboardingNavigation({ canGoBack, canProceed, isLast, skippable,
             disabled={busy}
             className="inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
           >
-            <SkipForward className="h-4 w-4" aria-hidden="true" /> Omitir por ahora
+            <SkipForward className="h-4 w-4" aria-hidden="true" /> {t('onboarding.nav.skipForNow')}
           </button>
         )}
         {!isLast && (
           <button type="button" onClick={onNext} disabled={!canProceed || busy} className="btn-primary !py-2.5 text-sm">
-            {busy ? 'Guardando…' : 'Guardar y continuar'} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            {busy ? t('common.actions.saving') : t('onboarding.nav.saveAndContinue')} <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </button>
         )}
       </div>

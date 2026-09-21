@@ -6,6 +6,7 @@
  */
 import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import { AlertCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export const INPUT_CLS =
   'w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 transition focus:outline-none focus:ring-4 disabled:bg-slate-50 disabled:text-slate-500'
@@ -21,6 +22,7 @@ interface BaseProps {
 }
 
 function Label({ id, label, required }: { id: string; label: ReactNode; required?: boolean }) {
+  const { t } = useTranslation()
   return (
     <label htmlFor={id} className="mb-1 block text-sm font-medium text-slate-700">
       {label}
@@ -29,7 +31,7 @@ function Label({ id, label, required }: { id: string; label: ReactNode; required
           *
         </span>
       )}
-      {required && <span className="sr-only"> (obligatorio)</span>}
+      {required && <span className="sr-only">{t('common.a11y.requiredField')}</span>}
     </label>
   )
 }
@@ -144,6 +146,7 @@ export interface CheckboxFieldProps {
 }
 
 export function CheckboxField({ label, checked, onChange, error, hint, required, disabled, name, className = '' }: CheckboxFieldProps) {
+  const { t } = useTranslation()
   const id = useId()
   const msgId = `${id}-msg`
   return (
@@ -163,7 +166,7 @@ export function CheckboxField({ label, checked, onChange, error, hint, required,
         />
         <label htmlFor={id} className="text-sm text-slate-700">
           {label}
-          {required && <span className="sr-only"> (obligatorio)</span>}
+          {required && <span className="sr-only">{t('common.a11y.requiredField')}</span>}
         </label>
       </div>
       <FieldMessage id={msgId} error={error} hint={hint} />
@@ -182,6 +185,7 @@ export interface ToggleFieldProps {
 
 /** Interruptor accesible (role="switch") */
 export function ToggleField({ label, description, checked, onChange, disabled, error }: ToggleFieldProps) {
+  const { t } = useTranslation()
   const id = useId()
   const msgId = `${id}-msg`
   return (
@@ -205,7 +209,7 @@ export function ToggleField({ label, description, checked, onChange, disabled, e
           checked ? 'bg-brand-600' : 'bg-slate-300'
         }`}
       >
-        <span className="sr-only">{checked ? 'Activado' : 'Desactivado'}</span>
+        <span className="sr-only">{checked ? t('auth.forms.toggleOn') : t('auth.forms.toggleOff')}</span>
         <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
       </button>
     </div>
@@ -294,6 +298,7 @@ export function ChipsField({
   placeholder?: string
   suggestions?: string[]
 }) {
+  const { t } = useTranslation()
   const id = useId()
   const msgId = `${id}-msg`
   const listId = `${id}-list`
@@ -313,13 +318,13 @@ export function ChipsField({
               type="button"
               onClick={() => onChange(values.filter((x) => x !== v))}
               className="rounded-full text-brand-400 hover:text-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-              aria-label={`Quitar ${v}`}
+              aria-label={t('auth.forms.removeItem', { item: v })}
             >
               ×
             </button>
           </span>
         ))}
-        {values.length === 0 && <span className="text-xs text-slate-400">Ninguno</span>}
+        {values.length === 0 && <span className="text-xs text-slate-400">{t('common.state.none')}</span>}
       </div>
       <input
         id={id}
@@ -347,7 +352,7 @@ export function ChipsField({
           ))}
         </datalist>
       )}
-      <FieldMessage id={msgId} error={error} hint={hint ?? 'Pulsa Intro para añadir.'} />
+      <FieldMessage id={msgId} error={error} hint={hint ?? t('auth.forms.pressEnterToAdd')} />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { setUserLanguage } from '../../i18n'
 
 const api = vi.hoisted(() => ({
   listClientes: vi.fn(),
@@ -92,5 +93,50 @@ describe('<NuevaSolicitud />', () => {
     await user.click(screen.getByRole('button', { name: /crear solicitud/i }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/no pertenece a tu empresa/i)
     expect(screen.getByRole('button', { name: /crear solicitud/i })).toBeEnabled()
+  })
+})
+
+describe('<NuevaSolicitud /> en inglés', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setUserLanguage('en')
+    api.listClientes.mockResolvedValue([{ id: 'c1', name: 'Norte SL', email: 'hola@norte.es' }])
+    api.listFormTemplates.mockResolvedValue([{ id: 't1', name: 'Reformas', is_default: true }])
+  })
+
+  it('muestra etiquetas en inglés y mantiene los nombres de plantillas y clientes', async () => {
+    const user = setup()
+    expect(await screen.findByRole('heading', { name: 'New request' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /back to requests/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/contact person/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^subject/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/source channel/i)).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'WhatsApp' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Phone call' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /existing client/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/generate the secure client link now/i)).toBeChecked()
+    expect(await screen.findByRole('option', { name: 'Reformas (default)' })).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: /existing client/i }))
+    expect(screen.getByRole('option', { name: 'Norte SL' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create request' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    expect(screen.queryByText(/nueva solicitud/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/persona de contacto/i)).not.toBeInTheDocument()
+  })
+
+  it('valida en inglés y muestra los mensajes de error traducidos', async () => {
+    const user = setup()
+    await screen.findByRole('heading', { name: 'New request' })
+    await user.type(screen.getByLabelText(/email address/i), 'no-es-un-correo')
+    await user.click(screen.getByRole('button', { name: 'Create request' }))
+    expect(api.crearSolicitud).not.toHaveBeenCalled()
+    expect(screen.getByText('Enter the name of the contact person.')).toBeInTheDocument()
+    expect(screen.getByText('Summarise in one line what the client is asking for.')).toBeInTheDocument()
+    expect(screen.getByText('Enter a valid email address.')).toBeInTheDocument()
+    expect(screen.getByLabelText(/contact person/i)).toHaveFocus()
+    await user.click(screen.getByRole('radio', { name: /existing client/i }))
+    await user.click(screen.getByRole('button', { name: 'Create request' }))
+    expect(screen.getByText('Choose a client.')).toBeInTheDocument()
   })
 })

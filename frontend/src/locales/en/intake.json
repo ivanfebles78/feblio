@@ -1,0 +1,45 @@
+{
+  "loading": "Loading…",
+  "invalidLink": "This link is not valid or has expired. Please request a new one.",
+  "sandbox": "Test form (sandbox)",
+  "footer": "Secure form · Feblio",
+  "done": {
+    "title": "Details sent!",
+    "message": "Thank you. {{company}} now has your details and will be in touch with you."
+  },
+  "intro": {
+    "template": "<strong>{{company}}</strong> · {{form}}. Please complete the requested details.",
+    "basic": "Complete your details so that <strong>{{company}}</strong> can register you as a client."
+  },
+  "fields": {
+    "name": "Name or company name",
+    "email": "Email",
+    "phone": "Phone",
+    "taxId": "Tax ID (CIF / NIF)",
+    "address": "Address",
+    "projectType": "Project type",
+    "description": "Describe what you need",
+    "descriptionPlaceholder": "Tell us about the project you have in mind…"
+  },
+  "attachments": {
+    "label": "Attachments (plans, photos, documents…)",
+    "uploading": "Uploading…",
+    "add": "Add files",
+    "attach": "Attach file",
+    "replaceOrAdd": "Replace or add another file",
+    "fileFor": "File for {{key}}",
+    "removeNamed": "Remove {{name}}",
+    "uploadFailed": "Could not upload {{name}}: {{message}}"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "invalidEmail": "Invalid email address.",
+    "consentRequired": "You must accept to continue.",
+    "documentRequired": "Please attach this document."
+  },
+  "submit": {
+    "button": "Send my details",
+    "failedRetry": "Could not send. Please try again.",
+    "failed": "Could not send."
+  }
+}

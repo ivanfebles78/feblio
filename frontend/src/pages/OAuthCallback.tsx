@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { LoadingScreen } from '../components/LoadingScreen'
 import { ONBOARDING_BASE } from '../lib/routing'
 
@@ -20,6 +21,7 @@ export function rememberOAuthReturn(path: string) {
  * correspondiente mostrando el resultado (sin tokens en la URL).
  */
 export default function OAuthCallback() {
+  const { t } = useTranslation()
   const [params] = useSearchParams()
   const navigate = useNavigate()
 
@@ -38,5 +40,5 @@ export default function OAuthCallback() {
     navigate(`${returnTo}${sep}oauth=${encodeURIComponent(status)}&kind=${encodeURIComponent(kind)}&message=${encodeURIComponent(message)}`, { replace: true })
   }, [params, navigate])
 
-  return <LoadingScreen text="Finalizando la conexión…" />
+  return <LoadingScreen text={t('auth.oauth.finishing')} />
 }

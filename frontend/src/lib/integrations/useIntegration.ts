@@ -3,6 +3,7 @@
  * de la última prueba, y actualización del snapshot del onboarding.
  */
 import { useCallback, useMemo, useState } from 'react'
+import { t } from '../../i18n'
 import { useOnboarding } from '../onboarding/OnboardingContext'
 import * as onboardingApi from '../onboarding/api'
 import * as api from './api'
@@ -63,15 +64,15 @@ export function useIntegration(kind: IntegrationKind) {
         // Proveedores sin redirección (p. ej. Stripe con cuenta de plataforma): ya verificado en servidor
         applyConnection(res.connection)
         await runAction(async () => undefined)
-        setResult(toResult(res, 'Conexión verificada.', 'No se pudo conectar.'))
+        setResult(toResult(res, t('integrations.results.verified'), t('integrations.results.connectFailed')))
         setBusy(null)
         return true
       }
       if (res.code === 'pending_credentials') {
         await runAction(() => onboardingApi.upsertIntegration(kind, provider, 'pending_credentials', settings))
-        setResult({ ok: false, message: res.message ?? 'Requiere configuración del administrador de Feblio.', details: res.missing ? { faltan: res.missing.join(', ') } : undefined, checkedAt: new Date().toISOString() })
+        setResult({ ok: false, message: res.message ?? t('integrations.results.adminRequired'), details: res.missing ? { [t('integrations.results.missing')]: res.missing.join(', ') } : undefined, checkedAt: new Date().toISOString() })
       } else {
-        setResult(toResult(res, 'Redirigiendo…', 'No se pudo iniciar la conexión.'))
+        setResult(toResult(res, t('integrations.results.redirecting'), t('integrations.results.startFailed')))
       }
       setBusy(null)
       return false
@@ -92,7 +93,7 @@ export function useIntegration(kind: IntegrationKind) {
         applyConnection(res.connection)
         await runAction(async () => undefined)
       }
-      setResult(toResult(res, 'Credenciales guardadas y conexión verificada.', 'No se pudieron verificar las credenciales.'))
+      setResult(toResult(res, t('integrations.results.credentialsSaved'), t('integrations.results.credentialsFailed')))
       setBusy(null)
       return res.ok
     },
@@ -107,19 +108,19 @@ export function useIntegration(kind: IntegrationKind) {
     const provider = providerOverride ?? connection?.provider ?? null
     let r: HealthCheckResult
     if (provider === 'feblio_storage') {
-      const t = await onboardingApi.testInternalStorage(empresaId)
-      await runAction(() => onboardingApi.recordInternalHealthCheck(kind, t.ok, t.ok ? { bucket: onboardingApi.INTERNAL_BUCKET } : { error: t.error }))
-      r = { ok: t.ok, message: t.ok ? 'Lectura y escritura verificadas en el almacenamiento interno.' : `Fallo de almacenamiento: ${t.error}`, checkedAt: new Date().toISOString() }
+      const check = await onboardingApi.testInternalStorage(empresaId)
+      await runAction(() => onboardingApi.recordInternalHealthCheck(kind, check.ok, check.ok ? { bucket: onboardingApi.INTERNAL_BUCKET } : { error: check.error }))
+      r = { ok: check.ok, message: check.ok ? t('integrations.results.storageVerified') : t('integrations.results.storageFailed', { error: check.error }), checkedAt: new Date().toISOString() }
     } else if (provider === 'manual_log' || provider === 'manual') {
       await runAction(() => onboardingApi.recordInternalHealthCheck(kind, true, { provider }))
-      r = { ok: true, message: 'Registro manual verificado: no requiere conexión externa.', checkedAt: new Date().toISOString() }
+      r = { ok: true, message: t('integrations.results.manualVerified'), checkedAt: new Date().toISOString() }
     } else {
       // Proveedores externos y la dirección de entrada de Feblio (requiere RESEND_API_KEY) se prueban en el servidor
       const res = await api.testIntegration(kind)
       applyConnection(res.connection)
       await runAction(async () => undefined)
-      r = toResult(res, 'Conexión verificada.', 'La prueba de conexión falló.')
-      if (res.code === 'pending_credentials' && res.missing) r.details = { faltan: res.missing.join(', ') }
+      r = toResult(res, t('integrations.results.verified'), t('integrations.results.testFailed'))
+      if (res.code === 'pending_credentials' && res.missing) r.details = { [t('integrations.results.missing')]: res.missing.join(', ') }
     }
     setResult(r)
     setBusy(null)
@@ -133,7 +134,7 @@ export function useIntegration(kind: IntegrationKind) {
     if (adapter?.mode === 'oauth' || adapter?.mode === 'credentials') {
       const res = await api.disconnectIntegration(kind)
       if (!res.ok && res.code !== 'unsupported' && res.code !== 'not_connected') {
-        setResult(toResult(res, 'Desconectado.', 'No se pudo desconectar en el proveedor; la conexión se marcará como desconectada.'))
+        setResult(toResult(res, t('integrations.results.disconnected'), t('integrations.results.disconnectFailed')))
       }
     }
     const ok = await runAction(() => onboardingApi.upsertIntegration(kind, provider, 'disconnected', connection?.settings ?? {}))
@@ -146,7 +147,7 @@ export function useIntegration(kind: IntegrationKind) {
       setBusy('send_test')
       setResult(null)
       const res = await api.sendTestMessage(kind, payload)
-      const r = toResult(res, 'Mensaje de prueba enviado.', 'No se pudo enviar el mensaje de prueba.')
+      const r = toResult(res, t('integrations.results.testSent'), t('integrations.results.testSendFailed'))
       setResult(r)
       await runAction(async () => undefined)
       setBusy(null)
