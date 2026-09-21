@@ -32,10 +32,14 @@ Deno.test('cualquier fallo de autorización se traduce a 404 neutro; límite de 
   for (const msg of ['Enlace no válido', 'permission denied for function', 'row not found', undefined, null, '']) {
     const out = outcomeFromRpcError(msg)
     assertEquals(out.status, 404)
-    assertEquals(out.body, { error: NEUTRAL_ERROR })
+    assertEquals(out.body, { code: 'download_invalid', error: NEUTRAL_ERROR })
   }
   const limited = outcomeFromRpcError('Demasiadas solicitudes. Inténtalo en unos minutos.')
   assertEquals(limited.status, 429)
+  assertEquals(limited.body.code, 'download_rate_limited')
+  // Detalle estable de la RPC (0016): el código manda aunque el mensaje cambie
+  assertEquals(outcomeFromRpcError('otro mensaje', 'rate_limited').status, 429)
+  assertEquals(outcomeFromRpcError('Enlace no válido', 'invalid_link').status, 404)
 })
 
 Deno.test('clave de frecuencia: primera IP de X-Forwarded-For, saneada; sin cabecera → unknown', () => {

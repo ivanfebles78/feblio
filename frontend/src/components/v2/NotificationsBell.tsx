@@ -20,12 +20,23 @@ export function notificationTitle(n: Pick<Notificacion, 'type' | 'title'>, t: TF
   return idx > 0 ? `${translated}: ${n.title.slice(idx + 2)}` : translated
 }
 
-/** Cuerpo: «Ana ha enviado el formulario (88% completo).» se traduce; el resto es texto del usuario o nombre de archivo. */
+/** Formatos del cuerpo generado por el servidor (0014 en español; 0016 en el idioma de la empresa). */
+const SUBMITTED_BODY_PATTERNS = [
+  /^(.*) ha enviado el formulario \((\d+)% completo\)\.$/,
+  /^(.*) has submitted the form \((\d+)% complete\)\.$/,
+]
+
+/**
+ * Cuerpo: «Ana ha enviado el formulario (88% completo).» / «Ana has submitted the form (88% complete).»
+ * se muestra en el idioma de la interfaz; el resto es texto del usuario o nombre de archivo y no se toca.
+ */
 export function notificationBody(n: Pick<Notificacion, 'type' | 'body'>, t: TFn): string {
   const body = n.body ?? ''
   if (n.type === 'solicitud.submitted') {
-    const m = /^(.*) ha enviado el formulario \((\d+)% completo\)\.$/.exec(body)
-    if (m) return t('dashboard.notifications.submittedBody', { name: m[1], percent: m[2] })
+    for (const re of SUBMITTED_BODY_PATTERNS) {
+      const m = re.exec(body)
+      if (m) return t('dashboard.notifications.submittedBody', { name: m[1], percent: m[2] })
+    }
   }
   return body
 }

@@ -40,6 +40,13 @@
   "submit": {
     "button": "Send my details",
     "failedRetry": "Could not send. Please try again.",
-    "failed": "Could not send."
+    "failed": "Could not send.",
+    "serverErrors": {
+      "invalid_data": "Invalid data.",
+      "payload_too_large": "The submitted data is too large.",
+      "invalid_form": "Invalid form.",
+      "already_completed": "This form has already been completed.",
+      "link_expired": "This link has expired. Please request a new one."
+    }
   }
 }

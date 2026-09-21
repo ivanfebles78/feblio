@@ -415,5 +415,25 @@
     "composerLabel": "New message",
     "closed": "The conversation is closed.",
     "hint": "The other party will be notified. Ctrl+Enter to send."
+  },
+  "serverErrors": {
+    "request_not_found": "Request not found",
+    "invalid_link": "Invalid link",
+    "file_too_large": "The file exceeds the maximum size (10 MB)",
+    "file_type_not_allowed": "File type not allowed",
+    "invalid_transition": "State transition not allowed",
+    "close_reason_required": "Please provide a closing reason",
+    "reopen_blocked": "Cannot reopen: a quote already exists",
+    "info_request_not_allowed": "This request does not accept information requests in its current state",
+    "message_required": "Please write a message",
+    "invalid_path": "Invalid path",
+    "file_not_found": "File not found",
+    "already_submitted": "The form has already been submitted",
+    "request_closed": "This request is closed",
+    "invalid_requisito": "Invalid requirement",
+    "rate_limited": "Too many requests. Please try again in a few minutes.",
+    "download_bad_request": "Invalid request",
+    "download_invalid": "Invalid link",
+    "download_rate_limited": "Too many requests. Please try again in a few minutes."
   }
 }

@@ -43,9 +43,9 @@ feblio/
 │       ├── pages/            # Landing, dashboards, onboarding (10 pasos), legal, OAuth callback
 │       └── sections/         # Secciones del dashboard (home, plantillas, configuración)
 ├── database/
-│   ├── migrations/           # 0001 … 0015 (esquema, RLS, RPCs, sincronización de email, endurecimiento, registro v2, solicitudes, idioma público)
+│   ├── migrations/           # 0001 … 0016 (esquema, RLS, RPCs, sincronización de email, endurecimiento, registro v2, solicitudes, idioma público, mensajes de servidor es/en)
 │   ├── seed/                 # Datos de desarrollo (sin credenciales)
-│   └── tests/                # 0009_rls_isolation · 0009_backfill · 0010_sync_profile_email · 0011_security_audit · 0011_signup_roles · 0013_registration_v2 · 0014_solicitudes · 0015_i18n_public_language
+│   └── tests/                # 0009_rls_isolation · 0009_backfill · 0010_sync_profile_email · 0011_security_audit · 0011_signup_roles · 0013_registration_v2 · 0014_solicitudes · 0015_i18n_public_language · 0016_i18n_server_messages
 ├── supabase/functions/       # send-otp, send-intake-email, integrations (privada), integrations-oauth-callback y solicitud-descarga (públicas), _shared
 └── docs/                     # arquitectura, onboarding, integraciones, solicitudes, i18n
 ```
@@ -99,8 +99,8 @@ Cuentas de prueba del seed (`database/seed/0002_seed_users.sql`):
 Aplica en orden en el SQL Editor de Supabase (todas idempotentes):
 `0001_init_schema.sql` → `0002_seed_users.sql` (seed; requiere `set_config('app.seed_password', …)`) →
 `0003_harden_functions.sql` → `0004` → `0005` → `0006` → `0007` → `0008` → **`0009_onboarding_wizard.sql`** →
-**`0010_sync_profile_email.sql`** → **`0011_security_hardening.sql`** (bucket `intake-files` privado, revocaciones, signup sin auto-admin) → **`0012_e2e_fixes.sql`** (auditoría idempotente de la verificación nativa) → **`0013_registration_v2.sql`** (bienvenida de primera entrada `onboarding_welcome_seen_at` + RPC `mark_onboarding_welcome_seen`, y corrección de 0011: `feblio_trusted()` ejecutable por `authenticated`, sin lo cual las empresas no podían actualizar su propia fila) → **`0014_solicitudes.sql`** (flujo de solicitudes: tablas `solicitudes`, `solicitud_*`, `notificaciones`, acceso del cliente por token con hash, análisis de suficiencia versionado, políticas de storage por prefijo; ver `docs/solicitudes.md`) → **`0015_i18n_public_language.sql`** (campo `language` de la empresa en `get_intake_form` y `sol_vista_cliente`, mismos controles de seguridad; ver `docs/i18n.md`).
-Después, ejecuta en una rama los tests `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql` y `0015_i18n_public_language.sql`.
+**`0010_sync_profile_email.sql`** → **`0011_security_hardening.sql`** (bucket `intake-files` privado, revocaciones, signup sin auto-admin) → **`0012_e2e_fixes.sql`** (auditoría idempotente de la verificación nativa) → **`0013_registration_v2.sql`** (bienvenida de primera entrada `onboarding_welcome_seen_at` + RPC `mark_onboarding_welcome_seen`, y corrección de 0011: `feblio_trusted()` ejecutable por `authenticated`, sin lo cual las empresas no podían actualizar su propia fila) → **`0014_solicitudes.sql`** (flujo de solicitudes: tablas `solicitudes`, `solicitud_*`, `notificaciones`, acceso del cliente por token con hash, análisis de suficiencia versionado, políticas de storage por prefijo; ver `docs/solicitudes.md`) → **`0015_i18n_public_language.sql`** (campo `language` de la empresa en `get_intake_form` y `sol_vista_cliente`, mismos controles de seguridad; ver `docs/i18n.md`) → **`0016_i18n_server_messages.sql`** (mensajes generados por el servidor en el idioma de la empresa: catálogo `srv_text`/`srv_lang`, mensajes de sistema y notificaciones persistidos en es/en, códigos estables `detail`/`code` en las excepciones y respuestas de las RPC; ver `docs/i18n.md`, sección «Servidor»).
+Después, ejecuta en una rama los tests `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql` y `0016_i18n_server_messages.sql`.
 
 ## Documentación
 

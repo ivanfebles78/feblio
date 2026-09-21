@@ -38,6 +38,8 @@ import * as ms from '../_shared/integrations/providers/microsoft.ts'
 import * as msg from '../_shared/integrations/providers/messaging.ts'
 import * as imap from '../_shared/integrations/providers/imap.ts'
 import { labelsOf, rootOf } from '../_shared/integrations/settings.ts'
+import { companyLocale, companyLocaleById } from '../_shared/i18n/locale.ts'
+import { serverT } from '../_shared/i18n/messages.ts'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -216,7 +218,8 @@ async function testConnection(db: ReturnType<typeof admin>, actor: Actor, conn: 
     return { ok: false, code: 'provider_error', message: `La prueba falló: ${message}`, connection: updated }
   }
   const updated = await applyTestResult(db, conn, actor, checkType, true, details, req, { last_activity_at: new Date().toISOString() })
-  return { ok: true, message: 'Conexión verificada.', details, connection: updated }
+  const locale = await companyLocaleById(db, conn.empresa_id)
+  return { ok: true, code: 'verified', message: serverT(locale, 'api.integrations.testVerified'), details, connection: updated }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -257,10 +260,12 @@ async function sendTest(db: ReturnType<typeof admin>, actor: Actor, conn: Connec
   if (conn.status !== 'connected') throw new HttpError(400, 'Conecta y prueba el canal antes de enviar un mensaje de prueba.', 'not_connected')
   const to = String(payload.to ?? '').trim()
   if (!to) throw new HttpError(400, 'Falta el destinatario', 'invalid')
-  const empresa = await db.from('empresas').select('name').eq('id', conn.empresa_id).single()
+  // Comunicación empresarial: idioma de la empresa (empresas.language), nunca el del navegador
+  const empresa = await db.from('empresas').select('name, language').eq('id', conn.empresa_id).single()
   const empresaName = (empresa.data?.name as string) ?? 'Feblio'
-  const subject = `Prueba de configuración · ${empresaName}`
-  const text = `Este es un correo de prueba enviado desde Feblio para verificar la configuración de ${empresaName}.\n\n${String(payload.signature ?? '')}`
+  const locale = companyLocale(empresa.data as { language?: unknown } | null)
+  const subject = serverT(locale, 'test.email.subject', { company: empresaName })
+  const text = `${serverT(locale, 'test.email.text', { company: empresaName })}\n\n${String(payload.signature ?? '')}`
   let details: Record<string, unknown> = {}
   switch (conn.provider) {
     case 'gmail':
@@ -291,8 +296,9 @@ async function sendTest(db: ReturnType<typeof admin>, actor: Actor, conn: Connec
     case 'twilio': {
       const creds = await loadCredentials<msg.TwilioCreds>(db, conn)
       if (!creds) throw new Error('not_connected')
-      const tpl = String(payload.template ?? '{empresa}: prueba de SMS desde Feblio. {url}')
-      details = await msg.twilioSend(creds, String(conn.settings?.sender_number ?? ''), to, tpl.replace('{empresa}', empresaName).replace('{url}', 'https://example.invalid/form/prueba').replace('{nombre}', 'cliente'))
+      // Plantilla personalizada por la empresa tal cual; solo la de defecto de Feblio se traduce
+      const tpl = String(payload.template ?? serverT(locale, 'test.sms.template'))
+      details = await msg.twilioSend(creds, String(conn.settings?.sender_number ?? ''), to, tpl.replace('{empresa}', empresaName).replace('{url}', 'https://example.invalid/form/prueba').replace('{nombre}', serverT(locale, 'test.sms.clientName')))
       break
     }
     default:

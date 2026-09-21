@@ -5,6 +5,7 @@ import { t as translate } from '../i18n'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { Logo } from '../components/Logo'
 import { supabase } from '../lib/supabase'
+import { serverErrorMessage, type ServerResult } from '../lib/serverErrors'
 import { useAuth } from '../context/AuthContext'
 import { claimNativeVerification } from '../lib/onboarding/api'
 
@@ -40,7 +41,7 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
     setSending(false)
     if (error || !(data as { ok?: boolean })?.ok) {
       // `translate` (instancia i18n) y no `t` del hook: el envío inicial no debe repetirse al cambiar de idioma.
-      setError((data as { error?: string })?.error ?? translate('auth.verify.errors.sendFailed'))
+      setError(serverErrorMessage(data as ServerResult, 'auth.verify.serverErrors', translate('auth.verify.errors.sendFailed')))
     } else {
       setNotice(translate('auth.verify.sent', { email }))
     }
@@ -64,7 +65,7 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
     setVerifying(false)
     if (error) setError(t('auth.verify.errors.verifyFailed'))
     else if ((data as { ok?: boolean })?.ok) onVerified()
-    else setError((data as { error?: string })?.error ?? t('auth.verify.errors.wrongCode'))
+    else setError(serverErrorMessage(data as ServerResult, 'auth.verify.serverErrors', t('auth.verify.errors.wrongCode')))
   }
 
   async function claimNative() {
@@ -75,7 +76,7 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
       await supabase.auth.refreshSession()
       const res = await claimNativeVerification()
       if (res.ok) onVerified()
-      else setError(res.error ?? t('auth.verify.errors.notConfirmedYet'))
+      else setError(serverErrorMessage(res, 'auth.verify.serverErrors', t('auth.verify.errors.notConfirmedYet')))
     } catch (e) {
       setError(e instanceof Error ? e.message : t('auth.verify.errors.checkFailed'))
     } finally {

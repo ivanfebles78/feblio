@@ -59,15 +59,15 @@ export const STEP_REGISTRY: Record<OnboardingStepKey, StepEntry> = {
   },
   whatsapp: {
     Component: WhatsAppChannelStep,
-    validate: (ctx) => validateWhatsApp(ctx.getStepData('whatsapp', defaultWhatsAppData as () => WhatsAppStepData & R)),
+    validate: (ctx) => validateWhatsApp(ctx.getStepData('whatsapp', (() => defaultWhatsAppData(ctx.snapshot?.empresa.language)) as () => WhatsAppStepData & R)),
   },
   sms: {
     Component: SmsChannelStep,
-    validate: (ctx) => validateSms(ctx.getStepData('sms', defaultSmsData as () => SmsStepData & R)),
+    validate: (ctx) => validateSms(ctx.getStepData('sms', (() => defaultSmsData(ctx.snapshot?.empresa.language)) as () => SmsStepData & R)),
   },
   voice: {
     Component: VoiceChannelStep,
-    validate: (ctx) => validateVoice(ctx.getStepData('voice', (() => defaultVoiceData(ctx.snapshot?.empresa.timezone)) as () => VoiceStepData & R)),
+    validate: (ctx) => validateVoice(ctx.getStepData('voice', (() => defaultVoiceData(ctx.snapshot?.empresa.timezone, ctx.snapshot?.empresa.language)) as () => VoiceStepData & R)),
   },
   forms: {
     Component: FormsStep,

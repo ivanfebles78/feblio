@@ -1,0 +1,43 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="{{ if eq .Data.language "en" }}en{{ else }}es{{ end }}">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>{{ if eq .Data.language "en" }}A verification method was removed{{ else }}Se ha eliminado un método de verificación{{ end }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f9;">
+  <div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#f1f5f9;">{{ if eq .Data.language "en" }}A verification method was removed from your Feblio account.{{ else }}Se ha eliminado un método de verificación de tu cuenta de Feblio.{{ end }}</div>
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f1f5f9;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;">
+          <tr>
+            <td align="center" style="padding:0 0 24px 0;">
+              <img src="https://feblio.com/feblio-email-logo.png" width="180" alt="Feblio" style="display:block;width:180px;max-width:180px;height:auto;border:0;">
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:36px 32px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td style="padding:0 0 12px 0;font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:32px;font-weight:bold;color:#0f172a;">{{ if eq .Data.language "en" }}A verification method was removed{{ else }}Se ha eliminado un método de verificación{{ end }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:0 0 24px 0;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:24px;color:#334155;">{{ if eq .Data.language "en" }}The sign-in verification method <strong>{{ .FactorType }}</strong> was removed from your Feblio account.{{ else }}Se ha eliminado el método de verificación <strong>{{ .FactorType }}</strong> de tu cuenta de Feblio.{{ end }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:16px 0 0 0;border-top:1px solid #e2e8f0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#64748b;">{{ if eq .Data.language "en" }}If you made this change, no action is needed. If you didn't, contact us immediately.{{ else }}Si has sido tú, no tienes que hacer nada. Si no, contacta con nosotros inmediatamente.{{ end }}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:24px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#94a3b8;">{{ if eq .Data.language "en" }}Feblio · Manage your projects from start to finish{{ else }}Feblio · Gestiona tus proyectos de principio a fin{{ end }}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

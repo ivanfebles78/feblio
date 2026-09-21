@@ -13,6 +13,14 @@ vi.mock('../lib/supabase', () => ({
       sb.calls.push(table)
       return { update: () => ({ eq: async () => ({ error: null }) }) }
     },
+    // Sin sesión: el selector no sincroniza metadatos (y nunca escribe en tablas)
+    auth: {
+      getSession: async () => ({ data: { session: null } }),
+      updateUser: async () => {
+        sb.calls.push('auth.updateUser')
+        return { data: {}, error: null }
+      },
+    },
   },
 }))
 
