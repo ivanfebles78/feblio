@@ -250,7 +250,18 @@
       "attachments": "Attachments",
       "fileUnavailable": "{{name}} (unavailable)",
       "generatingLink": "(generating link…)",
-      "linkError": "The link could not be generated."
+      "linkError": "The link could not be generated.",
+      "serverErrors": {
+        "unauthorized": "Your session has expired. Sign in again and resend the email.",
+        "forbidden": "Your account cannot send forms for this company.",
+        "invalid_payload": "Link created, but the send request was invalid. You can copy it below.",
+        "not_found": "Link created, but the form to send was not found. You can copy it below.",
+        "no_recipient": "The form has no valid client email. You can copy the link below.",
+        "form_closed": "The form is already completed or has expired; nothing was sent.",
+        "not_configured": "Link created, but email sending is not configured. You can copy it below.",
+        "send_failed": "Link created, but the email provider rejected the send. You can copy it below.",
+        "error": "Link created, but the email could not be sent. You can copy it below."
+      }
     }
   },
   "notifications": {

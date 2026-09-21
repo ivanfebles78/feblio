@@ -43,7 +43,7 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
 ```bash
 supabase link --project-ref <ref>
 supabase functions deploy send-otp
-supabase functions deploy send-intake-email
+supabase functions deploy send-intake-email                 # privada: JWT + sesión validada en servidor; solo formularios de la propia empresa
 supabase functions deploy integrations                       # privada: verificación de JWT activada
 supabase functions deploy integrations-oauth-callback --no-verify-jwt   # pública: solo el callback OAuth (state firmado)
 
