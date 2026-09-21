@@ -2,11 +2,14 @@
 // No se aplican aquí: solo se valida que cada archivo tenga ramas es/en, conserve exactamente las variables
 // oficiales, no incluya scripts ni imágenes Base64, cargue el logo por HTTPS y no deje claves técnicas.
 import { describe, expect, it } from 'vitest'
-import manifestJson from '../../../docs/email-templates/templates.json'
 
-// Archivos versionados en docs/email-templates (lectura en crudo vía Vite; sin APIs de Node)
+// Archivos versionados en docs/email-templates, leídos vía Vite (sin APIs de Node y sin importaciones
+// estáticas fuera de `frontend/`: el build de Railway solo dispone de este directorio y `tsc` no debe
+// depender de que exista docs/).
+type Manifest = Record<string, { file: string; subject: string; subject_es: string; subject_en: string; api_subject_key: string; api_content_key: string }>
 const RAW = import.meta.glob('../../../docs/email-templates/**/*.html', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
-const manifest = manifestJson as Record<string, { file: string; subject: string; subject_es: string; subject_en: string; api_subject_key: string; api_content_key: string }>
+const MANIFESTS = import.meta.glob('../../../docs/email-templates/templates.json', { import: 'default', eager: true }) as Record<string, Manifest>
+const manifest: Manifest = Object.values(MANIFESTS)[0] ?? {}
 const templateHtml = (key: string): string => {
   const path = Object.keys(RAW).find((p) => p.endsWith(`/email-templates/${key}.html`))
   if (!path) throw new Error(`falta docs/email-templates/${key}.html`)
