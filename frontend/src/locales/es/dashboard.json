@@ -260,7 +260,8 @@
         "form_closed": "El formulario ya está completado o ha caducado; no se envía.",
         "not_configured": "Enlace creado, pero el envío de correo no está configurado. Puedes copiarlo abajo.",
         "send_failed": "Enlace creado, pero el proveedor de correo rechazó el envío. Puedes copiarlo abajo.",
-        "error": "Enlace creado, pero no se pudo enviar el email. Puedes copiarlo abajo."
+        "error": "Enlace creado, pero no se pudo enviar el email. Puedes copiarlo abajo.",
+        "rate_limited": "Has alcanzado el límite de envíos de este formulario. Inténtalo de nuevo más tarde o copia el enlace abajo."
       }
     }
   },

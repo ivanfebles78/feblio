@@ -17,12 +17,12 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
 ## 2. Base de datos (Supabase)
 
 1. **Antes de producción, prueba en una rama** (Supabase → Branches → New branch) o en un proyecto de desarrollo:
-   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql` y `0016_i18n_server_messages.sql` → Run (en ese orden).
-   - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql` y `0016_i18n_server_messages.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
+   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql` y `0017_intake_email_rate_limit.sql` → Run (en ese orden).
+   - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql` y `0017_intake_email_rate_limit.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
    - `0011` convierte `intake-files` en bucket **privado**: los adjuntos ya subidos siguen accesibles para la empresa
      dueña mediante URLs firmadas (el panel las genera al pulsar); las URLs públicas antiguas dejan de funcionar.
    - Opcional en desarrollo: `database/seed/0003_seed_onboarding_ralm.sql`.
-2. Aplica `0009`, `0010`, `0011`, `0012`, `0013`, `0014`, `0015` y `0016` en producción cuando la rama esté verificada. Con `0016` vuelve a desplegar `send-otp`, `send-intake-email`, `integrations` y `solicitud-descarga` (mensajes en el idioma de la empresa/usuario y códigos estables). Con `0014` despliega también la Edge Function pública `supabase functions deploy solicitud-descarga --no-verify-jwt` (descarga del cliente por token; no requiere secretos adicionales) y añade `https://<app>/**` a *Auth → Redirect URLs* para que los magic links conserven la ruta profunda. Es idempotente y no destruye datos: las empresas
+2. Aplica `0009`, `0010`, `0011`, `0012`, `0013`, `0014`, `0015`, `0016` y `0017` en producción cuando la rama esté verificada. Con `0016` vuelve a desplegar `send-otp`, `send-intake-email`, `integrations` y `solicitud-descarga` (mensajes en el idioma de la empresa/usuario y códigos estables). Con `0014` despliega también la Edge Function pública `supabase functions deploy solicitud-descarga --no-verify-jwt` (descarga del cliente por token; no requiere secretos adicionales) y añade `https://<app>/**` a *Auth → Redirect URLs* para que los magic links conserven la ruta profunda. Es idempotente y no destruye datos: las empresas
    existentes quedan con `onboarding_status = 'completed'` en la primera ejecución (backfill de una sola vez, marcado en
    `platform_settings.onboarding_backfill_done`; pueden reabrir el asistente desde Configuración). No usa GUC personalizados
    (`set_config` de parámetros propios no está permitido en Supabase alojado).
@@ -43,7 +43,7 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
 ```bash
 supabase link --project-ref <ref>
 supabase functions deploy send-otp
-supabase functions deploy send-intake-email                 # privada: JWT + sesión validada en servidor; solo formularios de la propia empresa
+supabase functions deploy send-intake-email                 # privada: JWT + sesión validada; solo formularios propios; requiere 0017 (límite de envíos, fail closed)
 supabase functions deploy integrations                       # privada: verificación de JWT activada
 supabase functions deploy integrations-oauth-callback --no-verify-jwt   # pública: solo el callback OAuth (state firmado)
 

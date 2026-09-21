@@ -39,10 +39,29 @@ manipulado (vacío, no UUID, inyección, ruta `../`, tipos incorrectos, no JSON,
 método GET; idioma es/en/no válido según `empresas.language`; error de Resend simulado y clave ausente;
 formulario completado/caducado/sin destinatario; CORS y construcción del enlace.
 
+## Límite de frecuencia (migración 0017)
+
+| Ámbito | Clave en `public.rate_limits` | Límite | Ventana |
+|---|---|---|---|
+| Usuario + formulario | `ie:u:<user_id>:i:<intake_id>` | 5 | 60 min (fija) |
+| Empresa | `ie:e:<empresa_id>` | 30 | 60 min (fija) |
+
+- RPC `public.intake_email_rate_check(p_user, p_empresa, p_intake)` (`security definer`, `search_path`
+  fijo, EXECUTE solo para `service_role`): bloquea las dos filas en orden determinista por clave, evalúa
+  ambos límites y solo si los dos permiten incrementa ambos contadores exactamente una vez. Un rechazo no
+  consume cuota ni prolonga la ventana. Devuelve `{allowed, retry_after}`.
+- La Edge Function la llama justo antes del proveedor (tras autenticación, pertenencia, destinatario,
+  estado del formulario y configuración): solo cuentan los intentos que llegan a Resend, aunque Resend
+  falle. Bloqueado → `429 { code: "rate_limited" }` + `Retry-After` (1..3600 s). Si la RPC falla, no se
+  envía (`500 error`, fail closed): por eso la migración se aplica antes que la función.
+- Solo se almacenan UUID y contadores. Limpieza oportunista al inicio de cada llamada: claves `ie:%` con
+  ventana vencida hace más de un día (las claves `dl:*` de descargas no se tocan).
+- Pruebas: `database/tests/0017_intake_email_rate_limit.sql` (permisos por rol, 5/6.º, independencia,
+  expiración, límite de empresa, nulos, limpieza), concurrencia real con 212 llamadas simultáneas sobre
+  Postgres local (cuotas exactas, sin deadlocks) y casos 11–17 de `sendIntake.test.ts`.
+
 ## Riesgos que permanecen
 
-- No hay límite de frecuencia por usuario/formulario: un usuario legítimo de empresa puede reenviar el
-  mismo formulario a su cliente muchas veces (solo a la dirección guardada en su propio formulario).
 - `APP_URL` en producción apunta al dominio de Railway; el enlace del correo usa el origen de la petición
   (feblio.com) cuando está en la lista blanca, y `APP_URL` solo como respaldo. Conviene actualizar el
   secreto a `https://feblio.com` (cambio de secreto: fuera de este alcance).

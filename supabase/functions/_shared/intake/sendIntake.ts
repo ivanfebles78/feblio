@@ -9,6 +9,10 @@
 //   4. Destinatario (`client_intake.client_email`), nombre de empresa, idioma (`empresas.language`) y
 //      URL (origen permitido + token de la fila) se obtienen de la base de datos, no del cliente.
 //   5. Errores neutros con `code` estable; nunca se devuelven mensajes del proveedor ni excepciones.
+//   6. Límite de frecuencia persistente y atómico (RPC `intake_email_rate_check`, migración 0017): 5 intentos
+//      por usuario+formulario y 30 por empresa cada 60 min. Se comprueba justo antes de llamar al proveedor
+//      (solo cuentan intentos que llegan a él, aunque el proveedor falle); bloqueado → 429 `rate_limited`
+//      con `Retry-After`; si la RPC falla se cierra (no se envía).
 import { companyLocale, type Locale } from '../i18n/locale.ts'
 import { escapeHtml, serverT, serverTHtml } from '../i18n/messages.ts'
 
@@ -29,6 +33,7 @@ export type SendIntakeCode =
   | 'no_recipient'
   | 'form_closed'
   | 'not_configured'
+  | 'rate_limited'
   | 'send_failed'
   | 'error'
 
@@ -61,11 +66,27 @@ export interface SendIntakeDeps {
   findIntakeById(id: string): Promise<IntakeRow | null>
   findIntakeByToken(token: string): Promise<IntakeRow | null>
   getEmpresa(empresaId: string): Promise<EmpresaRow | null>
+  /**
+   * Comprueba y consume atómicamente la cuota (usuario+formulario y empresa). Debe lanzar si la RPC falla:
+   * la función se cierra (fail closed).
+   */
+  rateCheck(userId: string, empresaId: string, intakeId: string): Promise<RateCheckResult>
   /** Envía el correo; devuelve el id del proveedor. Debe lanzar si falla. */
   sendMail(mail: { from: string; to: string; subject: string; html: string; text: string }): Promise<string | null>
   env(name: string): string | undefined
   /** Registro de errores sin datos personales (opcional). */
   log?(event: string, ctx: Record<string, unknown>): void
+}
+
+export interface RateCheckResult {
+  allowed: boolean
+  retry_after?: number
+}
+
+/** Normaliza el Retry-After a 1..3600 segundos (nunca revela más información). */
+export function retryAfterSeconds(value: unknown): number {
+  const n = typeof value === 'number' && Number.isFinite(value) ? Math.ceil(value) : 60
+  return Math.min(3600, Math.max(1, n))
 }
 
 export interface SendIntakePayload {
@@ -143,9 +164,11 @@ export function buildIntakeEmail(locale: Locale, company: string, link: string):
 export interface SendIntakeResult {
   status: number
   body: { ok: boolean; code?: SendIntakeCode; locale?: Locale; link?: string; to?: string; id?: string | null }
+  /** Cabeceras adicionales (p. ej. Retry-After en 429). */
+  headers?: Record<string, string>
 }
 
-const fail = (status: number, code: SendIntakeCode): SendIntakeResult => ({ status, body: { ok: false, code } })
+const fail = (status: number, code: SendIntakeCode, headers?: Record<string, string>): SendIntakeResult => ({ status, body: { ok: false, code }, ...(headers ? { headers } : {}) })
 
 function bearer(req: Request): string | null {
   const h = req.headers.get('Authorization') ?? ''
@@ -203,6 +226,18 @@ export async function handleSendIntake(req: Request, deps: SendIntakeDeps): Prom
   if (!key) return fail(500, 'not_configured')
   const from = deps.env('INTAKE_FROM_EMAIL') ?? 'Feblio <onboarding@resend.dev>'
   const mail = buildIntakeEmail(locale, company, link)
+
+  // Cuota: solo cuentan los intentos que van a llegar al proveedor; se consume antes de enviar, de modo que un
+  // fallo de Resend también computa. Si la RPC falla, no se envía (fail closed).
+  let quota: RateCheckResult
+  try {
+    quota = await deps.rateCheck(userId, profile.empresa_id, row.id)
+  } catch (e) {
+    deps.log?.('send-intake-email: fallo al comprobar la cuota', { intake: row.id, reason: e instanceof Error ? e.name : 'unknown' })
+    return fail(500, 'error')
+  }
+  if (!quota.allowed) return fail(429, 'rate_limited', { 'Retry-After': String(retryAfterSeconds(quota.retry_after)) })
+
   try {
     const id = await deps.sendMail({ from, to, subject: mail.subject, html: mail.html, text: mail.text })
     return { status: 200, body: { ok: true, locale, link, to, id } }
