@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom/vitest'
-import { afterEach, vi } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import { resetLanguageForTests } from '../i18n'
+
+// Cada prueba arranca en español sin preferencia guardada (comportamiento por defecto de Feblio)
+beforeEach(() => {
+  resetLanguageForTests()
+})
 
 afterEach(() => {
   cleanup()

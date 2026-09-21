@@ -5,115 +5,157 @@
  * el backend y qué capacidades ofrece. La conexión real se ejecuta siempre en
  * la Edge Function `integrations` (supabase/functions/integrations); aquí no
  * hay secretos ni llamadas a proveedores.
+ *
+ * Los textos visibles (label, description, capacidades, campos de credenciales)
+ * se resuelven con getters en el momento de leerlos, según el idioma activo.
  */
+import { t } from '../../i18n'
 import type { IntegrationKind, IntegrationStatus } from '../onboarding/types'
 
 export type ConnectionMode = 'oauth' | 'credentials' | 'internal' | 'manual'
 
+export interface CredentialField {
+  key: string
+  readonly label: string
+  secret: boolean
+  readonly hint?: string
+}
+
 export interface AdapterDescriptor {
   id: string
   kind: IntegrationKind
-  label: string
-  description: string
+  readonly label: string
+  readonly description: string
   mode: ConnectionMode
   /** Variables que debe configurar el administrador de Feblio en Supabase (secrets) */
   requiredEnv: string[]
   /** Campos que introduce la propia empresa (se cifran en backend) */
-  credentialFields?: { key: string; label: string; secret: boolean; hint?: string }[]
+  credentialFields?: CredentialField[]
+  /** Códigos de capacidad (ver `capabilityLabel`) */
   capabilities: string[]
   docsUrl?: string
 }
 
+type AdapterSpec = Omit<AdapterDescriptor, 'label' | 'description' | 'credentialFields'> & {
+  credentialFields?: { key: string; secret: boolean; hintKey?: string }[]
+}
+
+export function adapterLabel(id: string): string {
+  return t(`integrations.adapters.${id}.label`, { defaultValue: id })
+}
+export function adapterDescription(id: string): string {
+  return t(`integrations.adapters.${id}.description`, { defaultValue: '' })
+}
+export function capabilityLabel(code: string): string {
+  return t(`integrations.capabilities.${code}`, { defaultValue: code })
+}
+export function credentialFieldLabel(key: string): string {
+  return t(`integrations.credentialFields.${key}`, { defaultValue: key })
+}
+
+function credentialField(f: { key: string; secret: boolean; hintKey?: string }): CredentialField {
+  return {
+    key: f.key,
+    secret: f.secret,
+    get label() {
+      return credentialFieldLabel(f.key)
+    },
+    get hint() {
+      return f.hintKey ? t(`integrations.credentialFields.${f.hintKey}`) : undefined
+    },
+  }
+}
+
+function defineAdapter(spec: AdapterSpec): AdapterDescriptor {
+  const { credentialFields, ...rest } = spec
+  return {
+    ...rest,
+    ...(credentialFields ? { credentialFields: credentialFields.map(credentialField) } : {}),
+    get label() {
+      return adapterLabel(spec.id)
+    },
+    get description() {
+      return adapterDescription(spec.id)
+    },
+  }
+}
+
 export const ADAPTERS: AdapterDescriptor[] = [
   /* --- Repositorio documental --- */
-  {
-    id: 'google_drive', kind: 'document_repository', label: 'Google Drive',
-    description: 'Carpetas de proyecto en tu Drive o unidad compartida.', mode: 'oauth',
+  defineAdapter({
+    id: 'google_drive', kind: 'document_repository', mode: 'oauth',
     requiredEnv: ['APP_ENCRYPTION_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'],
-    capabilities: ['Crear carpetas', 'Subir documentos', 'Compartir con el cliente'],
-  },
-  {
-    id: 'onedrive', kind: 'document_repository', label: 'Microsoft OneDrive / SharePoint',
-    description: 'Carpetas de proyecto en OneDrive o una biblioteca de SharePoint.', mode: 'oauth',
+    capabilities: ['create_folders', 'upload_documents', 'share_with_client'],
+  }),
+  defineAdapter({
+    id: 'onedrive', kind: 'document_repository', mode: 'oauth',
     requiredEnv: ['APP_ENCRYPTION_KEY', 'MICROSOFT_CLIENT_ID', 'MICROSOFT_CLIENT_SECRET', 'MICROSOFT_REDIRECT_URI'],
-    capabilities: ['Crear carpetas', 'Subir documentos'],
-  },
-  {
-    id: 'feblio_storage', kind: 'document_repository', label: 'Almacenamiento interno de Feblio',
-    description: 'Sin configuración. Archivos cifrados en reposo, aislados por empresa y proyecto.', mode: 'internal',
+    capabilities: ['create_folders', 'upload_documents'],
+  }),
+  defineAdapter({
+    id: 'feblio_storage', kind: 'document_repository', mode: 'internal',
     requiredEnv: [],
-    capabilities: ['Crear carpetas', 'Subir documentos', 'Enlaces temporales'],
-  },
+    capabilities: ['create_folders', 'upload_documents', 'temporary_links'],
+  }),
   /* --- Correo --- */
-  {
-    id: 'gmail', kind: 'email', label: 'Google Workspace / Gmail',
-    description: 'Lee etiquetas concretas y prepara borradores en tu cuenta.', mode: 'oauth',
+  defineAdapter({
+    id: 'gmail', kind: 'email', mode: 'oauth',
     requiredEnv: ['APP_ENCRYPTION_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REDIRECT_URI'],
-    capabilities: ['Leer etiquetas', 'Crear borradores', 'Enviar con aprobación'],
-  },
-  {
-    id: 'm365', kind: 'email', label: 'Microsoft 365 / Outlook',
-    description: 'Lee carpetas concretas y prepara borradores en tu buzón.', mode: 'oauth',
+    capabilities: ['read_labels', 'create_drafts', 'send_with_approval'],
+  }),
+  defineAdapter({
+    id: 'm365', kind: 'email', mode: 'oauth',
     requiredEnv: ['APP_ENCRYPTION_KEY', 'MICROSOFT_CLIENT_ID', 'MICROSOFT_CLIENT_SECRET', 'MICROSOFT_REDIRECT_URI'],
-    capabilities: ['Leer carpetas', 'Crear borradores', 'Enviar con aprobación'],
-  },
-  {
-    id: 'feblio_inbox', kind: 'email', label: 'Dirección de entrada de Feblio',
-    description: 'Te damos una dirección propia; reenvía allí los correos que quieras que Feblio procese.', mode: 'internal',
+    capabilities: ['read_folders', 'create_drafts', 'send_with_approval'],
+  }),
+  defineAdapter({
+    id: 'feblio_inbox', kind: 'email', mode: 'internal',
     requiredEnv: ['RESEND_API_KEY'],
-    capabilities: ['Recibir reenvíos', 'Enviar desde Feblio con aprobación'],
-  },
-  {
-    id: 'imap', kind: 'email', label: 'IMAP / SMTP',
-    description: 'Cualquier proveedor con IMAP y SMTP. Las credenciales se cifran en el servidor.', mode: 'credentials',
+    capabilities: ['receive_forwards', 'send_from_feblio_with_approval'],
+  }),
+  defineAdapter({
+    id: 'imap', kind: 'email', mode: 'credentials',
     requiredEnv: ['APP_ENCRYPTION_KEY'],
     credentialFields: [
-      { key: 'username', label: 'Usuario', secret: false },
-      { key: 'password', label: 'Contraseña o contraseña de aplicación', secret: true, hint: 'Nunca se muestra ni se guarda en el navegador.' },
+      { key: 'username', secret: false },
+      { key: 'password', secret: true, hintKey: 'passwordHint' },
     ],
-    capabilities: ['Leer carpetas', 'Enviar con aprobación'],
-  },
+    capabilities: ['read_folders', 'send_with_approval'],
+  }),
   /* --- WhatsApp --- */
-  {
-    id: 'meta', kind: 'whatsapp', label: 'WhatsApp Business Platform (Meta)',
-    description: 'API oficial de Meta. Requiere una cuenta de WhatsApp Business verificada.', mode: 'credentials',
+  defineAdapter({
+    id: 'meta', kind: 'whatsapp', mode: 'credentials',
     requiredEnv: ['APP_ENCRYPTION_KEY', 'WHATSAPP_APP_ID', 'WHATSAPP_APP_SECRET', 'WHATSAPP_VERIFY_TOKEN'],
-    credentialFields: [
-      { key: 'access_token', label: 'Token de acceso permanente (System User)', secret: true, hint: 'Se cifra en el servidor y nunca vuelve al navegador.' },
-    ],
-    capabilities: ['Recibir mensajes (webhook)', 'Enviar plantillas', 'Escalar a persona'],
-  },
+    credentialFields: [{ key: 'access_token', secret: true, hintKey: 'accessTokenHint' }],
+    capabilities: ['receive_messages_webhook', 'send_templates', 'escalate_to_person'],
+  }),
   /* --- SMS --- */
-  {
-    id: 'twilio', kind: 'sms', label: 'Twilio SMS',
-    description: 'Envío de formularios y recordatorios por SMS.', mode: 'credentials',
+  defineAdapter({
+    id: 'twilio', kind: 'sms', mode: 'credentials',
     requiredEnv: ['APP_ENCRYPTION_KEY', 'SMS_PROVIDER'],
     credentialFields: [
-      { key: 'account_sid', label: 'Account SID', secret: false },
-      { key: 'auth_token', label: 'Auth Token', secret: true },
+      { key: 'account_sid', secret: false },
+      { key: 'auth_token', secret: true },
     ],
-    capabilities: ['Enviar SMS', 'Recibir respuestas (webhook)', 'Gestión de bajas'],
-  },
+    capabilities: ['send_sms', 'receive_replies_webhook', 'opt_out_management'],
+  }),
   /* --- Llamadas --- */
-  {
-    id: 'manual_log', kind: 'voice', label: 'Registro manual',
-    description: 'Atiendes las llamadas y registras la solicitud en Feblio en un clic.', mode: 'manual',
+  defineAdapter({
+    id: 'manual_log', kind: 'voice', mode: 'manual',
     requiredEnv: [],
-    capabilities: ['Crear solicitud desde llamada', 'Enviar formulario por SMS/WhatsApp/email'],
-  },
-  {
-    id: 'voice_provider', kind: 'voice', label: 'Telefonía integrada / agente de voz',
-    description: 'Número virtual, grabación, transcripción y agente de voz. Requiere proveedor.', mode: 'credentials',
+    capabilities: ['create_request_from_call', 'send_form_via_channels'],
+  }),
+  defineAdapter({
+    id: 'voice_provider', kind: 'voice', mode: 'credentials',
     requiredEnv: ['APP_ENCRYPTION_KEY', 'VOICE_PROVIDER', 'VOICE_API_KEY'],
-    capabilities: ['Número virtual', 'Grabación', 'Transcripción', 'Agente de voz', 'Desvío'],
-  },
+    capabilities: ['virtual_number', 'recording', 'transcription', 'voice_agent', 'forwarding'],
+  }),
   /* --- Pagos --- */
-  {
-    id: 'stripe', kind: 'payments', label: 'Stripe',
-    description: 'Cobro de anticipos y facturas con enlace de pago.', mode: 'oauth',
+  defineAdapter({
+    id: 'stripe', kind: 'payments', mode: 'oauth',
     requiredEnv: ['APP_ENCRYPTION_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'],
-    capabilities: ['Enlaces de pago', 'Confirmación automática (webhook)'],
-  },
+    capabilities: ['payment_links', 'auto_confirmation_webhook'],
+  }),
 ]
 
 export function adaptersFor(kind: IntegrationKind): AdapterDescriptor[] {
@@ -124,25 +166,28 @@ export function adapterById(id: string | null | undefined): AdapterDescriptor | 
   return ADAPTERS.find((a) => a.id === id)
 }
 
-export const KIND_LABEL: Record<IntegrationKind, string> = {
-  document_repository: 'Repositorio documental',
-  email: 'Correo electrónico',
-  whatsapp: 'WhatsApp',
-  sms: 'SMS',
-  voice: 'Llamadas',
-  payments: 'Pagos',
+export function kindLabel(kind: IntegrationKind): string {
+  return t(`integrations.kinds.${kind}`)
 }
 
-export const STATUS_LABEL: Record<IntegrationStatus, string> = {
-  not_configured: 'Sin configurar',
-  pending_credentials: 'Requiere configuración del administrador de Feblio',
-  connecting: 'Conectando',
-  connected: 'Conectado',
-  degraded: 'Degradado',
-  expired: 'Caducado',
-  error: 'Error',
-  disconnected: 'Desconectado',
+export function integrationStatusLabel(status: IntegrationStatus): string {
+  return t(`integrations.status.${status}`)
 }
+
+const KINDS: IntegrationKind[] = ['document_repository', 'email', 'whatsapp', 'sms', 'voice', 'payments']
+const STATUSES: IntegrationStatus[] = ['not_configured', 'pending_credentials', 'connecting', 'connected', 'degraded', 'expired', 'error', 'disconnected']
+
+function lazyLabels<K extends string>(keys: K[], resolve: (k: K) => string): Record<K, string> {
+  const out = {} as Record<K, string>
+  for (const k of keys) Object.defineProperty(out, k, { enumerable: true, get: () => resolve(k) })
+  return out
+}
+
+/** Etiqueta por tipo de integración (getters: sigue al idioma activo). Preferir `kindLabel()`. */
+export const KIND_LABEL: Record<IntegrationKind, string> = lazyLabels(KINDS, kindLabel)
+
+/** Etiqueta por estado de conexión (getters). Preferir `integrationStatusLabel()`. */
+export const STATUS_LABEL: Record<IntegrationStatus, string> = lazyLabels(STATUSES, integrationStatusLabel)
 
 /** Icono textual (no depende solo del color) */
 export const STATUS_GLYPH: Record<IntegrationStatus, string> = {

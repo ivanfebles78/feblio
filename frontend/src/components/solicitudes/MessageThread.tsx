@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Send } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../v2/Button'
 import { INPUT_CLS } from '../forms/Field'
-import { formatDateTime } from '../../lib/solicitudes/format'
+import { formatDateTime } from '../../lib/intl'
 import type { AuthorKind, MessageKind } from '../../lib/solicitudes/types'
 
 export interface ThreadMessage {
@@ -34,7 +35,8 @@ export const MAX_MESSAGE_LENGTH = 4000
  * lo ve la otra parte. Los avisos del sistema y las peticiones de información se
  * muestran centrados y diferenciados.
  */
-export function MessageThread({ messages, viewer, onSend, disabled = false, disabledReason, placeholder = 'Escribe un mensaje…', emptyText = 'Todavía no hay mensajes.' }: MessageThreadProps) {
+export function MessageThread({ messages, viewer, onSend, disabled = false, disabledReason, placeholder, emptyText }: MessageThreadProps) {
+  const { t } = useTranslation()
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -57,7 +59,7 @@ export function MessageThread({ messages, viewer, onSend, disabled = false, disa
       await onSend(text)
       setBody('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo enviar el mensaje.')
+      setError(err instanceof Error ? err.message : t('requests.api.sendMessage'))
     } finally {
       setSending(false)
     }
@@ -65,8 +67,8 @@ export function MessageThread({ messages, viewer, onSend, disabled = false, disa
 
   return (
     <div className="flex flex-col">
-      <ol ref={listRef} className="max-h-[28rem] space-y-3 overflow-y-auto pr-1" aria-label="Mensajes" aria-live="polite">
-        {messages.length === 0 && <li className="py-6 text-center text-sm text-slate-500">{emptyText}</li>}
+      <ol ref={listRef} className="max-h-[28rem] space-y-3 overflow-y-auto pr-1" aria-label={t('requests.thread.listLabel')} aria-live="polite">
+        {messages.length === 0 && <li className="py-6 text-center text-sm text-slate-500">{emptyText ?? t('requests.thread.empty')}</li>}
         {messages.map((m) => {
           if (m.author_kind === 'sistema' || m.kind === 'system') {
             return (
@@ -85,13 +87,13 @@ export function MessageThread({ messages, viewer, onSend, disabled = false, disa
                 infoRequest ? 'border border-amber-200 bg-amber-50 text-amber-950' : mine ? 'bg-brand-600 text-white' : 'border border-slate-200 bg-white text-slate-800'
               }`}>
                 <p className={`mb-1 text-[11px] font-semibold ${infoRequest ? 'text-amber-800' : mine ? 'text-brand-100' : 'text-slate-500'}`}>
-                  {infoRequest ? 'Información solicitada · ' : ''}
+                  {infoRequest ? t('requests.thread.infoRequestPrefix') : ''}
                   {m.author_name}
                 </p>
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
                 <p className={`mt-1 text-[11px] ${infoRequest ? 'text-amber-700' : mine ? 'text-brand-100' : 'text-slate-500'}`}>
                   <time dateTime={m.created_at}>{formatDateTime(m.created_at)}</time>
-                  {mine && m.read !== undefined && <span> · {m.read ? 'Leído' : 'Enviado'}</span>}
+                  {mine && m.read !== undefined && <span> · {m.read ? t('requests.thread.read') : t('requests.thread.sent')}</span>}
                 </p>
               </div>
             </li>
@@ -100,7 +102,7 @@ export function MessageThread({ messages, viewer, onSend, disabled = false, disa
       </ol>
       <form onSubmit={submit} className="mt-3 border-t border-slate-100 pt-3">
         <label htmlFor="thread-composer" className="sr-only">
-          Nuevo mensaje
+          {t('requests.thread.composerLabel')}
         </label>
         <textarea
           id="thread-composer"
@@ -111,16 +113,16 @@ export function MessageThread({ messages, viewer, onSend, disabled = false, disa
           }}
           rows={2}
           disabled={disabled || sending}
-          placeholder={disabled ? (disabledReason ?? 'La conversación está cerrada.') : placeholder}
+          placeholder={disabled ? (disabledReason ?? t('requests.thread.closed')) : (placeholder ?? t('requests.thread.placeholder'))}
           className={`${INPUT_CLS} border-slate-200 focus:border-brand-400 focus:ring-brand-100 resize-y`}
           aria-describedby="thread-composer-hint"
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <p id="thread-composer-hint" className="text-xs text-slate-500">
-            {disabled ? (disabledReason ?? '') : 'La otra parte recibirá una notificación. Ctrl+Intro para enviar.'}
+            {disabled ? (disabledReason ?? '') : t('requests.thread.hint')}
           </p>
           <Button type="submit" size="sm" disabled={disabled || sending || !body.trim()} leading={<Send className="h-4 w-4" aria-hidden="true" />}>
-            {sending ? 'Enviando…' : 'Enviar'}
+            {sending ? t('common.actions.sending') : t('common.actions.send')}
           </Button>
         </div>
         {error && (

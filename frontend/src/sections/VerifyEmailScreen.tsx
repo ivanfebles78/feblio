@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { MailCheck, RefreshCw, LogOut, ShieldCheck } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
+import { t as translate } from '../i18n'
+import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { Logo } from '../components/Logo'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
@@ -18,6 +21,7 @@ interface VerifyEmailScreenProps {
  * - Modo 'native': el usuario confirma desde el enlace de Supabase; aquí solo se reconoce esa confirmación.
  */
 export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEmailScreenProps) {
+  const { t } = useTranslation()
   const { signOut } = useAuth()
   const [code, setCode] = useState('')
   const [sending, setSending] = useState(false)
@@ -35,9 +39,10 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
     const { data, error } = await supabase.functions.invoke('send-otp', { body: {} })
     setSending(false)
     if (error || !(data as { ok?: boolean })?.ok) {
-      setError((data as { error?: string })?.error ?? 'No se pudo enviar el código. Inténtalo de nuevo en unos segundos.')
+      // `translate` (instancia i18n) y no `t` del hook: el envío inicial no debe repetirse al cambiar de idioma.
+      setError((data as { error?: string })?.error ?? translate('auth.verify.errors.sendFailed'))
     } else {
-      setNotice(`Código enviado a ${email}. Revisa tu bandeja (y la carpeta de spam).`)
+      setNotice(translate('auth.verify.sent', { email }))
     }
   }, [email])
 
@@ -50,16 +55,16 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
   async function verifyOtp(e: React.FormEvent) {
     e.preventDefault()
     if (code.trim().length !== 6) {
-      setError('El código tiene 6 dígitos.')
+      setError(t('auth.verify.errors.codeLength'))
       return
     }
     setVerifying(true)
     setError(null)
     const { data, error } = await supabase.rpc('verify_email_otp', { p_code: code.trim() })
     setVerifying(false)
-    if (error) setError('No se pudo verificar. Inténtalo de nuevo.')
+    if (error) setError(t('auth.verify.errors.verifyFailed'))
     else if ((data as { ok?: boolean })?.ok) onVerified()
-    else setError((data as { error?: string })?.error ?? 'Código incorrecto.')
+    else setError((data as { error?: string })?.error ?? t('auth.verify.errors.wrongCode'))
   }
 
   async function claimNative() {
@@ -70,9 +75,9 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
       await supabase.auth.refreshSession()
       const res = await claimNativeVerification()
       if (res.ok) onVerified()
-      else setError(res.error ?? 'Todavía no consta la confirmación. Abre el enlace del correo y vuelve a intentarlo.')
+      else setError(res.error ?? t('auth.verify.errors.notConfirmedYet'))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo comprobar la confirmación.')
+      setError(e instanceof Error ? e.message : t('auth.verify.errors.checkFailed'))
     } finally {
       setVerifying(false)
     }
@@ -81,6 +86,9 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
   return (
     <div className="grid min-h-screen place-items-center bg-gradient-to-br from-brand-50 via-white to-slate-100 p-5">
       <main className="w-full max-w-md">
+        <div className="mb-3 flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <div className="mb-5 flex justify-center">
           <Logo size={38} />
         </div>
@@ -89,26 +97,16 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
             <span className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-indigo-600 text-white shadow-lg">
               <MailCheck className="h-7 w-7" aria-hidden="true" />
             </span>
-            <h1 className="text-xl font-bold text-slate-900">Verifica tu email</h1>
+            <h1 className="text-xl font-bold text-slate-900">{t('auth.verify.title')}</h1>
             <p className="mt-1 text-sm text-slate-500">
-              {mode === 'otp' ? (
-                <>
-                  Hemos enviado un código de 6 dígitos a <span className="font-medium text-slate-700">{email}</span>.
-                  Introdúcelo para continuar con la configuración.
-                </>
-              ) : (
-                <>
-                  Te hemos enviado un enlace de confirmación a <span className="font-medium text-slate-700">{email}</span>.
-                  Ábrelo y después pulsa «Ya he confirmado».
-                </>
-              )}
+              <Trans i18nKey={mode === 'otp' ? 'auth.verify.otpIntro' : 'auth.verify.nativeIntro'} values={{ email }} components={{ email: <span className="font-medium text-slate-700" /> }} />
             </p>
           </div>
 
           {mode === 'otp' ? (
             <form onSubmit={verifyOtp} className="space-y-4" noValidate>
               <label htmlFor={codeId} className="sr-only">
-                Código de verificación de 6 dígitos
+                {t('auth.verify.codeLabel')}
               </label>
               <input
                 id={codeId}
@@ -128,7 +126,7 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
               </div>
               <button type="submit" disabled={verifying} className="btn-primary w-full">
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                {verifying ? 'Verificando…' : 'Verificar cuenta'}
+                {verifying ? t('auth.verify.verifying') : t('auth.verify.verify')}
               </button>
             </form>
           ) : (
@@ -138,7 +136,7 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
               </div>
               <button type="button" onClick={claimNative} disabled={verifying} className="btn-primary w-full">
                 <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                {verifying ? 'Comprobando…' : 'Ya he confirmado'}
+                {verifying ? t('auth.verify.checking') : t('auth.verify.confirmed')}
               </button>
             </div>
           )}
@@ -152,18 +150,18 @@ export function VerifyEmailScreen({ email, mode = 'otp', onVerified }: VerifyEma
                 className="flex items-center gap-1.5 font-medium text-brand-600 hover:underline disabled:opacity-60"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${sending ? 'animate-spin motion-reduce:animate-none' : ''}`} aria-hidden="true" />
-                {sending ? 'Enviando…' : 'Reenviar código'}
+                {sending ? t('auth.verify.sending') : t('auth.verify.resend')}
               </button>
             ) : (
               <span />
             )}
             <button type="button" onClick={signOut} className="flex items-center gap-1.5 font-medium text-slate-500 hover:text-slate-700">
-              <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> Salir
+              <LogOut className="h-3.5 w-3.5" aria-hidden="true" /> {t('auth.verify.signOut')}
             </button>
           </div>
         </div>
 
-        <p className="mt-4 text-center text-xs text-slate-500">Tienes 14 días de prueba gratis al verificar tu cuenta.</p>
+        <p className="mt-4 text-center text-xs text-slate-500">{t('auth.verify.trialNote')}</p>
       </main>
     </div>
   )

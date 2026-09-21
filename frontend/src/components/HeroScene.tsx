@@ -1,6 +1,15 @@
+import { useTranslation } from 'react-i18next'
 import { HeroMockup } from './HeroMockup'
 import { Logo } from './Logo'
 import { FileText, Users, BarChart3, Check } from 'lucide-react'
+
+/** Pills de color (etiquetas en auth.hero.pills.*). */
+const PILLS = [
+  { key: 'quotes', tone: 'bg-cyan-400/20 text-cyan-100 ring-cyan-300/30' },
+  { key: 'invoices', tone: 'bg-fuchsia-400/20 text-fuchsia-100 ring-fuchsia-300/30' },
+  { key: 'clients', tone: 'bg-emerald-400/20 text-emerald-100 ring-emerald-300/30' },
+  { key: 'documents', tone: 'bg-amber-400/20 text-amber-100 ring-amber-300/30' },
+] as const
 
 /** Anillo de iconos orbitando. */
 function OrbitRing() {
@@ -83,6 +92,7 @@ function Skyline() {
 
 /** Panel visual protagonista: gradiente vibrante de alto contraste. */
 export function HeroScene() {
+  const { t } = useTranslation()
   return (
     <div className="relative flex min-h-[52vh] flex-col overflow-hidden bg-gradient-to-br from-brand-700 via-indigo-700 to-violet-800 p-8 lg:min-h-screen lg:p-12">
       {/* Rejilla + glows de color */}
@@ -95,13 +105,8 @@ export function HeroScene() {
       {/* Cabecera: logo + título/subtítulo pequeños */}
       <div className="relative z-10">
         <Logo size={38} tone="white" />
-        <h1 className="mt-6 max-w-md text-2xl font-bold leading-tight tracking-tight text-white">
-          Gestiona tus proyectos de principio a fin
-        </h1>
-        <p className="mt-2 max-w-sm text-sm text-brand-100">
-          Proyectos, presupuestos, facturas, provisiones y clientes. Todo en un solo
-          lugar.
-        </p>
+        <h1 className="mt-6 max-w-md text-2xl font-bold leading-tight tracking-tight text-white">{t('common.brand.tagline')}</h1>
+        <p className="mt-2 max-w-sm text-sm text-brand-100">{t('auth.hero.subtitle')}</p>
       </div>
 
       {/* Composición: órbita + monitor */}
@@ -123,17 +128,12 @@ export function HeroScene() {
 
       {/* Pills de color */}
       <div className="relative z-10 flex flex-wrap gap-2">
-        {[
-          { label: 'Presupuestos', tone: 'bg-cyan-400/20 text-cyan-100 ring-cyan-300/30' },
-          { label: 'Facturas', tone: 'bg-fuchsia-400/20 text-fuchsia-100 ring-fuchsia-300/30' },
-          { label: 'Clientes', tone: 'bg-emerald-400/20 text-emerald-100 ring-emerald-300/30' },
-          { label: 'Documentos', tone: 'bg-amber-400/20 text-amber-100 ring-amber-300/30' },
-        ].map((p) => (
+        {PILLS.map((p) => (
           <span
-            key={p.label}
+            key={p.key}
             className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${p.tone}`}
           >
-            {p.label}
+            {t(`auth.hero.pills.${p.key}`)}
           </span>
         ))}
       </div>

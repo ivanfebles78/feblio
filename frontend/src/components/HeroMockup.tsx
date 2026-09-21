@@ -8,32 +8,41 @@ import {
   FileBarChart,
   Settings,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatNumber } from '../lib/intl'
 
+/** Datos ilustrativos del mockup (etiquetas en auth.hero.mockup.*; importes de ejemplo en EUR). */
 const NAV = [
-  { icon: LayoutDashboard, label: 'Dashboard', active: true },
-  { icon: FolderKanban, label: 'Proyectos' },
-  { icon: FileText, label: 'Presupuestos' },
-  { icon: Receipt, label: 'Facturas' },
-  { icon: Wallet, label: 'Provisiones' },
-  { icon: Users, label: 'Clientes' },
-  { icon: FileBarChart, label: 'Informes' },
-  { icon: Settings, label: 'Configuración' },
-]
+  { icon: LayoutDashboard, key: 'dashboard', active: true },
+  { icon: FolderKanban, key: 'projects' },
+  { icon: FileText, key: 'quotes' },
+  { icon: Receipt, key: 'invoices' },
+  { icon: Wallet, key: 'provisions' },
+  { icon: Users, key: 'clients' },
+  { icon: FileBarChart, key: 'reports' },
+  { icon: Settings, key: 'settings' },
+] as const
 
 const STATS = [
-  { label: 'Presupuesto total', value: '120.000 €' },
-  { label: 'Facturado', value: '75.250 €' },
-  { label: 'Provisión de fondos', value: '15.000 €' },
-  { label: 'Pagos pendientes', value: '29.750 €' },
-]
+  { key: 'totalBudget', value: 120000 },
+  { key: 'invoiced', value: 75250 },
+  { key: 'provision', value: 15000 },
+  { key: 'pendingPayments', value: 29750 },
+] as const
 
 const DOCS = [
-  { name: 'Presupuesto.pdf', size: '2.4 MB' },
-  { name: 'Contrato.pdf', size: '1.1 MB' },
-  { name: 'Factura_F-2024-015.pdf', size: '1.3 MB' },
-]
+  { key: 'quote', size: '2.4 MB' },
+  { key: 'contract', size: '1.1 MB' },
+  { key: 'invoice', size: '1.3 MB' },
+] as const
+
+const TASKS = ['demolition', 'installations', 'masonry'] as const
+
+/** Importe de ejemplo sin decimales (120.000 € · €120,000). */
+const amount = (value: number) => formatNumber(value, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
 
 export function HeroMockup() {
+  const { t } = useTranslation()
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_40px_80px_-30px_rgba(15,23,42,.45)]">
       {/* Barra de ventana */}
@@ -58,13 +67,13 @@ export function HeroMockup() {
           <nav className="space-y-1">
             {NAV.map((n) => (
               <div
-                key={n.label}
+                key={n.key}
                 className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] font-medium ${
-                  n.active ? 'bg-brand-600 text-white' : 'text-slate-300'
+                  'active' in n && n.active ? 'bg-brand-600 text-white' : 'text-slate-300'
                 }`}
               >
                 <n.icon className="h-3.5 w-3.5" />
-                {n.label}
+                {t(`auth.hero.mockup.nav.${n.key}`)}
               </div>
             ))}
           </nav>
@@ -74,15 +83,11 @@ export function HeroMockup() {
         <div className="min-w-0 flex-1 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-wide text-slate-400">
-                Resumen del proyecto
-              </p>
-              <p className="text-sm font-bold text-slate-800">
-                Reforma Integral Edificio Central
-              </p>
+              <p className="text-[10px] uppercase tracking-wide text-slate-400">{t('auth.hero.mockup.projectSummary')}</p>
+              <p className="text-sm font-bold text-slate-800">{t('auth.hero.mockup.projectName')}</p>
             </div>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 ring-1 ring-emerald-200">
-              En progreso
+              {t('auth.hero.mockup.inProgress')}
             </span>
           </div>
 
@@ -90,7 +95,7 @@ export function HeroMockup() {
           <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
             {STATS.map((s, i) => (
               <div
-                key={s.label}
+                key={s.key}
                 className={`rounded-lg p-2.5 ${
                   i === 3
                     ? 'bg-gradient-to-br from-brand-600 to-brand-700 text-white'
@@ -100,9 +105,9 @@ export function HeroMockup() {
                 <p
                   className={`text-[9px] ${i === 3 ? 'text-brand-100' : 'text-slate-400'}`}
                 >
-                  {s.label}
+                  {t(`auth.hero.mockup.stats.${s.key}`)}
                 </p>
-                <p className="mt-0.5 text-xs font-bold">{s.value}</p>
+                <p className="mt-0.5 text-xs font-bold">{amount(s.value)}</p>
               </div>
             ))}
           </div>
@@ -111,25 +116,25 @@ export function HeroMockup() {
           <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
             <div className="rounded-lg border border-slate-100 p-3">
               <div className="flex items-center justify-between text-[10px] text-slate-500">
-                <span>Progreso del proyecto</span>
+                <span>{t('auth.hero.mockup.projectProgress')}</span>
                 <span className="font-semibold text-slate-700">65%</span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
                 <div className="h-full w-[65%] rounded-full bg-brand-600" />
               </div>
               <div className="mt-3 space-y-1.5">
-                {['Demolición', 'Instalaciones', 'Albañilería'].map((t, i) => (
+                {TASKS.map((task, i) => (
                   <div
-                    key={t}
+                    key={task}
                     className="flex items-center justify-between text-[10px]"
                   >
-                    <span className="text-slate-500">{t}</span>
+                    <span className="text-slate-500">{t(`auth.hero.mockup.tasks.${task}`)}</span>
                     <span
                       className={
                         i < 2 ? 'text-emerald-600' : 'text-brand-600'
                       }
                     >
-                      {i < 2 ? 'Completado' : 'En progreso'}
+                      {i < 2 ? t('auth.hero.mockup.completed') : t('auth.hero.mockup.inProgress')}
                     </span>
                   </div>
                 ))}
@@ -137,19 +142,15 @@ export function HeroMockup() {
             </div>
 
             <div className="rounded-lg border border-slate-100 p-3">
-              <p className="mb-2 text-[10px] font-semibold text-slate-600">
-                Documentos
-              </p>
+              <p className="mb-2 text-[10px] font-semibold text-slate-600">{t('auth.hero.mockup.documents')}</p>
               <div className="space-y-1.5">
                 {DOCS.map((d) => (
-                  <div key={d.name} className="flex items-center gap-2">
+                  <div key={d.key} className="flex items-center gap-2">
                     <span className="grid h-6 w-6 place-items-center rounded bg-red-50 text-red-500">
                       <FileText className="h-3 w-3" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[10px] font-medium text-slate-700">
-                        {d.name}
-                      </p>
+                      <p className="truncate text-[10px] font-medium text-slate-700">{t(`auth.hero.mockup.docs.${d.key}`)}</p>
                       <p className="text-[9px] text-slate-400">PDF · {d.size}</p>
                     </div>
                   </div>

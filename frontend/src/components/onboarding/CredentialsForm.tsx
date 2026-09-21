@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { KeyRound, ShieldCheck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { TextField } from '../forms/Field'
 import type { AdapterDescriptor } from '../../lib/integrations/adapters'
 
@@ -15,6 +16,7 @@ interface CredentialsFormProps {
  * APP_ENCRYPTION_KEY. Nunca se guardan en localStorage ni en el estado global.
  */
 export function CredentialsForm({ adapter, busy, onSubmit }: CredentialsFormProps) {
+  const { t } = useTranslation()
   const fields = adapter.credentialFields ?? []
   const [values, setValues] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -22,7 +24,7 @@ export function CredentialsForm({ adapter, busy, onSubmit }: CredentialsFormProp
   async function submit(e: FormEvent) {
     e.preventDefault()
     const errs: Record<string, string> = {}
-    for (const f of fields) if (!values[f.key]?.trim()) errs[f.key] = `${f.label} es obligatorio.`
+    for (const f of fields) if (!values[f.key]?.trim()) errs[f.key] = t('onboarding.credentials.required', { label: f.label })
     setErrors(errs)
     if (Object.keys(errs).length) return
     const ok = await onSubmit(values)
@@ -30,9 +32,9 @@ export function CredentialsForm({ adapter, busy, onSubmit }: CredentialsFormProp
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3" aria-label={`Credenciales de ${adapter.label}`}>
+    <form onSubmit={submit} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3" aria-label={t('onboarding.credentials.formLabel', { adapter: adapter.label })}>
       <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-        <KeyRound className="h-3.5 w-3.5 text-brand-600" aria-hidden="true" /> Credenciales
+        <KeyRound className="h-3.5 w-3.5 text-brand-600" aria-hidden="true" /> {t('onboarding.credentials.title')}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.map((f) => (
@@ -52,10 +54,10 @@ export function CredentialsForm({ adapter, busy, onSubmit }: CredentialsFormProp
       </div>
       <div className="mt-3 flex items-center justify-between gap-3">
         <p className="flex items-center gap-1 text-[11px] text-slate-500">
-          <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> Se cifran en el servidor y no vuelven al navegador.
+          <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> {t('onboarding.credentials.encrypted')}
         </p>
         <button type="submit" disabled={busy} className="btn-primary !px-3 !py-2 text-xs">
-          {busy ? 'Verificando…' : 'Guardar y probar'}
+          {busy ? t('onboarding.credentials.verifying') : t('onboarding.credentials.saveAndTest')}
         </button>
       </div>
     </form>

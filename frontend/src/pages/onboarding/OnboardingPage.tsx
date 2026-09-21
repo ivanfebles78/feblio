@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { OnboardingLayout } from '../../components/onboarding/OnboardingLayout'
 import { OnboardingResumeBanner } from '../../components/onboarding/OnboardingResumeBanner'
 import { LoadingScreen, ErrorScreen } from '../../components/LoadingScreen'
@@ -19,12 +20,13 @@ export default function OnboardingPage() {
 }
 
 function OnboardingRouter() {
+  const { t } = useTranslation()
   const { step } = useParams<{ step?: string }>()
   const ctx = useOnboarding()
   const { signOut } = useAuth()
 
-  if (ctx.loading) return <LoadingScreen text="Cargando tu configuración…" />
-  if (ctx.error || !ctx.snapshot) return <ErrorScreen message={ctx.error ?? 'Sin datos.'} onRetry={ctx.reload} onSignOut={signOut} />
+  if (ctx.loading) return <LoadingScreen text={t('onboarding.page.loading')} />
+  if (ctx.error || !ctx.snapshot) return <ErrorScreen message={ctx.error ?? t('onboarding.page.noData')} onRetry={ctx.reload} onSignOut={signOut} />
 
   if (!isStepKey(step)) {
     // Reanudar: último paso guardado o primer paso abierto
@@ -38,6 +40,7 @@ function OnboardingRouter() {
 }
 
 function OnboardingStepView({ step }: { step: OnboardingStepKey }) {
+  const { t } = useTranslation()
   const ctx = useOnboarding()
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -57,8 +60,8 @@ function OnboardingStepView({ step }: { step: OnboardingStepKey }) {
   useEffect(() => {
     if (oauth) {
       ctx.reload()
-      const t = window.setTimeout(() => navigate(onboardingStepPath(step), { replace: true }), 6000)
-      return () => window.clearTimeout(t)
+      const timer = window.setTimeout(() => navigate(onboardingStepPath(step), { replace: true }), 6000)
+      return () => window.clearTimeout(timer)
     }
   }, [oauth]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -67,7 +70,7 @@ function OnboardingStepView({ step }: { step: OnboardingStepKey }) {
 
   const banner = oauth ? (
     <div className={`rounded-2xl px-4 py-3 text-sm ${oauth === 'connected' ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`} role="status">
-      {oauth === 'connected' ? 'Conexión completada correctamente.' : `La conexión no se completó${oauthMessage ? `: ${oauthMessage}` : '.'}`}
+      {oauth === 'connected' ? t('onboarding.page.oauthOk') : oauthMessage ? t('onboarding.page.oauthFailedWithMessage', { message: oauthMessage }) : t('onboarding.page.oauthFailed')}
     </div>
   ) : isResuming ? (
     <OnboardingResumeBanner currentStep={step} completedCount={completedCount} />

@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "project": "Mi proyecto",
+    "documents": "Documentos",
+    "invoices": "Facturas"
+  },
+  "loading": "Cargando datos…",
+  "noProjects": "Todavía no hay ningún proyecto asignado a tu cuenta.",
+  "project": {
+    "yourProject": "Tu proyecto",
+    "progress": "Progreso del proyecto"
+  },
+  "stats": {
+    "budgetTotal": "Presupuesto total",
+    "invoiced": "Facturado",
+    "pendingPayments": "Pagos pendientes"
+  },
+  "documents": {
+    "title": "Documentos del proyecto",
+    "empty": "Sin documentos disponibles."
+  },
+  "invoices": {
+    "title": "Facturas",
+    "empty": "Sin facturas por ahora."
+  },
+  "documentType": {
+    "presupuesto": "Presupuesto",
+    "provision": "Provisión de fondos",
+    "factura": "Factura",
+    "contrato": "Contrato",
+    "otro": "Otro"
+  },
+  "status": {
+    "borrador": "Borrador",
+    "en_progreso": "En progreso",
+    "completado": "Completado",
+    "cancelado": "Cancelado"
+  }
+}

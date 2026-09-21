@@ -1,25 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { applyCompanyLanguage } from '../i18n'
 import { Logo } from '../components/Logo'
+import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { Button } from '../components/v2/Button'
 import { StatusPill } from '../components/v2/Card'
 import { MessageThread } from '../components/solicitudes/MessageThread'
 import { ClienteForm, validateClienteForm, type ClienteFormData } from '../components/solicitudes/ClienteForm'
 import * as api from '../lib/solicitudes/api'
 import { clientObjectPath, uploadSolicitudFile } from '../lib/solicitudes/files'
-import { formatDate, formatDateTime } from '../lib/solicitudes/format'
+import { formatDate, formatDateTime } from '../lib/intl'
 import type { ClienteVista, SolicitudStatus } from '../lib/solicitudes/types'
 
-/** Estados traducidos para el cliente (sin jerga interna). */
-const CLIENT_STATUS: Record<SolicitudStatus, { label: string; tone: 'pending' | 'info' | 'success' | 'neutral' }> = {
-  draft: { label: 'Pendiente de completar', tone: 'pending' },
-  awaiting_client: { label: 'Pendiente de completar', tone: 'pending' },
-  submitted: { label: 'Recibida', tone: 'info' },
-  under_review: { label: 'En revisión', tone: 'info' },
-  missing_information: { label: 'Necesitamos más información', tone: 'pending' },
-  ready_for_scope: { label: 'Información completa', tone: 'success' },
-  closed: { label: 'Cerrada', tone: 'neutral' },
+/** Tono de la píldora de estado para el cliente; la etiqueta (sin jerga interna) sale de `requests.clientStatus.*`. */
+const CLIENT_STATUS_TONE: Record<SolicitudStatus, 'pending' | 'info' | 'success' | 'neutral'> = {
+  draft: 'pending',
+  awaiting_client: 'pending',
+  submitted: 'info',
+  under_review: 'info',
+  missing_information: 'pending',
+  ready_for_scope: 'success',
+  closed: 'neutral',
 }
 const EDITABLE: SolicitudStatus[] = ['draft', 'awaiting_client', 'missing_information']
 
@@ -33,17 +36,22 @@ function initialData(v: ClienteVista): ClienteFormData {
 }
 
 function InvalidLink() {
+  const { t } = useTranslation()
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 text-center">
       <Logo size={32} />
-      <h1 className="mt-6 text-xl font-semibold text-slate-900">Este enlace no está disponible</h1>
-      <p className="mt-2 text-sm text-slate-600">Puede haber caducado o haberse desactivado. Si necesitas seguir con tu solicitud, ponte en contacto con la empresa que te lo envió para que te facilite uno nuevo.</p>
+      <div className="mt-4">
+        <LanguageSwitcher />
+      </div>
+      <h1 className="mt-6 text-xl font-semibold text-slate-900">{t('requests.public.invalidTitle')}</h1>
+      <p className="mt-2 text-sm text-slate-600">{t('requests.public.invalidText')}</p>
     </main>
   )
 }
 
 /** Página pública del cliente: acceso por enlace seguro, sin cuenta ni identificadores internos. */
 export default function SolicitudCliente() {
+  const { t } = useTranslation()
   const { token = '' } = useParams()
   const [vista, setVista] = useState<ClienteVista | null>(null)
   const [invalid, setInvalid] = useState(false)
@@ -72,6 +80,8 @@ export default function SolicitudCliente() {
       .clienteObtener(token)
       .then((v) => {
         if (!alive) return
+        // Idioma del enlace público: elección manual del visitante → idioma de la empresa → español
+        applyCompanyLanguage(v.empresa?.language)
         apply(v, true)
         if (v.mensajes.some((m) => m.author_kind === 'empresa' && !m.read)) void api.clienteMarcarLeido(token).catch(() => undefined)
       })
@@ -108,9 +118,9 @@ export default function SolicitudCliente() {
     try {
       apply(await api.clienteGuardar(token, payload()), false)
       setDirty(false)
-      setNotice({ tone: 'ok', text: 'Borrador guardado. Puedes volver a este enlace cuando quieras.' })
+      setNotice({ tone: 'ok', text: t('requests.public.draftSaved') })
     } catch (e) {
-      setNotice({ tone: 'error', text: e instanceof Error ? e.message : 'No se pudo guardar.' })
+      setNotice({ tone: 'error', text: e instanceof Error ? e.message : t('requests.public.saveFailed') })
     } finally {
       setSaving(null)
     }
@@ -121,7 +131,7 @@ export default function SolicitudCliente() {
     const errs = validateClienteForm(data, vista, consents)
     setErrors(errs)
     if (Object.keys(errs).length > 0) {
-      setNotice({ tone: 'error', text: 'Revisa los campos marcados antes de enviar.' })
+      setNotice({ tone: 'error', text: t('requests.public.fixFields') })
       return
     }
     setSaving('submit')
@@ -131,7 +141,7 @@ export default function SolicitudCliente() {
         .filter(([, v]) => v)
         .map(([k]) => k)
       apply(await api.clienteEnviar(token, { ...payload(), ...(consentKeys.length ? { consents: consentKeys.join(',') } : {}) }), true)
-      setNotice({ tone: 'ok', text: 'Formulario enviado. Te avisaremos por este mismo enlace si necesitamos algo más.' })
+      setNotice({ tone: 'ok', text: t('requests.public.submitted') })
       // Tras el re-render, lleva al aviso de confirmación (arriba)
       window.requestAnimationFrame?.(() => {
         try {
@@ -141,7 +151,7 @@ export default function SolicitudCliente() {
         }
       })
     } catch (e) {
-      setNotice({ tone: 'error', text: e instanceof Error ? e.message : 'No se pudo enviar.' })
+      setNotice({ tone: 'error', text: e instanceof Error ? e.message : t('requests.public.submitFailed') })
     } finally {
       setSaving(null)
     }
@@ -158,12 +168,13 @@ export default function SolicitudCliente() {
   if (!vista) {
     return (
       <main className="flex min-h-screen items-center justify-center text-sm text-slate-500" aria-live="polite">
-        Cargando tu solicitud…
+        {t('requests.public.loading')}
       </main>
     )
   }
 
-  const status = CLIENT_STATUS[vista.solicitud.status]
+  const statusTone = CLIENT_STATUS_TONE[vista.solicitud.status]
+  const empresaName = vista.empresa?.name
   const pendientes = vista.requisitos.filter((r) => r.status === 'pending')
   const fieldPendientes = pendientes.filter((r) => r.kind === 'field')
 
@@ -174,11 +185,14 @@ export default function SolicitudCliente() {
           <div className="flex min-w-0 items-center gap-3">
             {vista.empresa?.logo_url ? <img src={vista.empresa.logo_url} alt="" width={36} height={36} className="h-9 w-9 rounded-lg object-contain" /> : <Logo size={28} />}
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-900">{vista.empresa?.name ?? 'Solicitud'}</p>
-              <p className="truncate text-xs text-slate-500">Enlace seguro · válido hasta el {formatDate(vista.expires_at)}</p>
+              <p className="truncate text-sm font-semibold text-slate-900">{empresaName ?? t('requests.public.fallbackTitle')}</p>
+              <p className="truncate text-xs text-slate-500">{t('requests.public.secureLink', { date: formatDate(vista.expires_at) })}</p>
             </div>
           </div>
-          <StatusPill tone={status.tone}>{status.label}</StatusPill>
+          <div className="flex shrink-0 items-center gap-2">
+            <StatusPill tone={statusTone}>{t(`requests.clientStatus.${vista.solicitud.status}`)}</StatusPill>
+            <LanguageSwitcher />
+          </div>
         </div>
       </header>
 
@@ -186,7 +200,7 @@ export default function SolicitudCliente() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{vista.solicitud.title}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            {editable ? 'Completa la información y adjunta lo que tengas. Puedes guardar y volver más tarde.' : vista.solicitud.form_submitted_at ? `Enviado el ${formatDateTime(vista.solicitud.form_submitted_at)}.` : ''}
+            {editable ? t('requests.public.intro') : vista.solicitud.form_submitted_at ? t('requests.public.submittedOn', { date: formatDateTime(vista.solicitud.form_submitted_at) }) : ''}
           </p>
         </div>
 
@@ -200,16 +214,16 @@ export default function SolicitudCliente() {
         {pendientes.length > 0 && (
           <section aria-labelledby="pendientes" className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
             <h2 id="pendientes" className="text-base font-semibold text-amber-950">
-              {vista.empresa?.name ?? 'La empresa'} necesita lo siguiente
+              {t('requests.public.needsTitle', { company: empresaName ?? t('requests.public.theCompany') })}
             </h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-900">
               {pendientes.map((r) => (
                 <li key={r.id}>
-                  {r.label} <span className="text-amber-700">({r.kind === 'document' ? 'documento' : 'dato'})</span>
+                  {r.label} <span className="text-amber-700">({t(`requests.public.kind.${r.kind}`)})</span>
                 </li>
               ))}
             </ul>
-            {fieldPendientes.length > 0 && <p className="mt-2 text-xs text-amber-800">Los datos puedes indicarlos en el formulario o responder en la conversación de abajo.</p>}
+            {fieldPendientes.length > 0 && <p className="mt-2 text-xs text-amber-800">{t('requests.public.fieldsHint')}</p>}
           </section>
         )}
 
@@ -233,14 +247,14 @@ export default function SolicitudCliente() {
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-slate-500">
                 <ShieldCheck className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
-                Tus datos solo los ve {vista.empresa?.name ?? 'la empresa'}.
+                {t('requests.public.privacy', { company: empresaName ?? t('requests.public.theCompanyLower') })}
               </p>
               <div className="flex gap-2">
                 <Button variant="secondary" onClick={() => void saveDraft()} disabled={saving !== null} className="flex-1 sm:flex-none">
-                  {saving === 'draft' ? 'Guardando…' : 'Guardar borrador'}
+                  {saving === 'draft' ? t('common.actions.saving') : t('requests.public.saveDraft')}
                 </Button>
                 <Button onClick={() => void submit()} disabled={saving !== null} className="flex-1 sm:flex-none">
-                  {saving === 'submit' ? 'Enviando…' : vista.solicitud.status === 'missing_information' ? 'Enviar información' : 'Enviar solicitud'}
+                  {saving === 'submit' ? t('common.actions.sending') : vista.solicitud.status === 'missing_information' ? t('requests.public.sendInfo') : t('requests.public.submit')}
                 </Button>
               </div>
             </div>
@@ -249,24 +263,24 @@ export default function SolicitudCliente() {
 
         <section aria-labelledby="conversacion" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,.04)] sm:p-6">
           <h2 id="conversacion" className="text-base font-semibold text-slate-900">
-            Conversación con {vista.empresa?.name ?? 'la empresa'}
+            {t('requests.public.conversationTitle', { company: empresaName ?? t('requests.public.theCompanyLower') })}
           </h2>
-          <p className="mt-0.5 text-sm text-slate-600">Si tienes dudas o quieres añadir algo, escríbelo aquí.</p>
+          <p className="mt-0.5 text-sm text-slate-600">{t('requests.public.conversationHint')}</p>
           <div className="mt-3">
             <MessageThread
               viewer="cliente"
               messages={vista.mensajes.map((m) => ({ ...m, read: m.author_kind === 'cliente' ? undefined : m.read }))}
               onSend={async (body) => apply(await api.clienteMensaje(token, body), false)}
               disabled={vista.solicitud.status === 'closed'}
-              disabledReason="Esta solicitud está cerrada."
-              placeholder="Escribe tu mensaje…"
-              emptyText="Todavía no hay mensajes. Si tienes dudas, escríbenos."
+              disabledReason={t('requests.public.conversationClosed')}
+              placeholder={t('requests.public.messagePlaceholder')}
+              emptyText={t('requests.public.noMessages')}
             />
           </div>
         </section>
 
         <footer className="pb-6 pt-2 text-center text-xs text-slate-400">
-          Formulario seguro gestionado con Feblio.
+          {t('requests.public.footer')}
         </footer>
       </main>
     </div>

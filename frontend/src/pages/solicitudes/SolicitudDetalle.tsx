@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Link2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/v2/Button'
 import { Card, CardHeader, StatusPill } from '../../components/v2/Card'
 import { MessageThread } from '../../components/solicitudes/MessageThread'
@@ -9,8 +10,8 @@ import { CloseDialog, LinkDialog, RequestInfoDialog, type RequestInfoItem } from
 import { Cronologia, DatosRecibidos, DocumentosPanel, RequisitosPanel } from './detalle/Panels'
 import * as api from '../../lib/solicitudes/api'
 import { empresaObjectPath, uploadSolicitudFile } from '../../lib/solicitudes/files'
-import { formatDate, formatDateTime } from '../../lib/solicitudes/format'
-import { CHANNEL_LABEL, empresaActions, STATUS_LABEL, STATUS_TONE } from '../../lib/solicitudes/status'
+import { formatDate, formatDateTime } from '../../lib/intl'
+import { channelLabel, empresaActions, statusLabel, STATUS_TONE } from '../../lib/solicitudes/status'
 import type { SolicitudStatus } from '../../lib/solicitudes/types'
 import { appUrl } from '../../lib/env'
 import { clientLinkPath, EMPRESA_PATHS } from '../../lib/routing'
@@ -25,6 +26,7 @@ function buildClientUrl(token: string): string {
 }
 
 export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
+  const { t } = useTranslation()
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -45,9 +47,9 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
       setError(null)
       if (d.mensajes.some((m) => m.author_kind !== 'empresa' && !m.read_by_empresa_at)) await api.marcarLeida(id).catch(() => undefined)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo cargar la solicitud.')
+      setError(e instanceof Error ? e.message : t('requests.api.loadOne'))
     }
-  }, [id])
+  }, [id, t])
 
   useEffect(() => {
     void load()
@@ -77,13 +79,13 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
       await load()
       if (okMessage) setNotice(okMessage)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo completar la acción.')
+      setError(e instanceof Error ? e.message : t('requests.detail.actionFailed'))
     } finally {
       setBusy(false)
     }
   }
 
-  const changeStatus = (to: SolicitudStatus, motivo?: string) => run(() => api.cambiarEstado(id, to, motivo), `Estado actualizado: ${STATUS_LABEL[to]}.`)
+  const changeStatus = (to: SolicitudStatus, motivo?: string) => run(() => api.cambiarEstado(id, to, motivo), t('requests.detail.statusUpdated', { status: statusLabel(to) }))
 
   async function generateLink() {
     setBusy(true)
@@ -92,14 +94,14 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
       setFreshLink({ url: buildClientUrl(r.token), expires_at: r.expires_at })
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo generar el enlace.')
+      setError(e instanceof Error ? e.message : t('requests.api.generateLink'))
     } finally {
       setBusy(false)
     }
   }
 
   async function revokeLinks() {
-    await run(() => api.revocarEnlaces(id), 'Acceso del cliente revocado.')
+    await run(() => api.revocarEnlaces(id), t('requests.detail.accessRevoked'))
     setFreshLink(null)
     setDialog(null)
   }
@@ -108,14 +110,14 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
     await api.solicitarInformacion(id, items, message || undefined)
     await load()
     setDialog(null)
-    setNotice('Petición enviada al cliente.')
+    setNotice(t('requests.detail.requestSent'))
   }
 
   async function closeWithReason(reason: string) {
     await api.cambiarEstado(id, 'closed', reason)
     await load()
     setDialog(null)
-    setNotice('Solicitud cerrada.')
+    setNotice(t('requests.detail.closed'))
   }
 
   async function uploadEmpresaFile(file: File, mime: string, ext: string) {
@@ -129,7 +131,7 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
     return (
       <div className="space-y-4">
         <Link to={EMPRESA_PATHS.solicitudes} className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Volver a solicitudes
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t('requests.backToList')}
         </Link>
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
           {error}
@@ -137,32 +139,37 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
       </div>
     )
   }
-  if (!data) return <p className="text-sm text-slate-500">Cargando solicitud…</p>
+  if (!data) return <p className="text-sm text-slate-500">{t('requests.detail.loading')}</p>
 
   const { solicitud: s, cliente } = data
   const latest = data.analisis[0] ?? null
   const activeAccess = data.accesos.find((a) => !a.revoked_at && new Date(a.expires_at).getTime() > Date.now()) ?? null
   const actions = empresaActions(s.status)
   const conversationClosed = s.status === 'closed'
+  const activeLinkText = !activeAccess
+    ? t('requests.detail.summary.noActiveLink')
+    : activeAccess.last_used_at
+      ? t('requests.detail.summary.activeLinkUsed', { date: formatDate(activeAccess.expires_at), lastUsed: formatDateTime(activeAccess.last_used_at) })
+      : t('requests.detail.summary.activeLink', { date: formatDate(activeAccess.expires_at) })
 
   return (
     <div className="space-y-5">
       <Link to={EMPRESA_PATHS.solicitudes} className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Volver a solicitudes
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t('requests.backToList')}
       </Link>
 
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{s.title}</h1>
-            <StatusPill tone={STATUS_TONE[s.status]}>{STATUS_LABEL[s.status]}</StatusPill>
+            <StatusPill tone={STATUS_TONE[s.status]}>{statusLabel(s.status)}</StatusPill>
           </div>
           <p className="mt-1 text-sm text-slate-600">
             {cliente?.name ?? s.contact_name}
-            {cliente && cliente.name !== s.contact_name && ` · ${s.contact_name}`} · {CHANNEL_LABEL[s.source_channel]} · creada el {formatDate(s.created_at)}
+            {cliente && cliente.name !== s.contact_name && ` · ${s.contact_name}`} · {channelLabel(s.source_channel)} · {t('requests.detail.createdOn', { date: formatDate(s.created_at) })}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Acciones">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t('requests.actions.groupLabel')}>
           {actions.map((a) => {
             if (a.key === 'link')
               return (
@@ -211,12 +218,12 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-5">
-          <CompletenessCard analysis={latest} completeness={s.completeness} onReanalyze={actions.some((a) => a.key === 'reanalyze') ? () => void run(() => api.analizarSolicitud(id), 'Comprobación actualizada.') : undefined} busy={busy} />
+          <CompletenessCard analysis={latest} completeness={s.completeness} onReanalyze={actions.some((a) => a.key === 'reanalyze') ? () => void run(() => api.analizarSolicitud(id), t('requests.detail.checkUpdated')) : undefined} busy={busy} />
           <DatosRecibidos formData={s.form_data} template={data.template} submittedAt={s.form_submitted_at} />
           <RequisitosPanel requisitos={data.requisitos} onResolve={(rid, estado) => void run(() => api.resolverRequisito(rid, estado))} busy={busy} />
           <DocumentosPanel documentos={data.documentos} requisitos={data.requisitos} onUpload={uploadEmpresaFile} canUpload={!conversationClosed} />
           <Card className="p-5">
-            <CardHeader title="Conversación" description="Visible para el cliente en su enlace. No hay mensajes internos privados." />
+            <CardHeader title={t('requests.detail.conversation.title')} description={t('requests.detail.conversation.description')} />
             <div className="mt-3">
               <MessageThread
                 viewer="empresa"
@@ -226,7 +233,7 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
                   await load()
                 }}
                 disabled={conversationClosed}
-                disabledReason="La solicitud está cerrada. Reábrela para seguir conversando."
+                disabledReason={t('requests.detail.conversation.closed')}
               />
             </div>
           </Card>
@@ -234,14 +241,14 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
 
         <aside className="space-y-5">
           <Card className="p-5">
-            <CardHeader title="Resumen" as="h3" />
+            <CardHeader title={t('requests.detail.summary.title')} as="h3" />
             <dl className="mt-3 space-y-2.5 text-sm">
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Cliente</dt>
-                <dd className="text-slate-800">{cliente?.name ?? 'Contacto sin ficha de cliente'}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.detail.summary.client')}</dt>
+                <dd className="text-slate-800">{cliente?.name ?? t('requests.detail.summary.noClientRecord')}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Contacto</dt>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.detail.summary.contact')}</dt>
                 <dd className="text-slate-800">
                   {s.contact_name}
                   {s.contact_email && <span className="block text-slate-600">{s.contact_email}</span>}
@@ -250,31 +257,31 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
               </div>
               {s.service_type && (
                 <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Servicio</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.detail.summary.service')}</dt>
                   <dd className="text-slate-800">{s.service_type}</dd>
                 </div>
               )}
               {s.description && (
                 <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Notas iniciales</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.detail.summary.notes')}</dt>
                   <dd className="whitespace-pre-wrap text-slate-800">{s.description}</dd>
                 </div>
               )}
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fecha límite</dt>
-                <dd className="text-slate-800">{s.deadline ? formatDate(s.deadline) : 'Sin definir'}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.detail.summary.deadline')}</dt>
+                <dd className="text-slate-800">{s.deadline ? formatDate(s.deadline) : t('requests.detail.summary.noDeadline')}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Última actividad</dt>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.detail.summary.lastActivity')}</dt>
                 <dd className="text-slate-800">{formatDateTime(s.last_activity_at)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Enlace del cliente</dt>
-                <dd className="text-slate-800">{activeAccess ? `Activo · caduca el ${formatDate(activeAccess.expires_at)}${activeAccess.last_used_at ? ` · último uso ${formatDateTime(activeAccess.last_used_at)}` : ''}` : 'Sin enlace activo'}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.detail.summary.clientLink')}</dt>
+                <dd className="text-slate-800">{activeLinkText}</dd>
               </div>
               {s.status === 'closed' && s.closed_reason && (
                 <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Motivo de cierre</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('requests.detail.summary.closeReason')}</dt>
                   <dd className="text-slate-800">{s.closed_reason}</dd>
                 </div>
               )}

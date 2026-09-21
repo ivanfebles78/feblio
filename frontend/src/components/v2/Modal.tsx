@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export interface ModalProps {
   open: boolean
@@ -19,6 +20,7 @@ const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select
  * Escape y clic fuera cierran, foco devuelto al disparador al cerrar.
  */
 export function Modal({ open, title, description, onClose, children, footer, size = 'md' }: ModalProps) {
+  const { t } = useTranslation()
   const titleId = useId()
   const descId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -86,7 +88,7 @@ export function Modal({ open, title, description, onClose, children, footer, siz
               </p>
             )}
           </div>
-          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Cerrar">
+          <button type="button" onClick={onClose} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={t('common.actions.close')}>
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>

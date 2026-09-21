@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { t } from '../../i18n'
 import type { OnboardingContextValue } from '../../lib/onboarding/OnboardingContext'
 import type { OnboardingStepKey, EmailStepData, RepositoryStepData, SmsStepData, VoiceStepData, WhatsAppStepData } from '../../lib/onboarding/types'
 import {
@@ -72,9 +73,9 @@ export const STEP_REGISTRY: Record<OnboardingStepKey, StepEntry> = {
     Component: FormsStep,
     validate: (ctx) => {
       const e: FieldErrors = {}
-      const t = ctx.snapshot?.form_templates ?? []
-      if (t.length === 0) e.templates = 'Crea al menos un formulario.'
-      else if (!t.some((x) => x.is_default)) e.templates = 'Marca un formulario como predeterminado.'
+      const templates = ctx.snapshot?.form_templates ?? []
+      if (templates.length === 0) e.templates = t('onboarding.forms.atLeastOne')
+      else if (!templates.some((x) => x.is_default)) e.templates = t('onboarding.forms.markDefault')
       return e
     },
   },

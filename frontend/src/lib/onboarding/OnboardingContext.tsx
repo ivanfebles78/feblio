@@ -13,6 +13,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { t } from '../../i18n'
 import * as api from './api'
 import type { OnboardingSnapshot, OnboardingStepKey, OnboardingStepRow, SaveState, StepStatus } from './types'
 
@@ -58,7 +59,7 @@ export interface OnboardingContextValue {
 const OnboardingContext = createContext<OnboardingContextValue | undefined>(undefined)
 
 function errorMessage(e: unknown): string {
-  return e instanceof Error ? e.message : 'Error desconocido.'
+  return e instanceof Error ? e.message : t('onboarding.context.unknownError')
 }
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {

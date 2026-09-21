@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { t as translate } from '../../i18n'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '../v2/Button'
 import { Card } from '../v2/Card'
 import { Checklist, ProgressRing, type ChecklistItemData } from '../v2/Progress'
 import { getStepStatuses } from '../../lib/onboarding/api'
-import { computeSetupProgress, type SetupProgress } from '../../lib/onboarding/areas'
+import { areaDescription, areaTitle, computeSetupProgress, type SetupProgress } from '../../lib/onboarding/areas'
 import { onboardingStepPath, type OnboardingStatus } from '../../lib/routing'
 
 const dismissKey = (empresaId: string) => `feblio:setup-card-dismissed:${empresaId}`
@@ -37,7 +39,7 @@ export function useSetupProgress(empresaId: string | null, onboardingStatus: Onb
       setProgress(computeSetupProgress(statuses, onboardingStatus))
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo cargar el progreso.')
+      setError(e instanceof Error ? e.message : translate('onboarding.setupCard.loadError'))
     }
   }, [empresaId, onboardingStatus])
   useEffect(() => {
@@ -59,6 +61,7 @@ interface SetupProgressCardProps {
  * (por sesión y empresa) sin bloquear ninguna función. Completa → no se muestra.
  */
 export function SetupProgressCard({ empresaId, progress, highlight = false }: SetupProgressCardProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [dismissed, setDismissed] = useState(() => readDismissed(empresaId))
 
@@ -66,8 +69,8 @@ export function SetupProgressCard({ empresaId, progress, highlight = false }: Se
 
   const items: ChecklistItemData[] = progress.areas.map((a) => ({
     key: a.key,
-    title: a.title,
-    description: a.description,
+    title: areaTitle(a.key),
+    description: areaDescription(a.key),
     status: a.status,
     minutes: a.minutes,
   }))
@@ -82,7 +85,7 @@ export function SetupProgressCard({ empresaId, progress, highlight = false }: Se
     return (
       <p className="flex flex-wrap items-center gap-x-2 text-sm text-slate-600" role="status">
         <span>
-          Configuración pendiente: {progress.completedAreas} de {progress.totalAreas} áreas ({progress.percent}%).
+          {t('onboarding.setupCard.pending', { completed: progress.completedAreas, total: progress.totalAreas, percent: progress.percent })}
         </span>
         <button
           type="button"
@@ -92,7 +95,7 @@ export function SetupProgressCard({ empresaId, progress, highlight = false }: Se
           }}
           className="font-medium text-brand-700 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
-          Retomar ahora
+          {t('onboarding.setupCard.resumeNow')}
         </button>
       </p>
     )
@@ -103,23 +106,23 @@ export function SetupProgressCard({ empresaId, progress, highlight = false }: Se
     <Card className={`p-5 sm:p-6 ${highlight ? 'ring-2 ring-brand-500 ring-offset-2' : ''}`} aria-labelledby="setup-title">
       <div className="flex flex-col gap-6 lg:flex-row">
         <div className="flex items-start gap-4 lg:w-72 lg:shrink-0">
-          <ProgressRing value={progress.percent} label="Configuración completada" />
+          <ProgressRing value={progress.percent} label={t('onboarding.setupCard.progressLabel')} />
           <div>
             <h2 id="setup-title" className="text-base font-semibold text-slate-900">
-              Configura Feblio a tu ritmo
+              {t('onboarding.setupCard.title')}
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              {progress.completedAreas} de {progress.totalAreas} áreas completadas · unos {progress.minutesRemaining} min restantes.
+              {t('onboarding.setupCard.summary', { completed: progress.completedAreas, total: progress.totalAreas, minutes: progress.minutesRemaining })}
             </p>
             {next && (
               <p className="mt-3 text-sm">
-                <span className="font-medium text-slate-900">Siguiente acción recomendada:</span> <span className="text-slate-700">{next.title}</span>
+                <span className="font-medium text-slate-900">{t('onboarding.setupCard.nextAction')}</span> <span className="text-slate-700">{areaTitle(next.key)}</span>
               </p>
             )}
             <div className="mt-3 flex flex-wrap gap-2">
               {next && (
-                <Button size="sm" onClick={() => openArea(next.key)} trailing={<ArrowRight className="h-4 w-4" aria-hidden="true" />} aria-label={`Continuar con ${next.title.toLowerCase()}`}>
-                  Continuar
+                <Button size="sm" onClick={() => openArea(next.key)} trailing={<ArrowRight className="h-4 w-4" aria-hidden="true" />} aria-label={t('onboarding.setupCard.continueWith', { area: areaTitle(next.key).toLowerCase() })}>
+                  {t('onboarding.setupCard.continue')}
                 </Button>
               )}
               <Button
@@ -130,7 +133,7 @@ export function SetupProgressCard({ empresaId, progress, highlight = false }: Se
                   setDismissed(true)
                 }}
               >
-                Continuar después
+                {t('onboarding.setupCard.later')}
               </Button>
             </div>
           </div>

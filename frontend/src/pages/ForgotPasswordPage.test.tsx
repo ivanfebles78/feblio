@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { setUserLanguage } from '../i18n'
 
 const auth = vi.hoisted(() => ({ requestPasswordReset: vi.fn() }))
 vi.mock('../context/AuthContext', () => ({ useAuth: () => auth }))
@@ -66,5 +67,42 @@ describe('<ForgotPasswordPage />', () => {
     await user.click(btn)
     expect(auth.requestPasswordReset).toHaveBeenCalledTimes(1)
     resolve({ error: null })
+  })
+})
+
+describe('<ForgotPasswordPage /> in English', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setUserLanguage('en')
+  })
+
+  it('renders the title, description, field, button and language selector in English', () => {
+    setup()
+    expect(screen.getByRole('heading', { name: /reset password/i })).toBeInTheDocument()
+    expect(screen.getByText(/enter the email address you use to sign in to feblio/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /send link/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /back to sign in/i })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('group', { name: /interface language/i })).toBeInTheDocument()
+    expect(screen.queryByText(/recuperar contraseña|enviar enlace|correo electrónico/i)).not.toBeInTheDocument()
+  })
+
+  it('shows the validation message and the neutral confirmation in English', async () => {
+    auth.requestPasswordReset.mockResolvedValue({ error: null })
+    const user = setup()
+    await user.click(screen.getByRole('button', { name: /send link/i }))
+    expect(screen.getByLabelText(/email address/i)).toHaveAccessibleDescription(/enter an email address/i)
+    await user.type(screen.getByLabelText(/email address/i), 'laura@norte.es')
+    await user.click(screen.getByRole('button', { name: /send link/i }))
+    expect(await screen.findByRole('status')).toHaveTextContent(/if laura@norte\.es has a feblio account/i)
+    expect(screen.getByRole('button', { name: /use another email/i })).toBeInTheDocument()
+  })
+
+  it('rate limit error is translated into English', async () => {
+    auth.requestPasswordReset.mockResolvedValue({ error: 'email rate limit exceeded' })
+    const user = setup()
+    await user.type(screen.getByLabelText(/email address/i), 'laura@norte.es')
+    await user.click(screen.getByRole('button', { name: /send link/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/too many attempts/i)
   })
 })

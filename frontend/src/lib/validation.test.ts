@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { setUserLanguage } from '../i18n'
 import {
   normalizeIban,
   normalizeTaxId,
@@ -15,6 +16,7 @@ import {
   validateTaxId,
   validateTimezone,
   validateUrl,
+  businessDayLabel,
 } from './validation'
 
 describe('NIF fiscal', () => {
@@ -116,5 +118,29 @@ describe('otros', () => {
     expect(validateBusinessHours({ lunes: { enabled: true, from: '09:00', to: '18:00' } }).ok).toBe(true)
     expect(validateBusinessHours({ lunes: { enabled: true, from: '19:00', to: '18:00' } }).ok).toBe(false)
     expect(validateBusinessHours({ lunes: { enabled: false, from: '19:00', to: '18:00' } }).ok).toBe(true)
+  })
+})
+
+describe('mensajes en inglés (idioma de la interfaz)', () => {
+  it('traduce los mensajes de validación al cambiar de idioma', () => {
+    setUserLanguage('en')
+    expect(validateEmail('').message).toBe('Enter an email address.')
+    expect(validateEmail('ana@empresa').message).toBe('The email address is not valid.')
+    expect(validateTaxId('12345678A').message).toMatch(/NIF check letter/)
+    expect(validatePassword('corta').message).toBe('The password must have: at least 8 characters, one uppercase letter, one number.')
+    expect(validatePasswordConfirmation('Segura123', 'Segura124').message).toBe('The passwords do not match.')
+    expect(validatePersonName('Ana').message).toBe('Enter your first name and at least one surname.')
+    expect(validatePercentage('abc').message).toBe('The percentage must be a number.')
+    expect(validateBusinessHours({ lunes: { enabled: true, from: '19:00', to: '18:00' } }).message).toBe('On Monday the start time must be before the end time.')
+    expect(passwordRequirements('').map((r) => r.label)).toEqual(['At least 8 characters', 'One uppercase letter', 'One lowercase letter', 'One number'])
+  })
+  it('las etiquetas de requisitos y los días se evalúan en el momento de la llamada', () => {
+    expect(passwordRequirements('')[0].label).toBe('Al menos 8 caracteres')
+    expect(businessDayLabel('miércoles')).toBe('miércoles')
+    expect(businessDayLabel('desconocido')).toBe('desconocido')
+    setUserLanguage('en')
+    expect(passwordRequirements('')[0].label).toBe('At least 8 characters')
+    expect(businessDayLabel('miércoles')).toBe('Wednesday')
+    expect(validatePercentage(101).message).toBe('The percentage must be between 0 and 100.')
   })
 })

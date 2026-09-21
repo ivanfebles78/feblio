@@ -1,0 +1,419 @@
+{
+  "status": {
+    "draft": "Borrador",
+    "awaiting_client": "Esperando al cliente",
+    "submitted": "Recibida",
+    "under_review": "En revisión",
+    "missing_information": "Falta información",
+    "ready_for_scope": "Lista para alcance",
+    "closed": "Cerrada"
+  },
+  "clientStatus": {
+    "draft": "Pendiente de completar",
+    "awaiting_client": "Pendiente de completar",
+    "submitted": "Recibida",
+    "under_review": "En revisión",
+    "missing_information": "Necesitamos más información",
+    "ready_for_scope": "Información completa",
+    "closed": "Cerrada"
+  },
+  "channel": {
+    "llamada": "Llamada",
+    "email": "Email",
+    "sms": "SMS",
+    "whatsapp": "WhatsApp",
+    "portal": "Portal",
+    "otro": "Otro"
+  },
+  "requisito": {
+    "pending": "Pendiente",
+    "received": "Recibido",
+    "resolved": "Resuelto",
+    "waived": "No necesario"
+  },
+  "kind": {
+    "document": "Documento",
+    "field": "Dato"
+  },
+  "actions": {
+    "link": "Enlace del cliente",
+    "review": "Marcar en revisión",
+    "requestInfo": "Solicitar información",
+    "reanalyze": "Volver a comprobar",
+    "ready": "Lista para preparar alcance",
+    "close": "Cerrar solicitud",
+    "reopen": "Reabrir",
+    "groupLabel": "Acciones"
+  },
+  "backToList": "Volver a solicitudes",
+  "baseFields": {
+    "contact_name": "Nombre de contacto",
+    "contact_email": "Correo electrónico",
+    "needs": "Qué necesita",
+    "objectives": "Objetivos",
+    "scope": "Alcance",
+    "timeline": "Plazos",
+    "budget": "Presupuesto orientativo"
+  },
+  "analysis": {
+    "summary": "{{ok}} de {{total}} elementos recibidos"
+  },
+  "files": {
+    "notAllowed": "Tipo de archivo no permitido. Usa PDF, Word, Excel, PNG o JPG.",
+    "mimeMismatch": "El contenido del archivo no coincide con su extensión.",
+    "empty": "El archivo está vacío.",
+    "tooLarge": "El archivo supera el tamaño máximo (10 MB).",
+    "uploadForbidden": "No tienes permiso para subir este archivo.",
+    "signedUrlFailed": "No se pudo generar el enlace de descarga."
+  },
+  "api": {
+    "migrationMissing": "Falta aplicar la migración 0014 (función no encontrada).",
+    "notFound": "Esta solicitud no existe o no tienes acceso a ella.",
+    "loadList": "No se pudieron cargar las solicitudes.",
+    "loadOne": "No se pudo cargar la solicitud.",
+    "create": "No se pudo crear la solicitud.",
+    "generateLink": "No se pudo generar el enlace.",
+    "revokeLinks": "No se pudieron revocar los enlaces.",
+    "changeStatus": "No se pudo cambiar el estado.",
+    "requestInfo": "No se pudo enviar la petición.",
+    "updateRequisito": "No se pudo actualizar el requisito.",
+    "analyze": "No se pudo ejecutar la comprobación.",
+    "sendMessage": "No se pudo enviar el mensaje.",
+    "markRead": "No se pudo marcar como leída.",
+    "registerFile": "No se pudo registrar el archivo.",
+    "loadClients": "No se pudieron cargar los clientes.",
+    "loadTemplates": "No se pudieron cargar las plantillas.",
+    "invalidLink": "Enlace no válido",
+    "saveDraft": "No se pudo guardar el borrador.",
+    "submitForm": "No se pudo enviar el formulario.",
+    "downloadRateLimited": "Demasiadas descargas seguidas. Inténtalo en unos minutos.",
+    "downloadUnavailable": "El archivo no está disponible. Si el enlace ha caducado, pide uno nuevo a la empresa.",
+    "defaultFileName": "archivo",
+    "loadNotifications": "No se pudieron cargar las notificaciones."
+  },
+  "notifications": {
+    "markOneFailed": "No se pudo marcar la notificación.",
+    "markAllFailed": "No se pudieron marcar las notificaciones."
+  },
+  "inbox": {
+    "title": "Solicitudes",
+    "subtitle": "Peticiones de clientes: recepción, información pendiente y conversación.",
+    "new": "Nueva solicitud",
+    "searchLabel": "Buscar por cliente, contacto o asunto",
+    "searchPlaceholder": "Buscar cliente, contacto o asunto",
+    "statusFilter": "Estado",
+    "allStatuses": "Todos los estados",
+    "channelFilter": "Canal",
+    "allChannels": "Todos los canales",
+    "onlyPending": "Solo pendientes",
+    "loading": "Cargando solicitudes…",
+    "emptyFiltered": "Ninguna solicitud coincide con los filtros",
+    "emptyFilteredHint": "Prueba a cambiar la búsqueda o los filtros.",
+    "empty": "Todavía no hay solicitudes",
+    "emptyHint": "Crea la primera desde una llamada, un email o un mensaje y envía al cliente su enlace seguro.",
+    "count": "{{visible}} de {{total}} solicitudes",
+    "completenessLabel": "Completitud {{value}}%",
+    "unreadMessages_one": "{{count}} mensaje sin leer",
+    "unreadMessages_other": "{{count}} mensajes sin leer",
+    "columns": {
+      "client": "Cliente / contacto",
+      "subject": "Asunto",
+      "completeness": "Completitud",
+      "status": "Estado",
+      "lastActivity": "Última actividad",
+      "unread": "Sin leer"
+    }
+  },
+  "new": {
+    "title": "Nueva solicitud",
+    "subtitle": "Registra lo que el cliente ha pedido por llamada, email o mensaje. Después podrás enviarle un enlace seguro para completar los datos.",
+    "validation": {
+      "pickClient": "Elige un cliente.",
+      "contactName": "Indica el nombre de la persona de contacto.",
+      "email": "Escribe un correo válido.",
+      "title": "Resume en una línea qué pide el cliente."
+    },
+    "client": {
+      "title": "Cliente",
+      "description": "Elige un cliente existente o registra un contacto nuevo.",
+      "legend": "Tipo de cliente",
+      "newLabel": "Contacto nuevo",
+      "newDescription": "Aún no está en tu lista de clientes.",
+      "existingLabel": "Cliente existente",
+      "existingDescription": "Ya trabajas con esta persona o empresa.",
+      "select": "Cliente",
+      "selectPlaceholder": "Selecciona un cliente…",
+      "noClients": "No tienes clientes todavía"
+    },
+    "fields": {
+      "contactName": "Persona de contacto",
+      "email": "Correo electrónico",
+      "emailHint": "Opcional; lo podrá completar el cliente.",
+      "phone": "Teléfono",
+      "channel": "Canal de entrada",
+      "serviceType": "Tipo de servicio",
+      "serviceTypePlaceholder": "Reforma, asesoría, diseño…",
+      "subject": "Asunto",
+      "subjectPlaceholder": "Reforma integral de local comercial",
+      "notes": "Notas de la conversación",
+      "notesHint": "Lo que te ha contado el cliente. Se mostrará en la solicitud como descripción inicial.",
+      "deadline": "Fecha límite orientativa",
+      "template": "Formulario para el cliente",
+      "templateDefault": "{{name}} (por defecto)",
+      "templatePlaceholder": "Plantilla por defecto",
+      "noTemplates": "Sin plantillas activas",
+      "templateHint": "Define qué preguntas y documentos se piden."
+    },
+    "request": {
+      "title": "Qué ha pedido",
+      "description": "Un resumen breve. El detalle lo aportará el cliente en el formulario."
+    },
+    "generateLink": "Generar ahora el enlace seguro para el cliente",
+    "generateLinkHint": "Podrás copiarlo en la pantalla siguiente. Caduca a los 30 días y se puede revocar.",
+    "creating": "Creando…",
+    "submit": "Crear solicitud"
+  },
+  "detail": {
+    "loading": "Cargando solicitud…",
+    "actionFailed": "No se pudo completar la acción.",
+    "statusUpdated": "Estado actualizado: {{status}}.",
+    "accessRevoked": "Acceso del cliente revocado.",
+    "requestSent": "Petición enviada al cliente.",
+    "closed": "Solicitud cerrada.",
+    "checkUpdated": "Comprobación actualizada.",
+    "createdOn": "creada el {{date}}",
+    "conversation": {
+      "title": "Conversación",
+      "description": "Visible para el cliente en su enlace. No hay mensajes internos privados.",
+      "closed": "La solicitud está cerrada. Reábrela para seguir conversando."
+    },
+    "summary": {
+      "title": "Resumen",
+      "client": "Cliente",
+      "noClientRecord": "Contacto sin ficha de cliente",
+      "contact": "Contacto",
+      "service": "Servicio",
+      "notes": "Notas iniciales",
+      "deadline": "Fecha límite",
+      "noDeadline": "Sin definir",
+      "lastActivity": "Última actividad",
+      "clientLink": "Enlace del cliente",
+      "activeLink": "Activo · caduca el {{date}}",
+      "activeLinkUsed": "Activo · caduca el {{date}} · último uso {{lastUsed}}",
+      "noActiveLink": "Sin enlace activo",
+      "closeReason": "Motivo de cierre"
+    }
+  },
+  "completeness": {
+    "title": "Completitud de la información",
+    "checkInfo": "Comprobación v{{version}} · {{date}} · reglas deterministas",
+    "noChecks": "Sin comprobaciones todavía.",
+    "ringLabel": "Completitud",
+    "received": "Recibido",
+    "receivedEmpty": "Nada todavía.",
+    "missing": "Información pendiente",
+    "missingEmpty": "Nada pendiente.",
+    "missingDocs": "Documentos pendientes",
+    "missingDocsEmpty": "Ningún documento pendiente."
+  },
+  "dialogs": {
+    "link": {
+      "title": "Enlace del cliente",
+      "description": "El cliente abre el formulario sin crear cuenta. El enlace caduca y se puede revocar en cualquier momento.",
+      "copyWarning": "Copia el enlace ahora: por seguridad no volverá a mostrarse. Si lo pierdes, genera uno nuevo (el anterior dejará de funcionar).",
+      "secureLink": "Enlace seguro",
+      "expiresOn": "Caduca el {{date}}.",
+      "revoke": "Revocar acceso",
+      "activeInfo": "Hay un enlace activo que caduca el <strong>{{date}}</strong>. Por seguridad no se guarda en claro: si necesitas volver a enviarlo, genera uno nuevo.",
+      "generating": "Generando…",
+      "generateNew": "Generar enlace nuevo",
+      "noActive": "No hay ningún enlace activo para esta solicitud.",
+      "generate": "Generar enlace (30 días)"
+    },
+    "requestInfo": {
+      "title": "Solicitar información al cliente",
+      "description": "El cliente verá la lista de pendientes en su enlace y recibirá un aviso. La solicitud pasará a «Falta información».",
+      "validation": "Elige al menos un elemento o escribe un mensaje.",
+      "submit": "Enviar petición",
+      "suggestedLegend": "Pendiente según la última comprobación",
+      "addCustom": "Añadir otro requisito",
+      "customLabel": "Descripción del requisito",
+      "customPlaceholder": "Planos actuales del local",
+      "typeLabel": "Tipo",
+      "addedList": "Requisitos añadidos",
+      "remove": "Quitar {{label}}",
+      "message": "Mensaje para el cliente",
+      "messageHint": "Opcional. Si lo dejas vacío se enviará un texto estándar con la lista."
+    },
+    "close": {
+      "title": "Cerrar solicitud",
+      "description": "El cliente recibirá un aviso. Podrás reabrirla mientras no exista un presupuesto asociado.",
+      "validation": "Indica el motivo del cierre.",
+      "failed": "No se pudo cerrar la solicitud.",
+      "closing": "Cerrando…",
+      "reason": "Motivo",
+      "reasonPlaceholder": "El cliente ha desistido / duplicada / fuera de servicio…"
+    }
+  },
+  "panels": {
+    "data": {
+      "title": "Datos recibidos",
+      "submittedOn": "Formulario enviado el {{date}}",
+      "notSubmitted": "El cliente todavía no ha enviado el formulario.",
+      "empty": "Sin datos todavía."
+    },
+    "requisitos": {
+      "title": "Información pendiente",
+      "description": "Requisitos pedidos al cliente. Marca como resuelto lo que ya tengas.",
+      "requestedAt": "{{kind}} · pedido {{date}}",
+      "resolve": "Resuelto",
+      "waive": "No necesario",
+      "reask": "Volver a pedir",
+      "empty": "No se ha pedido información adicional.",
+      "doneCount_one": "{{count}} resuelto o no necesario",
+      "doneCount_other": "{{count}} resueltos o no necesarios"
+    },
+    "documents": {
+      "title": "Documentos",
+      "description": "Archivos privados. Los enlaces de descarga caducan a los 5 minutos.",
+      "empty": "Sin documentos",
+      "emptyHint": "Los archivos que suba el cliente o tu equipo aparecerán aquí.",
+      "byClient": "Cliente",
+      "byTeam": "Tu equipo",
+      "download": "Descargar {{name}}",
+      "opening": "Abriendo…",
+      "openFailed": "No se pudo abrir el archivo.",
+      "attach": "Adjuntar archivo (visible para el cliente)"
+    },
+    "timeline": {
+      "title": "Cronología",
+      "empty": "Sin actividad registrada."
+    }
+  },
+  "events": {
+    "created": "Solicitud creada",
+    "linkCreated": "Enlace del cliente generado",
+    "linksRevoked": "Enlaces revocados",
+    "infoRequested": "Información solicitada al cliente",
+    "analyzed": "Comprobación de suficiencia",
+    "message": "Mensaje enviado al cliente",
+    "clientMessage": "El cliente escribió un mensaje",
+    "submitted": "El cliente envió el formulario",
+    "documentAdded": "Documento adjuntado",
+    "reopened": "Solicitud reabierta ({{status}})",
+    "statusChanged": "Estado: {{status}}",
+    "statusChangedReason": "Estado: {{status}} · {{reason}}",
+    "requirement": "Requisito marcado como {{status}}",
+    "analyzedPct": "{{label}}: {{pct}}%",
+    "submittedPct": "{{label}} ({{pct}}%)",
+    "clientDocument": "El cliente adjuntó un documento",
+    "teamDocument": "Tu equipo adjuntó un documento"
+  },
+  "public": {
+    "invalidTitle": "Este enlace no está disponible",
+    "invalidText": "Puede haber caducado o haberse desactivado. Si necesitas seguir con tu solicitud, ponte en contacto con la empresa que te lo envió para que te facilite uno nuevo.",
+    "loading": "Cargando tu solicitud…",
+    "draftSaved": "Borrador guardado. Puedes volver a este enlace cuando quieras.",
+    "saveFailed": "No se pudo guardar.",
+    "fixFields": "Revisa los campos marcados antes de enviar.",
+    "submitted": "Formulario enviado. Te avisaremos por este mismo enlace si necesitamos algo más.",
+    "submitFailed": "No se pudo enviar.",
+    "fallbackTitle": "Solicitud",
+    "secureLink": "Enlace seguro · válido hasta el {{date}}",
+    "intro": "Completa la información y adjunta lo que tengas. Puedes guardar y volver más tarde.",
+    "submittedOn": "Enviado el {{date}}.",
+    "theCompany": "La empresa",
+    "theCompanyLower": "la empresa",
+    "needsTitle": "{{company}} necesita lo siguiente",
+    "kind": {
+      "document": "documento",
+      "field": "dato"
+    },
+    "fieldsHint": "Los datos puedes indicarlos en el formulario o responder en la conversación de abajo.",
+    "privacy": "Tus datos solo los ve {{company}}.",
+    "saveDraft": "Guardar borrador",
+    "sendInfo": "Enviar información",
+    "submit": "Enviar solicitud",
+    "conversationTitle": "Conversación con {{company}}",
+    "conversationHint": "Si tienes dudas o quieres añadir algo, escríbelo aquí.",
+    "conversationClosed": "Esta solicitud está cerrada.",
+    "messagePlaceholder": "Escribe tu mensaje…",
+    "noMessages": "Todavía no hay mensajes. Si tienes dudas, escríbenos.",
+    "footer": "Formulario seguro gestionado con Feblio."
+  },
+  "clientForm": {
+    "validation": {
+      "name": "Indica tu nombre.",
+      "email": "Indica un correo para poder responderte.",
+      "emailInvalid": "El correo electrónico no es válido.",
+      "needs": "Cuéntanos qué necesitas.",
+      "required": "Este campo es obligatorio.",
+      "consent": "Debes aceptarlo para enviar."
+    },
+    "progress": "Información aportada",
+    "you": {
+      "title": "Tus datos",
+      "description": "Para que podamos responderte.",
+      "name": "Nombre y apellidos",
+      "email": "Correo electrónico",
+      "phone": "Teléfono"
+    },
+    "project": {
+      "title": "Tu proyecto",
+      "description": "Cuanto más detalle, antes podremos prepararte una propuesta.",
+      "needs": "Qué necesitas",
+      "needsPlaceholder": "Describe con tus palabras el trabajo o servicio que buscas.",
+      "objectives": "Objetivos",
+      "objectivesPlaceholder": "Qué quieres conseguir con este trabajo.",
+      "scope": "Alcance",
+      "scopePlaceholder": "Qué incluye y qué no; espacios, unidades, tamaño…",
+      "timeline": "Plazos",
+      "timelinePlaceholder": "Cuándo necesitas empezar o terminar",
+      "budget": "Presupuesto orientativo",
+      "budgetHint": "Opcional.",
+      "budgetPlaceholder": "Por ejemplo, entre 5.000 y 8.000 €"
+    },
+    "questions": {
+      "title": "Preguntas de {{company}}",
+      "description": "Información específica para tu caso."
+    },
+    "documents": {
+      "title": "Documentos",
+      "description": "Adjunta lo que tengas a mano; puedes añadir el resto más tarde desde este mismo enlace.",
+      "attached_one": "{{count}} adjunto",
+      "attached_other": "{{count}} adjuntos",
+      "pending": "Pendiente",
+      "addAnother": "Añadir otro archivo",
+      "attach": "Adjuntar archivo"
+    },
+    "other": {
+      "title": "Otros archivos",
+      "description": "Fotos, planos, presupuestos anteriores… cualquier cosa que ayude. Aquí verás también lo que {{company}} comparta contigo."
+    },
+    "consents": "Consentimientos"
+  },
+  "docList": {
+    "unavailable": "El archivo no está disponible.",
+    "sharedBy": "compartido por {{company}}",
+    "uploadedByYou": "subido por ti",
+    "download": "Descargar {{name}}",
+    "preparing": "Preparando…"
+  },
+  "uploader": {
+    "attach": "Adjuntar archivo",
+    "uploadFailed": "no se pudo subir.",
+    "uploading": "Subiendo {{name}}…",
+    "hint": "PDF, Word, Excel, PNG o JPG · máximo {{max}} por archivo."
+  },
+  "thread": {
+    "placeholder": "Escribe un mensaje…",
+    "empty": "Todavía no hay mensajes.",
+    "listLabel": "Mensajes",
+    "infoRequestPrefix": "Información solicitada · ",
+    "read": "Leído",
+    "sent": "Enviado",
+    "composerLabel": "Nuevo mensaje",
+    "closed": "La conversación está cerrada.",
+    "hint": "La otra parte recibirá una notificación. Ctrl+Intro para enviar."
+  }
+}

@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { EMPTY_REGISTER, RegisterForm, entityTypeForTaxId, toSignUpParams, validateRegister } from './RegisterForm'
+import { setUserLanguage } from '../../i18n'
 
 const VALID = {
   ...EMPTY_REGISTER,
@@ -52,6 +53,11 @@ describe('toSignUpParams', () => {
     expect(entityTypeForTaxId('12345678Z')).toBe('self_employed')
     expect(entityTypeForTaxId('X1234567L')).toBe('self_employed')
     expect(entityTypeForTaxId('B12345674')).toBe('company')
+  })
+  it('incluye el idioma de la interfaz en el momento del registro', () => {
+    expect(toSignUpParams(VALID).language).toBe('es')
+    setUserLanguage('en')
+    expect(toSignUpParams(VALID).language).toBe('en')
   })
 })
 
@@ -143,5 +149,55 @@ describe('<RegisterForm />', () => {
     setup(vi.fn(), true)
     expect(screen.getByRole('button', { name: /creando tu empresa/i })).toBeDisabled()
     expect(screen.getByRole('form', { name: /registro de empresa/i })).toHaveAttribute('aria-busy', 'true')
+  })
+})
+
+describe('<RegisterForm /> in English', () => {
+  function setup(onSubmit = vi.fn().mockResolvedValue(undefined)) {
+    setUserLanguage('en')
+    render(
+      <MemoryRouter>
+        <RegisterForm busy={false} onSubmit={onSubmit} />
+      </MemoryRouter>,
+    )
+    return { onSubmit, user: userEvent.setup() }
+  }
+
+  it('renders labels, legends, links and the submit button in English', () => {
+    setup()
+    expect(screen.getByRole('form', { name: /company registration form/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/company or legal name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/tax id/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^full name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^password\*/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /terms of service/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/terminos')
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacidad')
+    expect(screen.getByRole('checkbox', { name: /commercial communications/i })).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: /password requirements/i })).toHaveTextContent(/8 characters minimum/)
+    expect(screen.getByRole('button', { name: /create company/i })).toBeInTheDocument()
+    expect(screen.queryByText(/crear empresa|razón social|términos del servicio|contraseña/i)).not.toBeInTheDocument()
+  })
+
+  it('shows validation messages in English (required fields and terms)', async () => {
+    const { onSubmit, user } = setup()
+    await user.click(screen.getByRole('button', { name: /create company/i }))
+    expect(onSubmit).not.toHaveBeenCalled()
+    const alerts = screen.getAllByRole('alert').map((a) => a.textContent ?? '')
+    expect(alerts.some((a) => /enter the company's name or legal name/i.test(a))).toBe(true)
+    expect(alerts.some((a) => /enter an email address/i.test(a))).toBe(true)
+    expect(alerts.some((a) => /enter a password/i.test(a))).toBe(true)
+    expect(alerts.some((a) => /you must accept the terms of service/i.test(a))).toBe(true)
+    expect(alerts.some((a) => /introduce|debes aceptar/i.test(a))).toBe(false)
+  })
+
+  it('password mismatch message is in English', async () => {
+    const { user } = setup()
+    await user.type(screen.getByLabelText(/^password\*/i), 'Segura123')
+    await user.type(screen.getByLabelText(/confirm password/i), 'Distinta1')
+    await user.click(screen.getByRole('button', { name: /create company/i }))
+    expect(screen.getByLabelText(/confirm password/i)).toHaveAccessibleDescription(/the passwords do not match/i)
   })
 })

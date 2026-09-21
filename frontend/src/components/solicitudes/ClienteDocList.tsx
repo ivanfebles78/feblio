@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Download, FileText } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { clienteDescargarDocumento } from '../../lib/solicitudes/api'
 import { formatBytes } from '../../lib/solicitudes/files'
 import type { ClienteVista } from '../../lib/solicitudes/types'
@@ -11,6 +12,7 @@ export type ClienteDoc = ClienteVista['documentos'][number]
  * una URL firmada de corta duración (el token se valida allí); el navegador nunca ve rutas internas.
  */
 export function ClienteDocList({ token, docs, empresaName }: { token: string; docs: ClienteDoc[]; empresaName: string }) {
+  const { t } = useTranslation()
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,7 +27,7 @@ export function ClienteDocList({ token, docs, empresaName }: { token: string; do
       else window.location.assign(url)
     } catch (e) {
       win?.close()
-      setError(e instanceof Error ? e.message : 'El archivo no está disponible.')
+      setError(e instanceof Error ? e.message : t('requests.docList.unavailable'))
     } finally {
       setBusy(null)
     }
@@ -42,7 +44,7 @@ export function ClienteDocList({ token, docs, empresaName }: { token: string; do
               <div className="min-w-0">
                 <p className="truncate text-sm text-slate-800">{d.name}</p>
                 <p className="text-xs text-slate-500">
-                  {formatBytes(d.size_bytes)} · {d.by === 'empresa' ? `compartido por ${empresaName}` : 'subido por ti'}
+                  {formatBytes(d.size_bytes)} · {d.by === 'empresa' ? t('requests.docList.sharedBy', { company: empresaName }) : t('requests.docList.uploadedByYou')}
                 </p>
               </div>
             </div>
@@ -50,11 +52,11 @@ export function ClienteDocList({ token, docs, empresaName }: { token: string; do
               type="button"
               onClick={() => void download(d)}
               disabled={busy === d.id}
-              aria-label={`Descargar ${d.name}`}
+              aria-label={t('requests.docList.download', { name: d.name })}
               className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download className="h-4 w-4" aria-hidden="true" />
-              {busy === d.id ? 'Preparando…' : 'Descargar'}
+              {busy === d.id ? t('requests.docList.preparing') : t('common.actions.download')}
             </button>
           </li>
         ))}

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { RulesAnalysisProvider, defaultAnalysisProvider } from './analysis'
+import { setUserLanguage } from '../../i18n'
+import { baseFields, RulesAnalysisProvider, defaultAnalysisProvider } from './analysis'
 import { checkFile, clientObjectPath, empresaObjectPath, fileExtension, formatBytes, MAX_FILE_BYTES } from './files'
-import { canTransition, empresaActions, PENDING_FOR_EMPRESA, STATUS_LABEL, STATUS_ORDER } from './status'
+import { canTransition, channelLabel, CHANNEL_ORDER, empresaActions, PENDING_FOR_EMPRESA, requisitoLabel, statusLabel, STATUS_ORDER } from './status'
 import { formatRelative } from './format'
 
 describe('RulesAnalysisProvider (cálculo de completitud)', () => {
@@ -68,6 +69,14 @@ describe('RulesAnalysisProvider (cálculo de completitud)', () => {
   it('el proveedor por defecto es el de reglas (sin IA simulada)', () => {
     expect(defaultAnalysisProvider.id).toBe('rules')
   })
+
+  it('las etiquetas de los campos base y el resumen se traducen al idioma actual', () => {
+    expect(baseFields().map((f) => f.label)).toEqual(['Nombre de contacto', 'Correo electrónico', 'Qué necesita', 'Objetivos', 'Alcance', 'Plazos'])
+    setUserLanguage('en')
+    expect(baseFields().map((f) => f.label)).toEqual(['Contact name', 'Email address', 'What they need', 'Objectives', 'Scope', 'Timeline'])
+    const r = provider.analyze({ formData: {}, contact: { name: 'Ana', email: null }, templateFields: [], requiredDocuments: [], requisitos: [], documentsByRequisitoKey: [] })
+    expect(r.summary).toBe('1 of 6 items received')
+  })
 })
 
 describe('archivos de solicitud', () => {
@@ -84,6 +93,12 @@ describe('archivos de solicitud', () => {
     expect(checkFile({ name: 'doc.pdf', size: 0, type: 'application/pdf' }).message).toMatch(/vacío/i)
     expect(checkFile({ name: 'doc.pdf', size: MAX_FILE_BYTES + 1, type: 'application/pdf' }).message).toMatch(/10 MB/)
     expect(checkFile({ name: 'sin-extension', size: 10, type: 'application/pdf' }).ok).toBe(false)
+  })
+
+  it('los mensajes de validación se muestran en inglés cuando la interfaz está en inglés', () => {
+    setUserLanguage('en')
+    expect(checkFile({ name: 'script.exe', size: 10, type: 'application/octet-stream' }).message).toBe('File type not allowed. Use PDF, Word, Excel, PNG or JPG.')
+    expect(checkFile({ name: 'doc.pdf', size: MAX_FILE_BYTES + 1, type: 'application/pdf' }).message).toMatch(/maximum size/)
   })
 
   it('genera rutas aisladas por acceso o por empresa/solicitud con nombre físico aleatorio', () => {
@@ -103,7 +118,20 @@ describe('archivos de solicitud', () => {
 describe('estados y transiciones (espejo del servidor)', () => {
   it('cubre los 7 estados con etiqueta en español', () => {
     expect(STATUS_ORDER).toHaveLength(7)
-    for (const s of STATUS_ORDER) expect(STATUS_LABEL[s]).toBeTruthy()
+    for (const s of STATUS_ORDER) expect(statusLabel(s)).toBeTruthy()
+    expect(statusLabel('missing_information')).toBe('Falta información')
+    expect(channelLabel('llamada')).toBe('Llamada')
+    expect(requisitoLabel('waived')).toBe('No necesario')
+    expect(CHANNEL_ORDER).toEqual(['llamada', 'email', 'sms', 'whatsapp', 'portal', 'otro'])
+  })
+
+  it('las etiquetas de estado, canal, requisito y acciones cambian de idioma sin alterar los códigos', () => {
+    setUserLanguage('en')
+    expect(statusLabel('missing_information')).toBe('Missing information')
+    expect(channelLabel('llamada')).toBe('Phone call')
+    expect(requisitoLabel('waived')).toBe('Not needed')
+    expect(empresaActions('submitted').map((a) => a.label)).toEqual(['Client link', 'Mark as under review', 'Request information', 'Check again', 'Ready to prepare the scope', 'Close request'])
+    expect(empresaActions('submitted').map((a) => a.key)).toEqual(['link', 'review', 'request_info', 'reanalyze', 'ready', 'close'])
   })
 
   it('permite el flujo principal y bloquea saltos inválidos', () => {
@@ -139,5 +167,12 @@ describe('formatRelative', () => {
     expect(formatRelative('2026-09-24T12:00:00Z', now)).toBe('en 5 días')
     expect(formatRelative(null, now)).toBe('—')
     expect(formatRelative('no-fecha', now)).toBe('—')
+  })
+
+  it('describe pasado y futuro en inglés', () => {
+    setUserLanguage('en')
+    expect(formatRelative('2026-09-19T11:30:00Z', now)).toBe('30 min ago')
+    expect(formatRelative('2026-09-18T11:00:00Z', now)).toBe('yesterday')
+    expect(formatRelative('2026-09-24T12:00:00Z', now)).toBe('in 5 days')
   })
 })

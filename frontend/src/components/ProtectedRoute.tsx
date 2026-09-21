@@ -1,11 +1,13 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import type { UserRole } from '../lib/types'
 import { homePathForRole, rememberReturnTo, sanitizeReturnTo } from '../lib/routing'
 import { ErrorScreen, LoadingScreen } from './LoadingScreen'
 
 export function ProtectedRoute({ allow, children }: { allow: UserRole[]; children: ReactNode }) {
+  const { t } = useTranslation()
   const { session, profile, loading, profileLoading, refreshProfile, signOut } = useAuth()
   const location = useLocation()
 
@@ -17,12 +19,12 @@ export function ProtectedRoute({ allow, children }: { allow: UserRole[]; childre
     rememberReturnTo(from)
     return <Navigate to="/" replace state={from ? { from } : undefined} />
   }
-  if (!profile && profileLoading) return <LoadingScreen text="Preparando tu cuenta…" />
+  if (!profile && profileLoading) return <LoadingScreen text={t('common.loading.preparingAccount')} />
   if (!profile) {
     return (
       <ErrorScreen
-        title="No se pudo cargar tu perfil"
-        message="Tu sesión es válida pero no encontramos tu perfil. Reintenta o cierra sesión."
+        title={t('common.errors.loadProfile')}
+        message={t('common.errors.loadProfileDetail')}
         onRetry={refreshProfile}
         onSignOut={signOut}
       />

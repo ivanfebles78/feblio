@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -24,9 +25,19 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const SolicitudCliente = lazy(() => import('./pages/SolicitudCliente'))
 
+/** Título del documento en el idioma activo (sin recargar). */
+function DocumentTitle() {
+  const { t, i18n } = useTranslation()
+  useEffect(() => {
+    document.title = t('common.brand.documentTitle')
+  }, [t, i18n.language])
+  return null
+}
+
 export default function App() {
   return (
     <AuthProvider>
+      <DocumentTitle />
       <BrowserRouter>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>

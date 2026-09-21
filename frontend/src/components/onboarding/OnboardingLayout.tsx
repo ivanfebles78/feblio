@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { OnboardingHeader } from './OnboardingHeader'
 import { OnboardingStepper } from './OnboardingStepper'
 import { OnboardingNavigation } from './OnboardingNavigation'
@@ -23,6 +24,7 @@ interface OnboardingLayoutProps {
 }
 
 export function OnboardingLayout({ current, errors, blockedReason, onShowErrors, children, banner }: OnboardingLayoutProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { signOut } = useAuth()
   const ctx = useOnboarding()
@@ -137,8 +139,8 @@ export function OnboardingLayout({ current, errors, blockedReason, onShowErrors,
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">
-                  Paso {def.order} de {STEPS.length}
-                  {!def.required && ' · opcional'}
+                  {t('onboarding.layout.stepOf', { order: def.order, total: STEPS.length })}
+                  {!def.required && t('onboarding.layout.optionalSuffix')}
                 </p>
                 <h1 ref={headingRef} tabIndex={-1} className="mt-1 text-2xl font-bold text-slate-900 focus:outline-none">
                   {def.title}
@@ -156,7 +158,7 @@ export function OnboardingLayout({ current, errors, blockedReason, onShowErrors,
               isLast={isLast}
               skippable={SKIPPABLE.includes(current)}
               busy={busy || ctx.saveState === 'saving'}
-              blockedReason={blockedReason ?? (hasErrors(errors) ? 'Revisa los campos marcados para continuar.' : undefined)}
+              blockedReason={blockedReason ?? (hasErrors(errors) ? t('onboarding.layout.fixFields') : undefined)}
               onBack={back}
               onNext={next}
               onSkip={() => setConfirmSkip(true)}
@@ -166,26 +168,26 @@ export function OnboardingLayout({ current, errors, blockedReason, onShowErrors,
 
         <aside className="hidden lg:block lg:sticky lg:top-20 lg:self-start">
           <div className="surface p-4 text-sm">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Resumen</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('onboarding.layout.summary')}</h2>
             <p className="mt-2 text-2xl font-bold text-slate-900">
               {completedCount}
               <span className="text-base font-medium text-slate-400"> / {STEPS.length}</span>
             </p>
-            <p className="text-xs text-slate-500">pasos completados u omitidos</p>
+            <p className="text-xs text-slate-500">{t('onboarding.layout.completedOrSkipped')}</p>
             <ul className="mt-4 space-y-1.5 text-xs">
               {STEPS.filter((s) => statuses[s.key] === 'error' || statuses[s.key] === 'requires_attention').map((s) => (
                 <li key={s.key} className="rounded-lg bg-orange-50 px-2 py-1.5 text-orange-800">
-                  {s.title}: requiere atención
+                  {t('onboarding.layout.needsAttention', { title: s.title })}
                 </li>
               ))}
               {ctx.snapshot?.integrations.filter((i) => i.status === 'pending_credentials').map((i) => (
                 <li key={i.kind} className="rounded-lg bg-amber-50 px-2 py-1.5 text-amber-800">
-                  {i.provider}: pendiente de credenciales
+                  {t('onboarding.layout.pendingCredentials', { provider: i.provider })}
                 </li>
               ))}
             </ul>
             <p className="mt-4 text-[11px] leading-relaxed text-slate-400">
-              Tu progreso se guarda automáticamente. Puedes salir y reanudar más tarde desde el mismo paso.
+              {t('onboarding.layout.autosaveNote')}
             </p>
           </div>
         </aside>
@@ -193,21 +195,21 @@ export function OnboardingLayout({ current, errors, blockedReason, onShowErrors,
 
       <ConfirmDialog
         open={confirmSkip}
-        title={`¿Omitir «${def.title}» por ahora?`}
+        title={t('onboarding.layout.skipTitle', { title: def.title })}
         tone="warning"
-        confirmLabel="Omitir"
+        confirmLabel={t('onboarding.layout.skip')}
         onConfirm={skip}
         onCancel={() => setConfirmSkip(false)}
       >
-        Podrás configurarlo más adelante desde Configuración. Este paso quedará marcado como omitido.
+        {t('onboarding.layout.skipBody')}
       </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmLeave !== null}
-        title="Hay cambios sin guardar"
+        title={t('onboarding.layout.unsavedTitle')}
         tone="danger"
-        confirmLabel="Salir sin guardar"
-        cancelLabel="Volver"
+        confirmLabel={t('onboarding.layout.leaveWithoutSaving')}
+        cancelLabel={t('common.actions.back')}
         onConfirm={() => {
           const action = confirmLeave
           setConfirmLeave(null)
@@ -215,7 +217,7 @@ export function OnboardingLayout({ current, errors, blockedReason, onShowErrors,
         }}
         onCancel={() => setConfirmLeave(null)}
       >
-        No se pudieron guardar los últimos cambios{ctx.saveError ? `: ${ctx.saveError}` : ''}. Si sales ahora se perderán.
+        {ctx.saveError ? t('onboarding.layout.unsavedBodyWithError', { error: ctx.saveError }) : t('onboarding.layout.unsavedBody')}
       </ConfirmDialog>
     </div>
   )

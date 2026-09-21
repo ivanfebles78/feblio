@@ -1,4 +1,5 @@
 import { supabase } from '../supabase'
+import { t } from '../../i18n'
 
 /**
  * Archivos de solicitudes en el bucket privado `intake-files`.
@@ -38,13 +39,13 @@ export interface FileCheck {
 export function checkFile(file: { name: string; size: number; type: string }): FileCheck {
   const ext = fileExtension(file.name)
   const expectedMime = ALLOWED_MIME[ext]
-  if (!expectedMime) return { ok: false, message: 'Tipo de archivo no permitido. Usa PDF, Word, Excel, PNG o JPG.', ext, mime: file.type }
+  if (!expectedMime) return { ok: false, message: t('requests.files.notAllowed'), ext, mime: file.type }
   const declared = (file.type || '').toLowerCase()
   if (declared && declared !== expectedMime && !(ext === 'jpg' && declared === 'image/jpg')) {
-    return { ok: false, message: 'El contenido del archivo no coincide con su extensión.', ext, mime: declared }
+    return { ok: false, message: t('requests.files.mimeMismatch'), ext, mime: declared }
   }
-  if (file.size <= 0) return { ok: false, message: 'El archivo está vacío.', ext, mime: expectedMime }
-  if (file.size > MAX_FILE_BYTES) return { ok: false, message: 'El archivo supera el tamaño máximo (10 MB).', ext, mime: expectedMime }
+  if (file.size <= 0) return { ok: false, message: t('requests.files.empty'), ext, mime: expectedMime }
+  if (file.size > MAX_FILE_BYTES) return { ok: false, message: t('requests.files.tooLarge'), ext, mime: expectedMime }
   return { ok: true, ext, mime: expectedMime }
 }
 
@@ -65,13 +66,13 @@ export function formatBytes(n: number): string {
 /** Sube el archivo al bucket privado. Devuelve la ruta almacenada. */
 export async function uploadSolicitudFile(path: string, file: File, mime: string): Promise<string> {
   const { error } = await supabase.storage.from(SOLICITUD_FILES_BUCKET).upload(path, file, { contentType: mime, upsert: false })
-  if (error) throw new Error(/row-level security|permission|policy/i.test(error.message) ? 'No tienes permiso para subir este archivo.' : error.message)
+  if (error) throw new Error(/row-level security|permission|policy/i.test(error.message) ? t('requests.files.uploadForbidden') : error.message)
   return path
 }
 
 /** URL firmada de corta duración (solo usuarios autenticados con acceso al objeto). */
 export async function signedUrl(path: string, seconds = 300): Promise<string> {
   const { data, error } = await supabase.storage.from(SOLICITUD_FILES_BUCKET).createSignedUrl(path, seconds)
-  if (error || !data?.signedUrl) throw new Error('No se pudo generar el enlace de descarga.')
+  if (error || !data?.signedUrl) throw new Error(t('requests.files.signedUrlFailed'))
   return data.signedUrl
 }

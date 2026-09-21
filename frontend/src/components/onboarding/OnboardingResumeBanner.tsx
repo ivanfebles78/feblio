@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, ClipboardList } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { STEPS } from '../../lib/onboarding/steps'
 import { onboardingStepPath } from '../../lib/routing'
 import type { OnboardingStepKey } from '../../lib/onboarding/types'
@@ -11,6 +12,7 @@ interface OnboardingResumeBannerProps {
 
 /** Banner de onboarding incompleto (se muestra en el wizard al reanudar y en el dashboard si procede). */
 export function OnboardingResumeBanner({ currentStep, completedCount }: OnboardingResumeBannerProps) {
+  const { t } = useTranslation()
   const def = STEPS.find((s) => s.key === currentStep)
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900 sm:flex-row sm:items-center sm:justify-between" role="status">
@@ -19,15 +21,15 @@ export function OnboardingResumeBanner({ currentStep, completedCount }: Onboardi
         <p>
           {completedCount >= STEPS.length ? (
             <>
-              Configuración inicial reabierta: revisa lo que necesites y vuelve a pulsar <strong>Activar Feblio</strong> en el último paso.
+              {t('onboarding.resume.reopenedBefore')} <strong>{t('onboarding.resume.reopenedAction')}</strong> {t('onboarding.resume.reopenedAfter')}
             </>
           ) : (
             <>
-              Configuración inicial incompleta: {completedCount} de {STEPS.length} pasos.
+              {t('onboarding.resume.incomplete', { completed: completedCount, total: STEPS.length })}
               {def && (
                 <>
                   {' '}
-                  Continúa por <strong>{def.title}</strong>.
+                  {t('onboarding.resume.continueAt')} <strong>{def.title}</strong>.
                 </>
               )}
             </>
@@ -35,7 +37,7 @@ export function OnboardingResumeBanner({ currentStep, completedCount }: Onboardi
         </p>
       </div>
       <Link to={onboardingStepPath(currentStep ?? 'company')} className="inline-flex items-center gap-1 self-start font-semibold text-brand-700 hover:underline sm:self-auto">
-        Reanudar <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        {t('onboarding.resume.resume')} <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
     </div>
   )

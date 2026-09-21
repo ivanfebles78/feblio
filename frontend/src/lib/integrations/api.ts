@@ -6,6 +6,7 @@
  * estados y resultados. Cuando faltan variables de entorno en el servidor, la
  * respuesta es `{ ok: false, code: 'pending_credentials', missing: [...] }`.
  */
+import { t } from '../../i18n'
 import { supabase } from '../supabase'
 import type { IntegrationConnection, IntegrationKind } from '../onboarding/types'
 
@@ -66,17 +67,17 @@ export async function callIntegrations(req: IntegrationRequest): Promise<Integra
         return {
           ok: false,
           code: 'unsupported',
-          message: 'La Edge Function "integrations" no está desplegada. Consulta DEPLOY.md.',
+          message: t('integrations.api.notDeployed'),
         }
       }
       return { ok: false, code: 'provider_error', message: error.message }
     }
-    return data ?? { ok: false, code: 'provider_error', message: 'Respuesta vacía del servidor.' }
+    return data ?? { ok: false, code: 'provider_error', message: t('integrations.api.emptyResponse') }
   } catch (e: unknown) {
     if (e instanceof DOMException && e.name === 'AbortError') {
-      return { ok: false, code: 'timeout', message: 'La operación tardó demasiado. Inténtalo de nuevo.' }
+      return { ok: false, code: 'timeout', message: t('integrations.api.timeout') }
     }
-    return { ok: false, code: 'provider_error', message: e instanceof Error ? e.message : 'Error desconocido.' }
+    return { ok: false, code: 'provider_error', message: e instanceof Error ? e.message : t('integrations.api.unknown') }
   } finally {
     clearTimeout(timer)
   }

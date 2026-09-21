@@ -3,6 +3,16 @@ import type { CompanyDraft } from '../../../lib/onboarding/validation'
 import type { EmpresaPatch, ProfilePatch } from '../../../lib/onboarding/api'
 import { normalizeTaxId } from '../../../lib/validation'
 import { taxTypeForEntity } from '../../../lib/types'
+import { DEFAULT_LANGUAGE, toLanguage, type Language } from '../../../i18n'
+
+/**
+ * Idioma predeterminado de la empresa (empresas.language): solo 'es' o 'en'.
+ * Cualquier otro valor (p. ej. 'pt', 'en-US' → 'en', null) se normaliza; lo no soportado cae a 'es'.
+ * Este valor NUNCA se modifica desde el selector rápido ES | EN de la interfaz.
+ */
+export function clampCompanyLanguage(value: unknown): Language {
+  return toLanguage(value) ?? DEFAULT_LANGUAGE
+}
 
 /** Prerrellena el paso 1 con los datos del registro (empresas + profiles). */
 export function companyDraftFromSnapshot(s: OnboardingSnapshot | null): CompanyDraft {
@@ -19,7 +29,7 @@ export function companyDraftFromSnapshot(s: OnboardingSnapshot | null): CompanyD
     city: e?.city ?? '',
     postal_code: e?.postal_code ?? '',
     timezone: e?.timezone ?? 'Europe/Madrid',
-    language: e?.language ?? 'es',
+    language: clampCompanyLanguage(e?.language),
     currency: e?.currency ?? 'EUR',
     phone: e?.phone ?? '',
     email: e?.email ?? '',
@@ -50,7 +60,7 @@ export function draftToEmpresaPatch(d: CompanyDraft): EmpresaPatch {
     city: nul(d.city),
     postal_code: nul(d.postal_code),
     timezone: d.timezone || 'Europe/Madrid',
-    language: d.language || 'es',
+    language: clampCompanyLanguage(d.language),
     currency: d.currency || 'EUR',
     phone: nul(d.phone),
     email: nul(d.email),

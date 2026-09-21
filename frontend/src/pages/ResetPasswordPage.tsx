@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import { AuthCardLayout } from '../components/auth/AuthCardLayout'
 import { PasswordRequirements } from '../components/auth/PasswordRequirements'
 import { TextField } from '../components/forms/Field'
@@ -21,6 +22,7 @@ const LINK_WAIT_MS = 4000
  * éxito → cierre de sesión y vuelta al login con aviso.
  */
 export default function ResetPasswordPage() {
+  const { t } = useTranslation()
   const { session, passwordRecovery, loading, updatePassword, signOut } = useAuth()
   const navigate = useNavigate()
   const linkError = describeAuthLinkError(initialAuthParams)
@@ -56,7 +58,7 @@ export default function ResetPasswordPage() {
     try {
       const { error } = await updatePassword(password)
       if (error) {
-        setError(/same password|different from the old/i.test(error) ? 'La contraseña nueva debe ser distinta de la anterior.' : /weak|short|pwned/i.test(error) ? 'La contraseña no cumple los requisitos de seguridad.' : 'No se pudo actualizar la contraseña. Solicita un enlace nuevo e inténtalo otra vez.')
+        setError(/same password|different from the old/i.test(error) ? t('auth.reset.errors.samePassword') : /weak|short|pwned/i.test(error) ? t('auth.reset.errors.weak') : t('auth.reset.errors.generic'))
         return
       }
       await signOut()
@@ -68,16 +70,16 @@ export default function ResetPasswordPage() {
 
   if (linkError || (!ready && (timedOut || (!loading && !session)))) {
     return (
-      <AuthCardLayout title="Enlace no válido">
+      <AuthCardLayout title={t('auth.reset.invalidLinkTitle')}>
         <p className="text-base text-slate-700" role="alert">
-          {linkError ?? 'Este enlace de recuperación no es válido o ha caducado. Solicita uno nuevo para continuar.'}
+          {linkError ?? t('auth.reset.invalidLinkBody')}
         </p>
         <div className="mt-6 flex flex-col gap-2">
           <ButtonLink to={FORGOT_PASSWORD_PATH} block trailing={<ArrowRight className="h-4 w-4" aria-hidden="true" />}>
-            Solicitar un enlace nuevo
+            {t('auth.reset.requestNewLink')}
           </ButtonLink>
           <ButtonLink to="/" variant="secondary" block>
-            Volver a iniciar sesión
+            {t('auth.reset.backToSignIn')}
           </ButtonLink>
         </div>
       </AuthCardLayout>
@@ -86,20 +88,20 @@ export default function ResetPasswordPage() {
 
   if (!ready) {
     return (
-      <AuthCardLayout title="Validando el enlace…">
+      <AuthCardLayout title={t('auth.reset.validatingTitle')}>
         <p className="text-base text-slate-600" role="status" aria-live="polite">
-          Un momento, estamos comprobando el enlace de recuperación.
+          {t('auth.reset.validatingBody')}
         </p>
       </AuthCardLayout>
     )
   }
 
   return (
-    <AuthCardLayout title="Crea una contraseña nueva" description={<>Cuenta: <span className="font-medium text-slate-900">{session?.user.email}</span></>}>
-      <form onSubmit={handleSubmit} noValidate className="space-y-5" aria-label="Formulario de nueva contraseña" aria-busy={busy}>
+    <AuthCardLayout title={t('auth.reset.title')} description={<Trans i18nKey="auth.reset.account" values={{ email: session?.user.email ?? '' }} components={{ email: <span className="font-medium text-slate-900" /> }} />}>
+      <form onSubmit={handleSubmit} noValidate className="space-y-5" aria-label={t('auth.reset.formLabel')} aria-busy={busy}>
         <div>
           <TextField
-            label="Contraseña nueva"
+            label={t('auth.reset.newPassword')}
             name="password"
             type={showPass ? 'text' : 'password'}
             autoComplete="new-password"
@@ -112,7 +114,7 @@ export default function ResetPasswordPage() {
             error={errors.password}
             aria-describedby={pwReqId}
             trailing={
-              <button type="button" onClick={() => setShowPass((v) => !v)} className="rounded-md p-1 text-slate-500 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={showPass ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPass}>
+              <button type="button" onClick={() => setShowPass((v) => !v)} className="rounded-md p-1 text-slate-500 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label={showPass ? t('auth.fields.hidePassword') : t('auth.fields.showPassword')} aria-pressed={showPass}>
                 {showPass ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
               </button>
             }
@@ -120,7 +122,7 @@ export default function ResetPasswordPage() {
           <PasswordRequirements password={password} id={pwReqId} />
         </div>
         <TextField
-          label="Confirmar contraseña nueva"
+          label={t('auth.reset.confirmNewPassword')}
           name="confirmPassword"
           type={showPass ? 'text' : 'password'}
           autoComplete="new-password"
@@ -140,7 +142,7 @@ export default function ResetPasswordPage() {
           )}
         </div>
         <Button type="submit" size="lg" block disabled={busy} leading={!busy ? <ShieldCheck className="h-4 w-4" aria-hidden="true" /> : undefined}>
-          {busy ? 'Guardando…' : 'Guardar contraseña'}
+          {busy ? t('common.actions.saving') : t('auth.reset.submit')}
         </Button>
       </form>
     </AuthCardLayout>

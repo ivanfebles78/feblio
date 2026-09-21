@@ -1,0 +1,99 @@
+{
+  "layout": {
+    "backHome": "Volver al inicio",
+    "back": "Volver",
+    "version": "Versión {{version}}"
+  },
+  "draftNotice": "Documento en revisión: este texto es un borrador estructurado pendiente de validación jurídica.",
+  "translationNote": "This English translation is provided for convenience. In the event of any discrepancy, the Spanish version prevails.",
+  "terms": {
+    "title": "Términos del servicio",
+    "s1": {
+      "title": "1. Objeto",
+      "p1": "Feblio es un servicio en la nube que permite a empresas y profesionales gestionar solicitudes de clientes, presupuestos, provisiones de fondos, facturas, documentación y comunicaciones asociadas a sus proyectos. Estos términos regulan el acceso y uso del servicio por parte de la entidad que registra una cuenta de empresa (en adelante, «la Empresa») y de las personas que actúan en su nombre."
+    },
+    "s2": {
+      "title": "2. Registro y cuenta",
+      "p1": "Para usar Feblio es necesario registrar una cuenta indicando los datos de la persona responsable y los de la Empresa. La Empresa garantiza que la información facilitada es veraz y se compromete a mantenerla actualizada. Las credenciales de acceso son personales e intransferibles; la Empresa es responsable de su custodia y de las acciones realizadas desde su cuenta."
+    },
+    "s3": {
+      "title": "3. Periodo de prueba y suscripción",
+      "p1": "Tras verificar el correo electrónico, la Empresa dispone de un periodo de prueba gratuito de 14 días. Al finalizar, el uso continuado requiere una suscripción activa según las condiciones y precios vigentes que se comuniquen en el propio servicio."
+    },
+    "s4": {
+      "title": "4. Integraciones con terceros",
+      "p1": "Feblio puede conectarse, a petición de la Empresa, con servicios de terceros (repositorios documentales, correo, mensajería, telefonía o pasarelas de pago). La Empresa autoriza expresamente cada conexión, puede revocarla en cualquier momento desde Configuración y acepta las condiciones de uso propias de cada tercero. Feblio no almacena en el navegador las credenciales de estos servicios."
+    },
+    "s5": {
+      "title": "5. Automatizaciones y supervisión humana",
+      "p1": "Por defecto, Feblio solo prepara borradores (Nivel 1) y cualquier envío o acción hacia clientes u organismos requiere aprobación humana. La Empresa puede ampliar el nivel de automatización bajo su exclusiva responsabilidad y es responsable de revisar el contenido generado antes de su uso."
+    },
+    "s6": {
+      "title": "6. Contenidos y datos de la Empresa",
+      "p1": "La Empresa conserva la titularidad de los datos, documentos y contenidos que introduce en Feblio y concede a Feblio una licencia limitada para tratarlos con la única finalidad de prestar el servicio. La Empresa garantiza que dispone de base legal para tratar los datos de sus clientes finales."
+    },
+    "s7": {
+      "title": "7. Usos prohibidos",
+      "p1": "Queda prohibido utilizar Feblio para actividades ilícitas, para enviar comunicaciones no solicitadas sin consentimiento, para vulnerar derechos de terceros o para intentar acceder a datos de otras empresas usuarias."
+    },
+    "s8": {
+      "title": "8. Disponibilidad y responsabilidad",
+      "p1": "Feblio se presta «tal cual» con un esfuerzo razonable de disponibilidad. Salvo dolo o negligencia grave, la responsabilidad total de Feblio frente a la Empresa se limita a las cantidades abonadas durante los doce meses anteriores al hecho que origine la reclamación."
+    },
+    "s9": {
+      "title": "9. Baja y cancelación",
+      "p1": "La Empresa puede cancelar su cuenta en cualquier momento. Tras la cancelación, los datos se conservan durante el plazo necesario para cumplir obligaciones legales y después se eliminan o anonimizan."
+    },
+    "s10": {
+      "title": "10. Modificaciones",
+      "p1": "Feblio puede actualizar estos términos. Cada versión se identifica por su fecha; los cambios relevantes se comunicarán con antelación razonable y, cuando sea necesario, se solicitará una nueva aceptación."
+    },
+    "s11": {
+      "title": "11. Legislación y jurisdicción",
+      "p1": "Estos términos se rigen por la legislación española. Para cualquier controversia, las partes se someten a los juzgados y tribunales que correspondan conforme a la normativa aplicable."
+    }
+  },
+  "privacy": {
+    "title": "Política de privacidad",
+    "s1": {
+      "title": "1. Responsable del tratamiento",
+      "p1": "El responsable del tratamiento de los datos de las personas usuarias de Feblio es el titular de la plataforma. Los datos de contacto del responsable y, en su caso, del delegado de protección de datos se publicarán en esta página cuando el dominio definitivo esté operativo."
+    },
+    "s2": {
+      "title": "2. Datos que tratamos",
+      "p1": "Datos de registro (nombre y apellidos, correo electrónico, contraseña cifrada), datos de la empresa (razón social, identificación fiscal, dirección, contacto), datos de configuración de canales e integraciones (sin contraseñas ni tokens en texto claro), datos de uso y registros técnicos (dirección IP, navegador, fecha y hora), y los datos de clientes finales que la Empresa introduce en la plataforma."
+    },
+    "s3": {
+      "title": "3. Finalidades y base jurídica",
+      "li1": "Prestar el servicio contratado y gestionar la cuenta (ejecución del contrato).",
+      "li2": "Verificar la identidad y el correo electrónico, y prevenir el fraude (interés legítimo y obligación legal).",
+      "li3": "Registrar la aceptación de los textos legales y las preferencias de consentimiento (obligación legal).",
+      "li4": "Enviar novedades y comunicaciones comerciales, solo si se ha dado consentimiento expreso y revocable.",
+      "li5": "Conectar con servicios de terceros elegidos por la Empresa (consentimiento y ejecución del contrato)."
+    },
+    "s4": {
+      "title": "4. Feblio como encargado del tratamiento",
+      "p1": "Respecto a los datos de los clientes finales que la Empresa introduce en Feblio, la Empresa es la responsable del tratamiento y Feblio actúa como encargado, tratando esos datos únicamente conforme a sus instrucciones y a las condiciones del contrato de encargo que forma parte de los Términos del servicio."
+    },
+    "s5": {
+      "title": "5. Destinatarios y encargados",
+      "p1": "Utilizamos proveedores de infraestructura y envío de correo ubicados en la Unión Europea o con garantías adecuadas. Las integraciones con terceros (Google, Microsoft, Meta, proveedores de SMS, telefonía o pagos) solo se activan a petición de la Empresa y se rigen además por las políticas de cada proveedor."
+    },
+    "s6": {
+      "title": "6. Conservación",
+      "p1": "Los datos se conservan mientras la cuenta esté activa y, después, durante los plazos exigidos por la normativa fiscal, mercantil y de protección de datos. Los registros de consentimiento y auditoría se conservan para acreditar el cumplimiento de obligaciones legales."
+    },
+    "s7": {
+      "title": "7. Derechos",
+      "p1": "Las personas interesadas pueden ejercer sus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad, así como retirar el consentimiento otorgado, escribiendo al contacto que se indique en esta página. También pueden presentar una reclamación ante la Agencia Española de Protección de Datos."
+    },
+    "s8": {
+      "title": "8. Seguridad",
+      "p1": "Aplicamos medidas técnicas y organizativas adecuadas: cifrado en tránsito y en reposo, aislamiento por empresa mediante políticas de seguridad a nivel de fila, cifrado de credenciales de integraciones, control de accesos y registro de auditoría."
+    },
+    "s9": {
+      "title": "9. Cambios",
+      "p1": "Esta política puede actualizarse. Cada versión se identifica por su fecha y los cambios relevantes se comunicarán a las personas usuarias."
+    }
+  }
+}

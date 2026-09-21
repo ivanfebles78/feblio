@@ -1,7 +1,8 @@
 /**
  * Validaciones de formularios (registro y wizard). Sin dependencias externas.
- * Todas devuelven mensajes en español listos para mostrar junto al campo.
+ * Todas devuelven mensajes traducidos (idioma actual de la interfaz) listos para mostrar junto al campo.
  */
+import { t } from '../i18n'
 
 export interface ValidationResult {
   ok: boolean
@@ -36,20 +37,20 @@ function nifChecksum(digits: string): string {
  */
 export function validateTaxId(raw: string): ValidationResult {
   const v = normalizeTaxId(raw)
-  if (!v) return fail('Introduce el NIF fiscal.')
+  if (!v) return fail(t('auth.validation.taxIdRequired'))
 
   // NIF persona física: 8 dígitos + letra
   if (/^\d{8}[A-Z]$/.test(v)) {
     return nifChecksum(v.slice(0, 8)) === v[8]
       ? { ...ok, kind: 'NIF' }
-      : fail('La letra de control del NIF no coincide con los números. Revísalo.')
+      : fail(t('auth.validation.nifControl'))
   }
   // NIE: X/Y/Z + 7 dígitos + letra
   if (/^[XYZ]\d{7}[A-Z]$/.test(v)) {
     const prefix = { X: '0', Y: '1', Z: '2' }[v[0] as 'X' | 'Y' | 'Z']
     return nifChecksum(prefix + v.slice(1, 8)) === v[8]
       ? { ...ok, kind: 'NIE' }
-      : fail('La letra de control del NIE no coincide con los números. Revísalo.')
+      : fail(t('auth.validation.nieControl'))
   }
   // CIF: letra + 7 dígitos + control (dígito o letra)
   if (/^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$/.test(v)) {
@@ -76,16 +77,13 @@ export function validateTaxId(raw: string): ValidationResult {
       : mustBeDigit
         ? last === expectedDigit
         : last === expectedDigit || last === expectedLetter
-    return valid ? { ...ok, kind: 'CIF' } : fail('El carácter de control del CIF no coincide. Revísalo.')
+    return valid ? { ...ok, kind: 'CIF' } : fail(t('auth.validation.cifControl'))
   }
   // Identificador intracomunitario / extranjero: se acepta con aviso
   if (/^[A-Z]{2}[A-Z0-9]{2,12}$/.test(v)) {
     return { ...ok, kind: 'foreign' }
   }
-  return fail(
-    'Formato no reconocido. Escribe un NIF, NIE o CIF español (p. ej. 12345678Z, X1234567L o B12345678). ' +
-      'Si tu identificación es extranjera, usa el formato con prefijo de país (p. ej. PT123456789).',
-  )
+  return fail(t('auth.validation.taxIdFormat'))
 }
 
 /* ------------------------------------------------------------------ */
@@ -94,31 +92,31 @@ export function validateTaxId(raw: string): ValidationResult {
 
 export function validateEmail(value: string): ValidationResult {
   const v = (value ?? '').trim()
-  if (!v) return fail('Introduce un correo electrónico.')
+  if (!v) return fail(t('auth.validation.emailRequired'))
   // Suficientemente estricto sin rechazar dominios nuevos
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return fail('El correo electrónico no es válido.')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return fail(t('auth.validation.emailInvalid'))
   return ok
 }
 
 export function validatePhone(value: string, { required = false } = {}): ValidationResult {
   const v = (value ?? '').trim()
-  if (!v) return required ? fail('Introduce un teléfono.') : ok
+  if (!v) return required ? fail(t('auth.validation.phoneRequired')) : ok
   const digits = v.replace(/[\s\-().]/g, '')
   if (!/^\+?\d{6,15}$/.test(digits)) {
-    return fail('Teléfono no válido. Usa solo dígitos, con prefijo internacional si procede (p. ej. +34 600 000 000).')
+    return fail(t('auth.validation.phoneInvalid'))
   }
   return ok
 }
 
 export function validateUrl(value: string, { required = false } = {}): ValidationResult {
   const v = (value ?? '').trim()
-  if (!v) return required ? fail('Introduce una URL.') : ok
+  if (!v) return required ? fail(t('auth.validation.urlRequired')) : ok
   try {
     const u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`)
-    if (!u.hostname.includes('.')) return fail('La URL no es válida.')
+    if (!u.hostname.includes('.')) return fail(t('auth.validation.urlInvalid'))
     return ok
   } catch {
-    return fail('La URL no es válida.')
+    return fail(t('auth.validation.urlInvalid'))
   }
 }
 
@@ -132,8 +130,8 @@ export function normalizeIban(value: string): string {
 
 export function validateIban(value: string, { required = false } = {}): ValidationResult {
   const v = normalizeIban(value)
-  if (!v) return required ? fail('Introduce el IBAN.') : ok
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(v)) return fail('El IBAN no tiene un formato válido.')
+  if (!v) return required ? fail(t('auth.validation.ibanRequired')) : ok
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(v)) return fail(t('auth.validation.ibanFormat'))
   const rearranged = v.slice(4) + v.slice(0, 4)
   const numeric = rearranged.replace(/[A-Z]/g, (c) => String(c.charCodeAt(0) - 55))
   // mod 97 por trozos para evitar overflow
@@ -141,7 +139,7 @@ export function validateIban(value: string, { required = false } = {}): Validati
   for (let i = 0; i < numeric.length; i += 7) {
     remainder = Number(String(remainder) + numeric.slice(i, i + 7)) % 97
   }
-  return remainder === 1 ? ok : fail('El IBAN no supera la comprobación de control. Revísalo.')
+  return remainder === 1 ? ok : fail(t('auth.validation.ibanControl'))
 }
 
 /* ------------------------------------------------------------------ */
@@ -159,7 +157,7 @@ export function isValidTimezone(tz: string): boolean {
 }
 
 export function validateTimezone(tz: string): ValidationResult {
-  return isValidTimezone(tz) ? ok : fail('Zona horaria no válida (p. ej. Atlantic/Canary o Europe/Madrid).')
+  return isValidTimezone(tz) ? ok : fail(t('auth.validation.timezoneInvalid'))
 }
 
 /* ------------------------------------------------------------------ */
@@ -177,34 +175,35 @@ export const PASSWORD_MIN_LENGTH = 8
 export function passwordRequirements(password: string): PasswordRequirement[] {
   const p = password ?? ''
   return [
-    { key: 'length', label: `Al menos ${PASSWORD_MIN_LENGTH} caracteres`, met: p.length >= PASSWORD_MIN_LENGTH },
-    { key: 'upper', label: 'Una letra mayúscula', met: /[A-ZÁÉÍÓÚÑ]/.test(p) },
-    { key: 'lower', label: 'Una letra minúscula', met: /[a-záéíóúñ]/.test(p) },
-    { key: 'digit', label: 'Un número', met: /\d/.test(p) },
+    { key: 'length', label: t('auth.validation.passwordMinLength', { min: PASSWORD_MIN_LENGTH }), met: p.length >= PASSWORD_MIN_LENGTH },
+    { key: 'upper', label: t('auth.validation.passwordUpper'), met: /[A-ZÁÉÍÓÚÑ]/.test(p) },
+    { key: 'lower', label: t('auth.validation.passwordLower'), met: /[a-záéíóúñ]/.test(p) },
+    { key: 'digit', label: t('auth.validation.passwordDigit'), met: /\d/.test(p) },
   ]
 }
 
 export function validatePassword(password: string): ValidationResult {
   const reqs = passwordRequirements(password)
   const missing = reqs.filter((r) => !r.met)
-  if (!password) return fail('Introduce una contraseña.')
-  if (missing.length) return fail(`La contraseña debe cumplir: ${missing.map((m) => m.label.toLowerCase()).join(', ')}.`)
+  if (!password) return fail(t('auth.validation.passwordRequired'))
+  if (missing.length) return fail(t('auth.validation.passwordMustMeet', { requirements: missing.map((m) => m.label.toLowerCase()).join(', ') }))
   return ok
 }
 
 export function validatePasswordConfirmation(password: string, confirmation: string): ValidationResult {
-  if (!confirmation) return fail('Repite la contraseña.')
-  return password === confirmation ? ok : fail('Las contraseñas no coinciden.')
+  if (!confirmation) return fail(t('auth.validation.confirmRequired'))
+  return password === confirmation ? ok : fail(t('auth.validation.passwordsMismatch'))
 }
 
 /* ------------------------------------------------------------------ */
 /* Porcentajes, horarios y series                                       */
 /* ------------------------------------------------------------------ */
 
-export function validatePercentage(value: number | string, label = 'El porcentaje'): ValidationResult {
+export function validatePercentage(value: number | string, label?: string): ValidationResult {
   const n = typeof value === 'string' ? Number(value.replace(',', '.')) : value
-  if (value === '' || Number.isNaN(n)) return fail(`${label} debe ser un número.`)
-  if (n < 0 || n > 100) return fail(`${label} debe estar entre 0 y 100.`)
+  const subject = label ?? t('auth.validation.percentageLabel')
+  if (value === '' || Number.isNaN(n)) return fail(t('auth.validation.percentageNumber', { label: subject }))
+  if (n < 0 || n > 100) return fail(t('auth.validation.percentageRange', { label: subject }))
   return ok
 }
 
@@ -218,21 +217,26 @@ export type BusinessHours = Record<string, DayHours>
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
+/** Nombre del día para mostrar (las claves internas del horario son los días en español). */
+export function businessDayLabel(day: string): string {
+  return t(`auth.forms.businessHours.days.${day}`, { defaultValue: day })
+}
+
 export function validateBusinessHours(hours: BusinessHours | undefined): ValidationResult {
   if (!hours) return ok
   for (const [day, h] of Object.entries(hours)) {
     if (!h.enabled) continue
-    if (!TIME_RE.test(h.from) || !TIME_RE.test(h.to)) return fail(`Horario no válido en ${day}.`)
-    if (h.from >= h.to) return fail(`En ${day} la hora de inicio debe ser anterior a la de fin.`)
+    if (!TIME_RE.test(h.from) || !TIME_RE.test(h.to)) return fail(t('auth.validation.hoursInvalid', { day: businessDayLabel(day) }))
+    if (h.from >= h.to) return fail(t('auth.validation.hoursOrder', { day: businessDayLabel(day) }))
   }
   return ok
 }
 
 export function validateSeries(quote: string, invoice: string, advance: string): ValidationResult {
   const all = [quote, invoice, advance].map((s) => (s ?? '').trim().toUpperCase())
-  if (all.some((s) => !s)) return fail('Las series de presupuestos, facturas y anticipos son obligatorias.')
-  if (all.some((s) => !/^[A-Z0-9\-_/]{1,10}$/.test(s))) return fail('Las series solo admiten letras, números, guiones o barras (máx. 10).')
-  if (new Set(all).size !== all.length) return fail('Las series no pueden repetirse entre presupuestos, facturas y anticipos.')
+  if (all.some((s) => !s)) return fail(t('auth.validation.seriesRequired'))
+  if (all.some((s) => !/^[A-Z0-9\-_/]{1,10}$/.test(s))) return fail(t('auth.validation.seriesFormat'))
+  if (new Set(all).size !== all.length) return fail(t('auth.validation.seriesDuplicate'))
   return ok
 }
 
@@ -249,12 +253,12 @@ export function validateRequiredText(value: string, message: string, min = 2): V
 /** Nombre y apellidos: al menos dos palabras. */
 export function validatePersonName(value: string): ValidationResult {
   const v = (value ?? '').trim()
-  if (!v) return fail('Introduce tu nombre y apellidos.')
-  if (v.split(/\s+/).length < 2) return fail('Escribe tu nombre y al menos un apellido.')
+  if (!v) return fail(t('auth.validation.personNameRequired'))
+  if (v.split(/\s+/).length < 2) return fail(t('auth.validation.personNameTwoWords'))
   return ok
 }
 
 export function validateHexColor(value: string): ValidationResult {
   if (!value) return ok
-  return /^#[0-9a-fA-F]{6}$/.test(value) ? ok : fail('Color no válido. Usa formato hexadecimal (#2563eb).')
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? ok : fail(t('auth.validation.hexColorInvalid'))
 }

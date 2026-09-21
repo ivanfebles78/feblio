@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "companies": "Empresas",
+    "users": "Usuarios",
+    "projects": "Proyectos"
+  },
+  "loading": "Cargando datos…",
+  "stats": {
+    "companies": "Empresas",
+    "users": "Usuarios",
+    "activeProjects": "Proyectos activos",
+    "invoicedGlobal": "Facturado (global)"
+  },
+  "companies": {
+    "title": "Empresas (tenants)",
+    "empty": "Sin empresas registradas.",
+    "noTaxId": "Sin CIF",
+    "projectCount_one": "{{count}} proyecto",
+    "projectCount_other": "{{count}} proyectos"
+  },
+  "users": {
+    "title": "Usuarios de la plataforma"
+  },
+  "projects": {
+    "title": "Todos los proyectos",
+    "empty": "Sin proyectos.",
+    "columns": {
+      "project": "Proyecto",
+      "status": "Estado",
+      "budget": "Presupuesto",
+      "invoiced": "Facturado",
+      "progress": "Progreso"
+    }
+  },
+  "status": {
+    "borrador": "Borrador",
+    "en_progreso": "En progreso",
+    "completado": "Completado",
+    "cancelado": "Cancelado"
+  }
+}

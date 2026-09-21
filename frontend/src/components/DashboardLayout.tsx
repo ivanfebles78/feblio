@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from 'react'
 import { ChevronDown, LogOut, Mail, ShieldCheck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Logo } from './Logo'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import { useAuth } from '../context/AuthContext'
-import { ROLE_LABEL, type UserRole } from '../lib/types'
+import { roleLabel, type UserRole } from '../lib/types'
 
 export interface NavItem {
   label: string
@@ -28,7 +30,9 @@ export function DashboardLayout({
   onNavigate: (label: string) => void
   children: ReactNode
 }) {
+  const { t } = useTranslation()
   const { profile, signOut } = useAuth()
+  const roleText = roleLabel(role)
   const [open, setOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const initials = (profile?.full_name ?? profile?.email ?? '?')
@@ -49,7 +53,7 @@ export function DashboardLayout({
         <div className="flex h-16 items-center px-5">
           <Logo tone="white" size={30} />
         </div>
-        <nav className="mt-2 space-y-1 px-3" aria-label="Navegación principal">
+        <nav className="mt-2 space-y-1 px-3" aria-label={t('common.nav.main')}>
           {nav.map((item) => {
             const isActive = item.label === active
             return (
@@ -74,7 +78,7 @@ export function DashboardLayout({
         </nav>
         <div className="absolute inset-x-3 bottom-4">
           <div className="rounded-xl bg-white/10 px-3 py-2 text-xs text-white/70">
-            <p className="font-semibold text-white">{ROLE_LABEL[role]}</p>
+            <p className="font-semibold text-white">{roleText}</p>
             <p className="truncate">{profile?.email}</p>
           </div>
         </div>
@@ -94,19 +98,20 @@ export function DashboardLayout({
             <button
               onClick={() => setOpen(true)}
               className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
-              aria-label="Abrir menú"
+              aria-label={t('common.actions.openMenu')}
             >
               ☰
             </button>
             <h1 className="text-base font-semibold text-slate-800">{active}</h1>
           </div>
           {/* Menú de cuenta */}
-          <div className="relative">
+          <div className="relative flex items-center gap-2">
+            <LanguageSwitcher />
             <button
               onClick={() => setMenuOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label="Menú de cuenta"
+              aria-label={t('dashboard.shell.accountMenu')}
               className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-2.5 transition hover:border-brand-300 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
             >
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-indigo-600 text-sm font-bold text-white">
@@ -117,7 +122,7 @@ export function DashboardLayout({
                   {profile?.full_name}
                 </span>
                 <span className="block text-xs leading-tight text-slate-400">
-                  {ROLE_LABEL[role]}
+                  {roleText}
                 </span>
               </span>
               <ChevronDown
@@ -143,9 +148,9 @@ export function DashboardLayout({
                   <div className="space-y-1 p-2 text-sm">
                     <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-600">
                       <ShieldCheck className="h-4 w-4 text-brand-500" />
-                      <span>Rol:</span>
+                      <span>{t('dashboard.shell.roleLabel')}</span>
                       <span className="ml-auto font-medium text-slate-800">
-                        {ROLE_LABEL[role]}
+                        {roleText}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-slate-600">
@@ -157,7 +162,7 @@ export function DashboardLayout({
                       onClick={signOut}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 font-medium text-red-600 transition hover:bg-red-50"
                     >
-                      <LogOut className="h-4 w-4" /> Cerrar sesión
+                      <LogOut className="h-4 w-4" /> {t('common.actions.signOut')}
                     </button>
                   </div>
                 </div>

@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "companies": "Companies",
+    "users": "Users",
+    "projects": "Projects"
+  },
+  "loading": "Loading data…",
+  "stats": {
+    "companies": "Companies",
+    "users": "Users",
+    "activeProjects": "Active projects",
+    "invoicedGlobal": "Invoiced (global)"
+  },
+  "companies": {
+    "title": "Companies (tenants)",
+    "empty": "No companies registered.",
+    "noTaxId": "No tax ID",
+    "projectCount_one": "{{count}} project",
+    "projectCount_other": "{{count}} projects"
+  },
+  "users": {
+    "title": "Platform users"
+  },
+  "projects": {
+    "title": "All projects",
+    "empty": "No projects.",
+    "columns": {
+      "project": "Project",
+      "status": "Status",
+      "budget": "Budget",
+      "invoiced": "Invoiced",
+      "progress": "Progress"
+    }
+  },
+  "status": {
+    "borrador": "Draft",
+    "en_progreso": "In progress",
+    "completado": "Completed",
+    "cancelado": "Cancelled"
+  }
+}

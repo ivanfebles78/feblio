@@ -1,26 +1,28 @@
 import { CircleCheck, Circle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { PASSWORD_MIN_LENGTH, passwordRequirements } from '../../lib/validation'
 
 /**
- * Etiquetas visuales compactas. Las reglas y los mensajes de validación siguen usando las
- * etiquetas completas de `passwordRequirements` (lib/validation).
+ * Etiquetas visuales compactas por clave de requisito. Las reglas y los mensajes de validación
+ * siguen usando las etiquetas completas de `passwordRequirements` (lib/validation).
  */
-const COMPACT_LABEL: Record<string, string> = {
-  length: `${PASSWORD_MIN_LENGTH} caracteres mínimo`,
-  upper: '1 mayúscula',
-  lower: '1 minúscula',
-  digit: '1 número',
+const COMPACT_KEY: Record<string, string> = {
+  length: 'auth.passwordRequirements.compactLength',
+  upper: 'auth.passwordRequirements.compactUpper',
+  lower: 'auth.passwordRequirements.compactLower',
+  digit: 'auth.passwordRequirements.compactDigit',
 }
 
 /** Lista de requisitos de contraseña con estado (no solo por color). */
 export function PasswordRequirements({ password, id }: { password: string; id: string }) {
+  const { t } = useTranslation()
   const reqs = passwordRequirements(password)
 
   return (
     <ul
       id={id}
       className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm"
-      aria-label="Requisitos de la contraseña"
+      aria-label={t('auth.passwordRequirements.label')}
     >
       {reqs.map((r) => (
         <li
@@ -36,9 +38,9 @@ export function PasswordRequirements({ password, id }: { password: string; id: s
           )}
 
           <span className="whitespace-nowrap leading-5">
-            {COMPACT_LABEL[r.key] ?? r.label}
+            {COMPACT_KEY[r.key] ? t(COMPACT_KEY[r.key], { min: PASSWORD_MIN_LENGTH }) : r.label}
             <span className="sr-only">
-              {r.met ? ' (cumplido)' : ' (pendiente)'}
+              {r.met ? t('auth.passwordRequirements.met') : t('auth.passwordRequirements.pending')}
             </span>
           </span>
         </li>

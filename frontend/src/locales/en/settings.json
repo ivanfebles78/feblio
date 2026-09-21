@@ -1,0 +1,40 @@
+{
+  "tabs": {
+    "empresa": "Company details",
+    "integrations": "Channels and integrations",
+    "billing": "Billing and payments",
+    "automation": "Automations",
+    "forms": "Forms",
+    "reopen": "Reopen initial setup"
+  },
+  "tablist": "Settings sections",
+  "loading": "Loading settings…",
+  "noData": "No data.",
+  "reopen": {
+    "body": "Go back to the step-by-step assistant with your current settings already loaded. While it is open, the dashboard will not be available until you activate Feblio again from the last step. No data is lost.",
+    "action": "Reopen assistant",
+    "confirmTitle": "Reopen the initial setup?",
+    "confirmAction": "Reopen",
+    "confirmBody": "You will return to the assistant. To get back to the dashboard you will need to press \"Activate Feblio\" on the last step."
+  },
+  "integrations": {
+    "intro": "Status of each channel. \"Manage\" opens the channel's full configuration without going through the assistant.",
+    "columns": {
+      "channel": "Channel",
+      "status": "Status",
+      "account": "Account or number",
+      "lastActivity": "Last activity",
+      "lastTest": "Last test",
+      "lastError": "Last error",
+      "actions": "Actions"
+    },
+    "testFailed": "(failed)",
+    "manage": "Manage",
+    "test": "Test",
+    "reconnect": "Reconnect",
+    "disconnect": "Disconnect",
+    "fullConfig": "Full channel configuration. Changes are saved automatically.",
+    "disconnectTitle": "Disconnect {{channel}}?",
+    "disconnectBody": "Access will be revoked and the saved credentials deleted. You can reconnect later."
+  }
+}

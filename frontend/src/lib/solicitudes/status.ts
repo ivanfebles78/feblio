@@ -1,14 +1,10 @@
 import type { PillTone } from '../../components/v2/Card'
+import { t } from '../../i18n'
 import type { RequisitoStatus, SolicitudStatus, SourceChannel } from './types'
 
-export const STATUS_LABEL: Record<SolicitudStatus, string> = {
-  draft: 'Borrador',
-  awaiting_client: 'Esperando al cliente',
-  submitted: 'Recibida',
-  under_review: 'En revisión',
-  missing_information: 'Falta información',
-  ready_for_scope: 'Lista para alcance',
-  closed: 'Cerrada',
+/** Etiqueta traducida del estado (se resuelve en el momento de uso, nunca al cargar el módulo). */
+export function statusLabel(status: SolicitudStatus): string {
+  return t(`requests.status.${status}`)
 }
 
 export const STATUS_TONE: Record<SolicitudStatus, PillTone> = {
@@ -26,20 +22,19 @@ export const STATUS_ORDER: SolicitudStatus[] = ['draft', 'awaiting_client', 'sub
 /** Estados que requieren acción de la empresa ("pendientes" en la bandeja). */
 export const PENDING_FOR_EMPRESA: SolicitudStatus[] = ['submitted', 'under_review', 'missing_information']
 
-export const CHANNEL_LABEL: Record<SourceChannel, string> = {
-  llamada: 'Llamada',
-  email: 'Email',
-  sms: 'SMS',
-  whatsapp: 'WhatsApp',
-  portal: 'Portal',
-  otro: 'Otro',
+/** Canales de entrada en el orden en que se muestran (los códigos no cambian con el idioma). */
+export const CHANNEL_ORDER: SourceChannel[] = ['llamada', 'email', 'sms', 'whatsapp', 'portal', 'otro']
+
+export function isSourceChannel(value: string): value is SourceChannel {
+  return (CHANNEL_ORDER as string[]).includes(value)
 }
 
-export const REQUISITO_LABEL: Record<RequisitoStatus, string> = {
-  pending: 'Pendiente',
-  received: 'Recibido',
-  resolved: 'Resuelto',
-  waived: 'No necesario',
+export function channelLabel(channel: SourceChannel): string {
+  return t(`requests.channel.${channel}`)
+}
+
+export function requisitoLabel(status: RequisitoStatus): string {
+  return t(`requests.requisito.${status}`)
 }
 
 /**
@@ -61,20 +56,37 @@ export function canTransition(from: SolicitudStatus, to: SolicitudStatus): boole
 }
 
 /** Acciones de empresa disponibles según el estado. */
+export type EmpresaActionKey = 'review' | 'request_info' | 'ready' | 'close' | 'reopen' | 'reanalyze' | 'link'
+
 export interface EmpresaAction {
-  key: 'review' | 'request_info' | 'ready' | 'close' | 'reopen' | 'reanalyze' | 'link'
+  key: EmpresaActionKey
   label: string
   to?: SolicitudStatus
 }
 
+const ACTION_LABEL_KEY: Record<EmpresaActionKey, string> = {
+  link: 'requests.actions.link',
+  review: 'requests.actions.review',
+  request_info: 'requests.actions.requestInfo',
+  reanalyze: 'requests.actions.reanalyze',
+  ready: 'requests.actions.ready',
+  close: 'requests.actions.close',
+  reopen: 'requests.actions.reopen',
+}
+
+export function actionLabel(key: EmpresaActionKey): string {
+  return t(ACTION_LABEL_KEY[key])
+}
+
 export function empresaActions(status: SolicitudStatus): EmpresaAction[] {
   const acts: EmpresaAction[] = []
-  if (status !== 'closed') acts.push({ key: 'link', label: 'Enlace del cliente' })
-  if (canTransition(status, 'under_review') && status !== 'closed') acts.push({ key: 'review', label: 'Marcar en revisión', to: 'under_review' })
-  if (['submitted', 'under_review', 'missing_information', 'ready_for_scope'].includes(status)) acts.push({ key: 'request_info', label: 'Solicitar información' })
-  if (['submitted', 'under_review', 'missing_information', 'ready_for_scope'].includes(status)) acts.push({ key: 'reanalyze', label: 'Volver a comprobar' })
-  if (canTransition(status, 'ready_for_scope')) acts.push({ key: 'ready', label: 'Lista para preparar alcance', to: 'ready_for_scope' })
-  if (canTransition(status, 'closed')) acts.push({ key: 'close', label: 'Cerrar solicitud', to: 'closed' })
-  if (status === 'closed') acts.push({ key: 'reopen', label: 'Reabrir', to: 'under_review' })
+  const add = (key: EmpresaActionKey, to?: SolicitudStatus) => acts.push({ key, label: actionLabel(key), ...(to ? { to } : {}) })
+  if (status !== 'closed') add('link')
+  if (canTransition(status, 'under_review') && status !== 'closed') add('review', 'under_review')
+  if (['submitted', 'under_review', 'missing_information', 'ready_for_scope'].includes(status)) add('request_info')
+  if (['submitted', 'under_review', 'missing_information', 'ready_for_scope'].includes(status)) add('reanalyze')
+  if (canTransition(status, 'ready_for_scope')) add('ready', 'ready_for_scope')
+  if (canTransition(status, 'closed')) add('close', 'closed')
+  if (status === 'closed') add('reopen', 'under_review')
   return acts
 }
