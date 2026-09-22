@@ -68,27 +68,19 @@ resolución a español sin idioma; que ninguna condicional queda literal al rend
 exactas por plantilla y ninguna inventada; ausencia de `<script>`, manejadores `on*=`, `javascript:` y
 Base64; logo por HTTPS con texto alternativo; y ausencia de claves técnicas visibles.
 
-## Estado en los proyectos (verificado el 2026-09-21, solo lectura)
+## Estado en los proyectos
 
 | Proyecto | Situación |
 | --- | --- |
-| Staging `tbobbbgjfqrifwrmbtpd` | **No se pueden editar** las plantillas: el panel indica «Set up custom SMTP to edit templates» (sin SMTP propio se usan las plantillas por defecto). Configurar SMTP no forma parte de este cambio, así que la validación previa en staging no es posible para las plantillas. |
-| Producción `sykyofrzbzosbtdcsrxa` | SMTP propio activo; plantillas editables. **Confirm sign up** y **Reset password** ya están personalizadas en español (asuntos «Confirma tu correo y activa tu cuenta de Feblio» y «Restablece tu contraseña de Feblio»; los textos españoles de este repositorio se han alineado con ellas). **Invite user, Magic link, Change email, Reauthentication** y las notificaciones de seguridad conservan las plantillas por defecto de Supabase (en inglés). |
+| Producción `sykyofrzbzosbtdcsrxa` | **Las 13 plantillas de este directorio están aplicadas** (2026-09-22): asunto y cuerpo guardados en el panel y comprobados tras reabrir cada plantilla (sha256 idéntica a los archivos versionados). Copia exacta de las plantillas anteriores en `C:\Users\ivanf\FeblioBackups\auth-templates-20260922-103205\` (fuera del repositorio, con `MANIFEST.txt`). Pruebas reales aprobadas: confirmación de registro y restablecimiento de contraseña en español y en inglés (remitente @feblio.com, logo, diseño, idioma, botón, enlace alternativo y destino feblio.com correctos; sin llaves Go visibles). Las 7 notificaciones de seguridad tienen la plantilla aplicada pero la notificación sigue **desactivada** a nivel de proyecto (sin cambios). |
+| Staging `tbobbbgjfqrifwrmbtpd` | **No se pueden editar** las plantillas: el panel indica «Set up custom SMTP to edit templates». Configurar SMTP no forma parte de este cambio. |
 
-Las plantillas de este directorio **no están aplicadas** en ningún proyecto: solo están versionadas.
-Motivo: no ha sido posible obtener una copia exacta (asunto + HTML completo) de las dos plantillas
-personalizadas de producción con un mecanismo automatizado, y ese respaldo es condición previa para
-sustituirlas. Los pasos manuales están más abajo.
+**Sobre el botón Preview del panel**: el Preview solo sustituye las variables (`{{ .ConfirmationURL }}`…) en el
+navegador y **no evalúa las condicionales de Go**: muestra las dos ramas y los `{{ if … }}` / `{{ else }}` /
+`{{ end }}` literalmente. Las condicionales se evalúan en el servidor al enviar (documentación oficial, sección
+*Customization* de *Email Templates*); la verificación real es un envío a una cuenta propia.
 
-**Sobre el botón Preview del panel**: comprobado en producción (sin guardar) que el Preview solo
-sustituye las variables (`{{ .ConfirmationURL }}`…) en el navegador y **no evalúa las condicionales de
-Go**: muestra las dos ramas y los `{{ if … }}` / `{{ else }}` / `{{ end }}` literalmente. Las condicionales
-se evalúan en el servidor al enviar (documentación oficial, sección *Customization* de *Email Templates*).
-Por tanto el Preview sirve para revisar el diseño, pero la verificación real de la rama es/en solo puede
-hacerse con un envío a una cuenta propia (p. ej. «Reset password» a un usuario de prueba con
-`user_metadata.language = "en"` y a otro sin el campo), con autorización previa.
-
-## Cómo aplicarlas (manual, panel de Supabase)
+## Cómo volver a aplicarlas o restaurarlas (manual, panel de Supabase)
 
 1. **Antes de tocar nada**, guarda una copia exacta del asunto y del HTML actuales de cada plantilla
    personalizada (en producción: *Confirm sign up* y *Reset password*; las demás son las de Supabase y se
