@@ -16,6 +16,10 @@
 --  · Auditoría en audit_events para categorías, servicios, precios, importaciones, activaciones y borrados.
 --  · Paso opcional 'services' del onboarding (no bloquea la activación).
 --
+-- Nota: los «no encontrado» usan el SQLSTATE 'PT404' para que PostgREST responda 404 (con 'P0002'
+-- devolvía 500). El mensaje y el `detail` estable son idénticos para un recurso inexistente y para uno
+-- de otra empresa: la respuesta no revela si existe.
+--
 -- Rollback lógico: drop de las funciones svc_*/service_*/services_* y de las 3 tablas (versiones →
 -- servicios → categorías); revertir el check de onboarding_steps.step_key y borrar sus filas 'services';
 -- profiles.company_role puede quedarse (es aditiva) o eliminarse junto con su trigger y su check.
@@ -527,7 +531,7 @@ declare v_from date; v_max_from date; v_no int; v_row public.service_price_versi
 begin
   perform 1 from public.services s where s.id = p_service and s.empresa_id = p_empresa for update;
   if not found then
-    raise exception 'Servicio no encontrado' using errcode = 'P0002', detail = 'service_not_found';
+    raise exception 'Servicio no encontrado' using errcode = 'PT404', detail = 'service_not_found';
   end if;
   v_from := coalesce((p->>'valid_from')::date, current_date);
   if v_from < current_date then
@@ -581,7 +585,7 @@ begin
      where id = v_id and empresa_id = v_empresa
      returning id into v_id;
     if v_id is null then
-      raise exception 'Categoría no encontrada' using errcode = 'P0002', detail = 'category_not_found';
+      raise exception 'Categoría no encontrada' using errcode = 'PT404', detail = 'category_not_found';
     end if;
     perform public.audit_log_internal(v_empresa, auth.uid(), 'catalog.category_updated', 'service_categories', v_id, 'ok',
       jsonb_build_object('code', v_code));
@@ -607,7 +611,7 @@ declare v_empresa uuid := public.svc_ctx_manage(); v_used int; v_code text;
 begin
   select code into v_code from public.service_categories where id = p_id and empresa_id = v_empresa;
   if v_code is null then
-    raise exception 'Categoría no encontrada' using errcode = 'P0002', detail = 'category_not_found';
+    raise exception 'Categoría no encontrada' using errcode = 'PT404', detail = 'category_not_found';
   end if;
   if p_mode not in ('block', 'clear', 'reassign') then
     raise exception 'Operación no válida' using errcode = '22023', detail = 'invalid_mode';
@@ -663,11 +667,11 @@ begin
   if v_cat_code is not null and v_cat is null then
     select id into v_cat from public.service_categories where empresa_id = p_empresa and code = v_cat_code;
     if v_cat is null then
-      raise exception 'Categoría no encontrada' using errcode = 'P0002', detail = 'category_not_found';
+      raise exception 'Categoría no encontrada' using errcode = 'PT404', detail = 'category_not_found';
     end if;
   end if;
   if v_cat is not null and not exists (select 1 from public.service_categories where id = v_cat and empresa_id = p_empresa) then
-    raise exception 'Categoría no encontrada' using errcode = 'P0002', detail = 'category_not_found';
+    raise exception 'Categoría no encontrada' using errcode = 'PT404', detail = 'category_not_found';
   end if;
 
   if v_id is null then
@@ -726,7 +730,7 @@ begin
      where s.id = v_id and s.empresa_id = p_empresa
      returning * into v_row;
     if v_row.id is null then
-      raise exception 'Servicio no encontrado' using errcode = 'P0002', detail = 'service_not_found';
+      raise exception 'Servicio no encontrado' using errcode = 'PT404', detail = 'service_not_found';
     end if;
     v_action := 'updated';
     if p->'price' is not null and jsonb_typeof(p->'price') = 'object' then
@@ -771,7 +775,7 @@ declare v_empresa uuid := public.svc_ctx_manage(); v_price jsonb; v_row public.s
 begin
   select code into v_code from public.services where id = p_service and empresa_id = v_empresa;
   if v_code is null then
-    raise exception 'Servicio no encontrado' using errcode = 'P0002', detail = 'service_not_found';
+    raise exception 'Servicio no encontrado' using errcode = 'PT404', detail = 'service_not_found';
   end if;
   v_price := public.svc_price_payload(coalesce(p, '{}'::jsonb), v_empresa);
   v_row := public.svc_new_price_version(v_empresa, p_service, v_price);
@@ -789,12 +793,12 @@ declare v_empresa uuid := public.svc_ctx_manage(); v_next public.service_price_v
 begin
   select code into v_code from public.services where id = p_service and empresa_id = v_empresa for update;
   if v_code is null then
-    raise exception 'Servicio no encontrado' using errcode = 'P0002', detail = 'service_not_found';
+    raise exception 'Servicio no encontrado' using errcode = 'PT404', detail = 'service_not_found';
   end if;
   select * into v_next from public.service_price_versions
    where service_id = p_service and valid_from > current_date order by valid_from asc limit 1;
   if v_next.id is null then
-    raise exception 'No hay ninguna versión programada' using errcode = 'P0002', detail = 'price_version_not_found';
+    raise exception 'No hay ninguna versión programada' using errcode = 'PT404', detail = 'price_version_not_found';
   end if;
   delete from public.service_price_versions where id = v_next.id;
   update public.service_price_versions set valid_to = null, superseded_at = null
@@ -818,7 +822,7 @@ begin
    where id = p_service and empresa_id = v_empresa
    returning code into v_code;
   if v_code is null then
-    raise exception 'Servicio no encontrado' using errcode = 'P0002', detail = 'service_not_found';
+    raise exception 'Servicio no encontrado' using errcode = 'PT404', detail = 'service_not_found';
   end if;
   perform public.audit_log_internal(v_empresa, auth.uid(),
     case when coalesce(p_active, true) then 'catalog.service_activated' else 'catalog.service_deactivated' end,
@@ -835,7 +839,7 @@ declare v_empresa uuid := public.svc_ctx_manage(); v_row public.services;
 begin
   select * into v_row from public.services where id = p_service and empresa_id = v_empresa for update;
   if v_row.id is null then
-    raise exception 'Servicio no encontrado' using errcode = 'P0002', detail = 'service_not_found';
+    raise exception 'Servicio no encontrado' using errcode = 'PT404', detail = 'service_not_found';
   end if;
   if v_row.usage_count > 0 then
     raise exception 'El servicio ya se ha utilizado: solo puede desactivarse' using errcode = '22023', detail = 'service_in_use';
@@ -855,7 +859,7 @@ declare v_service uuid;
 begin
   select service_id into v_service from public.service_price_versions where id = p_version;
   if v_service is null then
-    raise exception 'Versión no encontrada' using errcode = 'P0002', detail = 'price_version_not_found';
+    raise exception 'Versión no encontrada' using errcode = 'PT404', detail = 'price_version_not_found';
   end if;
   update public.services set usage_count = usage_count + 1 where id = v_service;
   return jsonb_build_object('ok', true, 'service_id', v_service);
