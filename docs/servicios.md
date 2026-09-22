@@ -59,7 +59,9 @@ más adelante: entonces **solo `owner`** podrá asignar `owner`/`manager`.
   `security definer` con `search_path` fijo. `empresa_id` se deriva siempre de la sesión: el cliente nunca
   lo envía y un `id` de otra empresa devuelve `service_not_found` (respuesta indistinguible de «no existe»).
 - Los errores usan códigos estables en `detail` (`catalog_forbidden`, `price_overlap`, `service_in_use`…)
-  que el frontend traduce; nunca se devuelve texto interno.
+  que el frontend traduce; nunca se devuelve texto interno. Los «no encontrado» usan el SQLSTATE `PT404`
+  para que PostgREST responda **404** (con `P0002` devolvía 500) y la respuesta es idéntica para un recurso
+  inexistente y para uno de otra empresa.
 - Auditoría en `audit_events`: `catalog.category_created/updated/deleted`, `catalog.service_created/updated/
   deleted/activated/deactivated`, `catalog.price_changed`, `catalog.price_schedule_cancelled`,
   `catalog.imported` (solo recuentos: nunca el archivo ni los datos importados).
