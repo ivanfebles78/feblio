@@ -58,7 +58,7 @@ begin
   select count(*) into n from public.integration_connections where empresa_id = v_e_b;
   insert into pg_temp._t values ('T1b A no lee integraciones de B', n = 0);
   select count(*) into n from public.onboarding_steps where empresa_id = v_e_a;
-  insert into pg_temp._t values ('T1c A sí lee sus pasos', n = 10);
+  insert into pg_temp._t values ('T1c A sí lee sus pasos', n = 11);
 
   -- T2: A no puede modificar integraciones de B (RPC con empresa explícita)
   begin

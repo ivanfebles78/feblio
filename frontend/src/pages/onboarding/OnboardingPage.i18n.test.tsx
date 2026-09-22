@@ -44,7 +44,7 @@ describe('asistente de configuración en inglés', () => {
     expect(screen.getByRole('button', { name: /Save and return to dashboard/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Setup steps' })).toBeInTheDocument()
-    expect(screen.getAllByText('Step 3 of 10').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Step 3 of 11').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Completed').length).toBeGreaterThan(0)
     expect(screen.getByText('How do you want Feblio to receive and send email?')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /skip for now/i })).toBeInTheDocument()

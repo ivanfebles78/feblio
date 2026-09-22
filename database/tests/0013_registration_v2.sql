@@ -110,10 +110,10 @@ begin
   exception when insufficient_privilege then v_ok := true; end;
   insert into pg_temp._t values ('N4e la empresa NO puede cambiar onboarding_status por UPDATE directo', v_ok);
   select count(*) into n from public.onboarding_steps where empresa_id = v_new_e;
-  insert into pg_temp._t values ('N7d ensure_onboarding_defaults crea los 10 pasos', n = 10);
+  insert into pg_temp._t values ('N7d ensure_onboarding_defaults crea los 11 pasos', n = 11);
   perform public.get_onboarding();
   select count(*) into n from public.onboarding_steps where empresa_id = v_new_e;
-  insert into pg_temp._t values ('N7e ensure_onboarding_defaults repetido no duplica pasos', n = 10);
+  insert into pg_temp._t values ('N7e ensure_onboarding_defaults repetido no duplica pasos', n = 11);
 
   -- N3: bienvenida una sola vez
   j := public.mark_onboarding_welcome_seen();

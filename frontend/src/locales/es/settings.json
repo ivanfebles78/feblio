@@ -5,7 +5,8 @@
     "billing": "Facturación y pagos",
     "automation": "Automatizaciones",
     "forms": "Formularios",
-    "reopen": "Reabrir configuración inicial"
+    "reopen": "Reabrir configuración inicial",
+    "services": "Servicios"
   },
   "tablist": "Secciones de configuración",
   "loading": "Cargando configuración…",

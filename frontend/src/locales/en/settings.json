@@ -5,7 +5,8 @@
     "billing": "Billing and payments",
     "automation": "Automations",
     "forms": "Forms",
-    "reopen": "Reopen initial setup"
+    "reopen": "Reopen initial setup",
+    "services": "Services"
   },
   "tablist": "Settings sections",
   "loading": "Loading settings…",

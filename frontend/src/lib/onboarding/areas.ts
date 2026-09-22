@@ -13,7 +13,7 @@ import type { OnboardingStepKey, StepStatus } from './types'
  *   4 Automatizaciones             → automation
  *   5 Facturación y activación     → billing, review
  */
-export type SetupAreaKey = 'company' | 'documents' | 'channels' | 'automation' | 'billing'
+export type SetupAreaKey = 'company' | 'documents' | 'channels' | 'catalog' | 'automation' | 'billing'
 
 export interface SetupAreaDefinition {
   key: SetupAreaKey
@@ -50,6 +50,7 @@ export const SETUP_AREAS: SetupAreaDefinition[] = [
   defineArea('company', ['company'], 4),
   defineArea('documents', ['repository', 'forms'], 6),
   defineArea('channels', ['email', 'whatsapp', 'sms', 'voice'], 6),
+  defineArea('catalog', ['services'], 5),
   defineArea('automation', ['automation'], 3),
   defineArea('billing', ['billing', 'review'], 5),
 ]

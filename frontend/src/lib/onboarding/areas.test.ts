@@ -3,9 +3,9 @@ import { SETUP_AREAS, SETUP_TOTAL_MINUTES, computeSetupProgress } from './areas'
 import { STEPS } from './steps'
 
 describe('SETUP_AREAS', () => {
-  it('agrupa exactamente los 10 pasos reales en 5 áreas sin repetir', () => {
+  it('agrupa exactamente los 11 pasos reales en 6 áreas sin repetir', () => {
     const mapped = SETUP_AREAS.flatMap((a) => a.steps)
-    expect(SETUP_AREAS).toHaveLength(5)
+    expect(SETUP_AREAS).toHaveLength(6)
     expect(mapped).toHaveLength(STEPS.length)
     expect(new Set(mapped).size).toBe(STEPS.length)
     expect(mapped.sort()).toEqual(STEPS.map((s) => s.key).sort())
@@ -30,8 +30,9 @@ describe('computeSetupProgress', () => {
     expect(p.areas[2].status).toBe('current')
     expect(p.nextStep).toBe('email')
     expect(p.completedAreas).toBe(2)
-    expect(p.percent).toBe(40)
-    expect(p.minutesRemaining).toBe(6 + 3 + 5)
+    // 6 áreas: company, documents, channels, catalog (servicios, opcional), automation, billing
+    expect(p.percent).toBe(33)
+    expect(p.minutesRemaining).toBe(6 + 5 + 3 + 5)
   })
 
   it('el siguiente paso real es el primero abierto dentro del área actual', () => {

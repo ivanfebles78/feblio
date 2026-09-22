@@ -60,6 +60,11 @@
       "title": "Summary, test and activation",
       "short": "Activate",
       "description": "Check the configuration, run a test and activate Feblio."
+    },
+    "services": {
+      "title": "Services and prices",
+      "short": "Services",
+      "description": "Service catalogue with prices, requirements and validity."
     }
   },
   "stepStatus": {
@@ -90,6 +95,10 @@
     "billing": {
       "title": "Billing and activation",
       "description": "Series, taxes, advance payment and account activation."
+    },
+    "catalog": {
+      "title": "Service catalogue",
+      "description": "The services you offer and their prices, used to prepare quotes."
     }
   },
   "layout": {
