@@ -13,6 +13,7 @@ export type OnboardingStepKey =
   | 'sms'
   | 'voice'
   | 'forms'
+  | 'services'
   | 'automation'
   | 'billing'
   | 'review'

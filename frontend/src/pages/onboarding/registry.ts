@@ -23,6 +23,7 @@ import { WhatsAppChannelStep } from './steps/WhatsAppChannelStep'
 import { SmsChannelStep } from './steps/SmsChannelStep'
 import { VoiceChannelStep } from './steps/VoiceChannelStep'
 import { FormsStep } from './steps/FormsStep'
+import { ServicesCatalogStep } from './steps/ServicesCatalogStep'
 import { AutomationRulesStep } from './steps/AutomationRulesStep'
 import { BillingSettingsStep, ibanDraftRef } from './steps/BillingSettingsStep'
 import { ReviewAndActivateStep } from './steps/ReviewAndActivateStep'
@@ -78,6 +79,11 @@ export const STEP_REGISTRY: Record<OnboardingStepKey, StepEntry> = {
       else if (!templates.some((x) => x.is_default)) e.templates = t('onboarding.forms.markDefault')
       return e
     },
+  },
+  services: {
+    // Paso opcional: el catálogo se puede completar más tarde desde Configuración → Servicios
+    Component: ServicesCatalogStep,
+    validate: () => ({}),
   },
   automation: {
     Component: AutomationRulesStep,

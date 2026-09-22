@@ -60,6 +60,11 @@
       "title": "Resumen, prueba y activación",
       "short": "Activar",
       "description": "Comprueba la configuración, ejecuta una prueba y activa Feblio."
+    },
+    "services": {
+      "title": "Servicios y precios",
+      "short": "Servicios",
+      "description": "Catálogo de servicios con sus precios, requisitos y vigencia."
     }
   },
   "stepStatus": {
@@ -90,6 +95,10 @@
     "billing": {
       "title": "Facturación y activación",
       "description": "Series, impuestos, anticipo y activación de la cuenta."
+    },
+    "catalog": {
+      "title": "Catálogo de servicios",
+      "description": "Los servicios que ofreces y su precio, para preparar presupuestos."
     }
   },
   "layout": {

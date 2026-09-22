@@ -57,9 +57,10 @@ export const STEPS: StepDefinition[] = [
   defineStep('sms', 5, false),
   defineStep('voice', 6, false),
   defineStep('forms', 7, true),
-  defineStep('automation', 8, true),
-  defineStep('billing', 9, true),
-  defineStep('review', 10, true),
+  defineStep('services', 8, false),
+  defineStep('automation', 9, true),
+  defineStep('billing', 10, true),
+  defineStep('review', 11, true),
 ]
 
 export const STEP_KEYS = STEPS.map((s) => s.key)

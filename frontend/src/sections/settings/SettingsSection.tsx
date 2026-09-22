@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Building2, CreditCard, FileText, PlugZap, RotateCcw, Workflow, type LucideIcon } from 'lucide-react'
+import { Building2, CreditCard, FileText, PlugZap, RotateCcw, Tags, Workflow, type LucideIcon } from 'lucide-react'
 import { SectionCard } from '../../components/ui'
 import { AutoSaveStatus } from '../../components/onboarding/AutoSaveStatus'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -21,6 +21,7 @@ const TABS: { key: SettingsTab; icon: LucideIcon }[] = [
   { key: 'billing', icon: CreditCard },
   { key: 'automation', icon: Workflow },
   { key: 'forms', icon: FileText },
+  { key: 'services', icon: Tags },
   { key: 'reopen', icon: RotateCcw },
 ]
 
@@ -106,7 +107,7 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
     )
   }
 
-  const map = { empresa: 'company', billing: 'billing', automation: 'automation', forms: 'forms' } as const
+  const map = { empresa: 'company', billing: 'billing', automation: 'automation', forms: 'forms', services: 'services' } as const
   const entry = STEP_REGISTRY[map[tab]]
   return (
     <SectionCard title={t(settingsTabLabelKey(tab))} action={status}>
