@@ -35,7 +35,7 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
 | Authentication → Providers → Email → **Confirm email** | **OFF** (modo `otp`, por defecto) | Feblio verifica con su propio código de 6 dígitos. Si se deja ON habría doble verificación (enlace + código). Si prefieres la confirmación nativa, déjalo ON y ejecuta `update public.platform_settings set value = '"native"' where key = 'email_verification_mode';` |
 | Authentication → URL Configuration → **Site URL** | `https://feblio-production.up.railway.app` | Enlaces de confirmación / cambio de email |
 | Authentication → URL Configuration → **Redirect URLs** | `https://feblio-production.up.railway.app/**`, `http://localhost:5173/**` | Cambio seguro de email de acceso (`auth.updateUser`) y confirmación nativa |
-| Authentication → Email Templates | Plantillas bilingües de `docs/email-templates/` | Asunto y cuerpo es/en según `user_metadata.language` (ausente → español). Instrucciones y copia de seguridad previa en `docs/email-templates/README.md` |
+| Authentication → Email Templates | Plantillas bilingües de `docs/email-templates/` (aplicadas en producción el 2026-09-22) | Asunto y cuerpo es/en según `user_metadata.language` (ausente → español). Restauración e instrucciones en `docs/email-templates/README.md` |
 | Authentication → Rate limits | Revisar | Registro y OTP |
 
 ## 4. Edge Functions y secrets
