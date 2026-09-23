@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Building2, CheckCircle2, Clock3, FileText, MessagesSquare, ReceiptText, Workflow } from 'lucide-react'
+import { ArrowRight, Building2, CheckCircle2, Circle, Clock3, FileText, MessagesSquare, ReceiptText, Tags, Workflow } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Trans, useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { Logo } from '../components/Logo'
@@ -10,9 +11,23 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { markWelcomeSeen } from '../lib/onboarding/api'
 import { SETUP_AREAS, SETUP_TOTAL_MINUTES } from '../lib/onboarding/areas'
+import type { SetupAreaKey } from '../lib/onboarding/areas'
 import { onboardingStepPath } from '../lib/routing'
 
-const AREA_ICONS = [Building2, FileText, MessagesSquare, Workflow, ReceiptText]
+/**
+ * Icono por clave de área, nunca por posición: al añadir un área a SETUP_AREAS los índices se
+ * desplazaban y se renderizaba un componente undefined (React #130: pantalla en blanco).
+ * El Record es exhaustivo en compilación; AREA_FALLBACK_ICON cubre cualquier desajuste en ejecución.
+ */
+const AREA_ICONS: Record<SetupAreaKey, LucideIcon> = {
+  company: Building2,
+  documents: FileText,
+  channels: MessagesSquare,
+  catalog: Tags,
+  automation: Workflow,
+  billing: ReceiptText,
+}
+const AREA_FALLBACK_ICON: LucideIcon = Circle
 
 /**
  * Bienvenida de primera entrada (/bienvenida). <EmpresaGate mode="welcome"> garantiza que
@@ -102,7 +117,7 @@ export default function WelcomePage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 id="areas-title" className="text-lg font-semibold">
-                {t('auth.welcome.areasTitle')}
+                {t('auth.welcome.areasTitle', { count: SETUP_AREAS.length })}
               </h2>
               <p className="mt-1 text-sm text-slate-600">{t('auth.welcome.areasHint')}</p>
             </div>
@@ -111,16 +126,18 @@ export default function WelcomePage() {
             </p>
           </div>
           <ProgressBar value={0} label={t('auth.welcome.progressLabel')} className="mt-5" />
-          <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <ol className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {SETUP_AREAS.map((a, i) => {
-              const Icon = AREA_ICONS[i]
+              const Icon = AREA_ICONS[a.key] ?? AREA_FALLBACK_ICON
               return (
                 <li key={a.key} className="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
                   <div className="flex items-center justify-between">
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brand-700 ring-1 ring-slate-200" aria-hidden="true">
                       <Icon className="h-5 w-5" />
                     </span>
-                    <span className="text-sm font-medium text-slate-500">{i + 1}/5</span>
+                    <span className="text-sm font-medium text-slate-500">
+                      {i + 1}/{SETUP_AREAS.length}
+                    </span>
                   </div>
                   <p className="mt-3 text-sm font-semibold text-slate-900">{a.title}</p>
                   <p className="mt-1 text-sm leading-relaxed text-slate-600">{a.description}</p>
