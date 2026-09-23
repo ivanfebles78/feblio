@@ -3,15 +3,19 @@ import { STEPS } from './steps'
 import type { OnboardingStepKey, StepStatus } from './types'
 
 /**
- * Configuración progresiva: los 10 pasos reales del wizard agrupados en 5 áreas
- * visibles en el dashboard. El mapeo sigue el orden y las claves de STEPS
- * (lib/onboarding/steps.ts); los pasos y sus datos no cambian.
+ * Configuración progresiva: los pasos reales del wizard agrupados en las áreas visibles en el
+ * dashboard. El mapeo sigue el orden y las claves de STEPS (lib/onboarding/steps.ts); los pasos
+ * y sus datos no cambian.
  *
  *   1 Perfil de empresa            → company
  *   2 Documentos y formularios     → repository, forms
  *   3 Canales de comunicación      → email, whatsapp, sms, voice   (opcionales)
- *   4 Automatizaciones             → automation
- *   5 Facturación y activación     → billing, review
+ *   4 Servicios y precios          → services                      (opcional)
+ *   5 Automatizaciones             → automation
+ *   6 Facturación y activación     → billing, review
+ *
+ * Al añadir un área, quien la consuma no debe asumir un número fijo: derivarlo de
+ * SETUP_AREAS.length y mapear por clave, nunca por índice.
  */
 export type SetupAreaKey = 'company' | 'documents' | 'channels' | 'catalog' | 'automation' | 'billing'
 
