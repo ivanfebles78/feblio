@@ -42,10 +42,29 @@ admin (plataforma Feblio)
 | `audit_events` | Auditoría (empresa, usuario, acción, entidad, resultado, metadatos sin secretos, IP/UA) |
 | `platform_settings` | Ajustes de plataforma (solo admin), p. ej. `email_verification_mode` |
 | `email_otps` | Códigos de verificación (solo funciones) |
+| `ia_empresa_config` / `ia_empresa_consumo` | Configuración y contabilidad de gasto del análisis por empresa (0019) |
+| `solicitud_documento_texto` | Texto extraído por página. **Solo `service_role`**: `authenticated` nunca lo lee (0019) |
+| `solicitud_analisis_ia` | Análisis versionado de una solicitud: clasificación, confianza, cola, lease y consumo (0019) |
+| `solicitud_analisis_items` | Ítems del análisis (partes, plazos, actuaciones, preguntas, servicios) con `origin` y `deadline_kind` (0019) |
+| `solicitud_analisis_evidencias` | Documento, página y cita ≤300 caracteres. Sin lectura directa: RPC `solicitud_ia_evidencias` (0019) |
+| `solicitud_analisis_revisiones` | Traza de aprobación, corrección o rechazo humano (0019) |
 
 Storage: dos buckets **privados**. `intake-files` (adjuntos del formulario público): anon solo puede subir bajo
 `{token}/` de un formulario pendiente y no caducado; solo la empresa dueña (o admin) lee/borra, mediante URLs firmadas
 de 10 minutos. `empresa-docs`: políticas por prefijo `{empresa_id}/…`.
+
+## Análisis inteligente y automatización progresiva
+
+El análisis de solicitudes y documentos (migración 0019) produce una **propuesta revisable**: ningún
+resultado de IA cambia por sí mismo estados, fechas, servicios ni datos de negocio, y los plazos,
+requerimientos formales y clasificaciones **siempre** exigen revisión humana. Los documentos se tratan
+como entrada hostil y nunca como instrucciones.
+
+El diseño admite automatización creciente de la presupuestación (`assistant`, `approval_required`,
+`controlled_auto`, `advanced_auto`) por empresa y por servicio, con autorización expresa de un owner,
+interruptor global de parada y once condiciones que deben cumplirse para enviar sin intervención.
+Detalle completo, salvaguardas y puntos de extensión en
+[analisis-inteligente-solicitudes.md](analisis-inteligente-solicitudes.md).
 
 ## Seguridad (RLS)
 
