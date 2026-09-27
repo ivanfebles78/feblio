@@ -154,6 +154,120 @@ export interface ClienteVista {
   mensajes: { id: string; author_kind: AuthorKind; author_name: string; kind: MessageKind; body: string; created_at: string; read: boolean }[]
 }
 
+/* ------------------------------------------------------------------ */
+/* Análisis inteligente (IA) — migraciones 0019 / 0020                   */
+/* ------------------------------------------------------------------ */
+
+export type IaAnalysisStatus =
+  | 'queued' | 'running' | 'generated' | 'in_review' | 'approved'
+  | 'corrected' | 'rejected' | 'failed' | 'partial' | 'superseded'
+
+export type IaItemKind =
+  | 'party' | 'issuer' | 'reference' | 'notified_on' | 'deadline' | 'action'
+  | 'risk' | 'missing_info' | 'missing_document' | 'question' | 'service' | 'received_document'
+
+export type IaItemOrigin = 'explicit' | 'inferred' | 'computed'
+export type IaHumanState = 'pending' | 'accepted' | 'edited' | 'rejected' | 'added_by_human'
+export type IaDeadlineKind = 'expreso' | 'calculado'
+export type IaPrimaryType =
+  | 'requerimiento_judicial' | 'requerimiento_administrativo' | 'consulta'
+  | 'presupuesto' | 'encargo' | 'mixta' | 'ambigua'
+export type IaDecision = 'approved' | 'corrected' | 'rejected'
+
+/** Aviso de descarte del servidor (servicio no resuelto, evidencia rechazada, inyección sospechada…). */
+export interface IaWarning {
+  code: string
+  value?: string
+}
+
+/** Cabecera del análisis (solicitud_analisis_ia). Sin texto de documentos: solo metadatos. */
+export interface IaAnalysis {
+  id: string
+  solicitud_id: string
+  empresa_id: string
+  version: number
+  status: IaAnalysisStatus
+  provider: string | null
+  model: string | null
+  prompt_version: string | null
+  primary_type: IaPrimaryType | null
+  secondary_types: string[]
+  has_formal_requirement: boolean | null
+  requirement_class: string | null
+  summary: string | null
+  summary_lang: 'es' | 'en' | null
+  confidence_document: number | null
+  requires_human_review: boolean
+  warnings: IaWarning[]
+  attempts: number
+  error_code: string | null
+  cost_micros: number
+  triggered_by: string
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  superseded_at: string | null
+}
+
+/** Ítem del análisis (solicitud_analisis_items). `value`/`human_value` son JSON libre y tipado. */
+export interface IaItem {
+  id: string
+  analisis_id: string
+  kind: IaItemKind
+  origin: IaItemOrigin
+  label: string | null
+  value: Record<string, unknown>
+  service_id: string | null
+  deadline_kind: IaDeadlineKind | null
+  due_date: string | null
+  confidence: number | null
+  human_state: IaHumanState
+  human_value: Record<string, unknown> | null
+  sort_order: number
+  created_at: string
+}
+
+/** Cita de evidencia devuelta por la RPC controlada (nunca el texto completo). */
+export interface IaEvidence {
+  item_id: string
+  documento_id: string
+  original_name: string | null
+  page_no: number | null
+  quote: string | null
+}
+
+/** Traza de una decisión humana (solicitud_analisis_revisiones). */
+export interface IaRevision {
+  id: string
+  analisis_id: string
+  reviewer_id: string | null
+  decision: IaDecision
+  note: string | null
+  changed_items: number
+  created_at: string
+}
+
+/** Configuración de IA por empresa (subconjunto usado por la interfaz). */
+export interface IaConfig {
+  empresa_id: string
+  automation_mode: string
+  auto_analysis_enabled: boolean
+  monthly_limit_micros: number
+  warn_percent: number
+  min_service_confidence: number
+}
+
+/** Contabilidad mensual de consumo de IA (solo contadores). */
+export interface IaConsumo {
+  empresa_id: string
+  period_month: string
+  cost_micros: number
+  analyses: number
+  ocr_pages: number
+  input_tokens: number
+  output_tokens: number
+}
+
 export interface NuevaSolicitudInput {
   cliente_id?: string | null
   contact_name: string

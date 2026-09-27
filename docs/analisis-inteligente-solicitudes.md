@@ -286,13 +286,21 @@ motor de presupuestación y se diseñarán con él, apoyados en `ia_empresa_conf
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| 1 | Migración 0019: modelo, permisos, RPC de encolado y persistencia, suite SQL | en curso |
-| 2 | Antivirus y extracción (OCR) con caché por hash | pendiente |
-| 3 | Análisis LLM, validación de esquema y defensas de inyección | pendiente |
-| 4 | Pestaña Análisis bilingüe y accesible | pendiente |
+| 1 | Migración 0019: modelo, permisos, RPC de encolado y persistencia, suite SQL | hecho |
+| 1b | Migración 0020: RPC de revisión humana (abrir, estado de ítem, aprobar/corregir/rechazar) + suite | hecho |
+| 2-3 | Worker `analizar-solicitud`: pipeline cola→propuesta→persistencia con analizador **stub** determinista (sin proveedor externo) | hecho (stub) |
+| 2-3 | Antivirus + OCR real y análisis LLM con validación de esquema y defensas de inyección | pendiente (enchufar proveedor) |
+| 4 | Pestaña Análisis bilingüe y accesible (`AnalisisIAPanel`) | hecho |
 | 5 | Validación en staging con documentos anonimizados | pendiente |
 | 6 | Despliegue controlado a producción | pendiente |
 | 7+ | Motor de presupuestación y automatización progresiva | diseñado, no implementado |
+
+**Estado actual (stub):** el worker construye la propuesta a partir del formulario y de la lista de
+documentos, **sin enviar contenido a ningún proveedor externo**. Clasificación por palabras clave, plazo
+expreso si detecta una fecha, información faltante básica, preguntas genéricas y los documentos recibidos
+como evidencia. La confianza documental es baja a propósito (0.4) y cada análisis lleva el aviso
+`stub_provider`. Sustituir el stub por un LLM/OCR real (p. ej. Claude vía Bedrock UE + Mistral OCR) es un
+cambio dentro de `buildProposal`/deps del worker; **no** cambia el modelo de datos, las RPC ni la interfaz.
 
 ## Tareas separadas detectadas durante el diseño
 

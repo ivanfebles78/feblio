@@ -62,7 +62,7 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
-const PROFILE_COLUMNS = 'id, email, full_name, role, empresa_id, cliente_id, contact_email, phone, job_title, is_onboarding_owner'
+const PROFILE_COLUMNS = 'id, email, full_name, role, empresa_id, cliente_id, contact_email, phone, job_title, is_onboarding_owner, company_role'
 
 /**
  * Idioma configurado en la empresa del perfil (empresas.language). Solo se aplica si el usuario

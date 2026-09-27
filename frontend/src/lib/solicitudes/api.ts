@@ -3,6 +3,14 @@ import { supabase } from '../supabase'
 import i18n, { t } from '../../i18n'
 import type {
   ClienteVista,
+  IaAnalysis,
+  IaConfig,
+  IaConsumo,
+  IaDecision,
+  IaEvidence,
+  IaHumanState,
+  IaItem,
+  IaRevision,
   Notificacion,
   NuevaSolicitudInput,
   Solicitud,
@@ -204,6 +212,92 @@ export async function listNotificaciones(limit = 30): Promise<Notificacion[]> {
   if (error) throw friendly(error, t('requests.api.loadNotifications'))
   return (data ?? []) as Notificacion[]
 }
+/* ------------------------------------------------------------------ */
+/* Análisis inteligente (IA) — migraciones 0019 / 0020                   */
+/* ------------------------------------------------------------------ */
+
+/** Conjunto de datos que la pestaña de análisis necesita para una solicitud. */
+export interface IaOverview {
+  analyses: IaAnalysis[]
+  items: IaItem[]
+  evidence: IaEvidence[]
+  revisiones: IaRevision[]
+  config: IaConfig | null
+  consumo: IaConsumo | null
+}
+
+/** Primer día del mes actual en UTC (formato de `ia_empresa_consumo.period_month`). */
+function currentPeriodMonth(): string {
+  const now = new Date()
+  const y = now.getUTCFullYear()
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0')
+  return `${y}-${m}-01`
+}
+
+/**
+ * Carga el análisis más reciente de una solicitud con sus ítems, evidencias, revisiones y el
+ * consumo del mes. Las evidencias llegan por RPC controlada (nunca lectura directa de la tabla).
+ */
+export async function getAnalisisIA(solicitudId: string): Promise<IaOverview> {
+  const anaRes = await supabase
+    .from('solicitud_analisis_ia')
+    .select('*')
+    .eq('solicitud_id', solicitudId)
+    .order('version', { ascending: false })
+  if (anaRes.error) {
+    // Migraciones 0019/0020 aún no aplicadas: la tabla no existe. La pestaña se muestra vacía.
+    const code = (anaRes.error as PostgrestError).code
+    if (code === '42P01' || code === 'PGRST205' || code === 'PGRST202') {
+      return { analyses: [], items: [], evidence: [], revisiones: [], config: null, consumo: null }
+    }
+    throw friendly(anaRes.error, t('requests.ia.errors.load'))
+  }
+  const analyses = (anaRes.data ?? []) as IaAnalysis[]
+  const latest = analyses.find((a) => a.status !== 'superseded') ?? analyses[0] ?? null
+
+  const [itemsRes, revRes, cfgRes, consRes] = await Promise.all([
+    latest
+      ? supabase.from('solicitud_analisis_items').select('*').eq('analisis_id', latest.id).order('kind').order('sort_order')
+      : Promise.resolve({ data: [], error: null }),
+    latest
+      ? supabase.from('solicitud_analisis_revisiones').select('*').eq('analisis_id', latest.id).order('created_at', { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    supabase.from('ia_empresa_config').select('empresa_id, automation_mode, auto_analysis_enabled, monthly_limit_micros, warn_percent, min_service_confidence').maybeSingle(),
+    supabase.from('ia_empresa_consumo').select('*').eq('period_month', currentPeriodMonth()).maybeSingle(),
+  ])
+  for (const r of [itemsRes, revRes]) if (r.error) throw friendly(r.error, t('requests.ia.errors.load'))
+
+  // Las evidencias solo tienen sentido para un análisis con resultado; se piden aparte y sin bloquear.
+  let evidence: IaEvidence[] = []
+  if (latest && ['generated', 'partial', 'in_review', 'approved', 'corrected'].includes(latest.status)) {
+    evidence = await getEvidencias(latest.id).catch(() => [])
+  }
+
+  return {
+    analyses,
+    items: (itemsRes.data ?? []) as IaItem[],
+    evidence,
+    revisiones: (revRes.data ?? []) as IaRevision[],
+    config: (cfgRes.data as IaConfig) ?? null,
+    consumo: (consRes.data as IaConsumo) ?? null,
+  }
+}
+
+export const getEvidencias = (analisisId: string) =>
+  rpc<IaEvidence[]>('solicitud_ia_evidencias', { p_analisis: analisisId }, t('requests.ia.errors.load'))
+
+export const encolarAnalisis = (solicitudId: string, motivo = 'manual') =>
+  rpc<IaAnalysis>('solicitud_ia_encolar', { p_solicitud: solicitudId, p_prompt_version: 'v1', p_motivo: motivo }, t('requests.ia.errors.enqueue'))
+
+export const abrirRevisionIA = (analisisId: string) =>
+  rpc<IaAnalysis>('solicitud_ia_abrir_revision', { p_analisis: analisisId }, t('requests.ia.errors.review'))
+
+export const marcarItemIA = (itemId: string, estado: IaHumanState, valor?: Record<string, unknown> | null) =>
+  rpc<IaItem>('solicitud_ia_item_estado', { p_item: itemId, p_estado: estado, p_valor: valor ?? null }, t('requests.ia.errors.item'))
+
+export const revisarAnalisisIA = (analisisId: string, decision: IaDecision, nota?: string) =>
+  rpc<IaAnalysis>('solicitud_ia_revisar', { p_analisis: analisisId, p_decision: decision, p_nota: nota ?? null }, t('requests.ia.errors.review'))
+
 export const marcarNotificacion = (id: string) => rpc<void>('notificaciones_marcar', { p_id: id })
 export const marcarTodasNotificaciones = () => rpc<number>('notificaciones_marcar_todas')
 

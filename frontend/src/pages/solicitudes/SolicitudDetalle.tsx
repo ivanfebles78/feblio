@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Link2 } from 'lucide-react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Link2, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../components/v2/Button'
 import { Card, CardHeader, StatusPill } from '../../components/v2/Card'
 import { MessageThread } from '../../components/solicitudes/MessageThread'
 import { CompletenessCard } from './detalle/CompletenessCard'
+import { AnalisisIAPanel } from './detalle/AnalisisIAPanel'
+import { useAuth } from '../../context/AuthContext'
 import { CloseDialog, LinkDialog, RequestInfoDialog, type RequestInfoItem } from './detalle/Dialogs'
 import { Cronologia, DatosRecibidos, DocumentosPanel, RequisitosPanel } from './detalle/Panels'
 import * as api from '../../lib/solicitudes/api'
@@ -27,9 +29,20 @@ function buildClientUrl(token: string): string {
 
 export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
   const { t } = useTranslation()
+  const { profile } = useAuth()
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'analisis' ? 'analisis' : 'resumen'
+  const setTab = (v: 'resumen' | 'analisis') => {
+    const next = new URLSearchParams(params)
+    if (v === 'resumen') next.delete('tab')
+    else next.set('tab', 'analisis')
+    setParams(next, { replace: true })
+  }
+  const canManage =
+    profile?.role === 'empresa' && (profile.company_role === 'owner' || profile.company_role === 'manager' || !!profile.is_onboarding_owner)
   const [data, setData] = useState<api.SolicitudDetalle | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -216,7 +229,32 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
         </p>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div role="tablist" aria-label={t('requests.ia.tabs.label')} className="flex gap-1 border-b border-slate-200">
+        {(['resumen', 'analisis'] as const).map((k) => (
+          <button
+            key={k}
+            role="tab"
+            id={`tab-${k}`}
+            type="button"
+            aria-selected={tab === k}
+            aria-controls={`tabpanel-${k}`}
+            onClick={() => setTab(k)}
+            className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+              tab === k ? 'border-brand-600 text-brand-700' : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {k === 'analisis' && <Sparkles className="h-4 w-4" aria-hidden="true" />}
+            {t(`requests.ia.tabs.${k === 'resumen' ? 'summary' : 'analysis'}`)}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'analisis' ? (
+        <div role="tabpanel" id="tabpanel-analisis" aria-labelledby="tab-analisis">
+          <AnalisisIAPanel solicitudId={id} solicitudStatus={s.status} lastActivityAt={s.last_activity_at} canManage={canManage} />
+        </div>
+      ) : (
+      <div role="tabpanel" id="tabpanel-resumen" aria-labelledby="tab-resumen" className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-5">
           <CompletenessCard analysis={latest} completeness={s.completeness} onReanalyze={actions.some((a) => a.key === 'reanalyze') ? () => void run(() => api.analizarSolicitud(id), t('requests.detail.checkUpdated')) : undefined} busy={busy} />
           <DatosRecibidos formData={s.form_data} template={data.template} submittedAt={s.form_submitted_at} />
@@ -290,6 +328,7 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
           <Cronologia eventos={data.eventos} />
         </aside>
       </div>
+      )}
 
       <LinkDialog open={dialog === 'link'} onClose={() => setDialog(null)} link={freshLink} activeExpiresAt={activeAccess?.expires_at ?? null} onGenerate={generateLink} onRevoke={revokeLinks} busy={busy} />
       <RequestInfoDialog open={dialog === 'request'} onClose={() => setDialog(null)} suggestedFields={latest?.missing ?? []} suggestedDocuments={latest?.missing_documents ?? []} onSubmit={requestInfo} busy={busy} />

@@ -17,8 +17,8 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
 ## 2. Base de datos (Supabase)
 
 1. **Antes de producción, prueba en una rama** (Supabase → Branches → New branch) o en un proyecto de desarrollo:
-   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql`, `0017_intake_email_rate_limit.sql`, `0018_services_catalog.sql` y `0019_intake_analysis.sql` → Run (en ese orden).
-   - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql`, `0017_intake_email_rate_limit.sql`, `0018_services_catalog.sql` y `0019_intake_analysis.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
+   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql`, `0017_intake_email_rate_limit.sql`, `0018_services_catalog.sql`, `0019_intake_analysis.sql` y `0020_intake_analysis_review.sql` → Run (en ese orden).
+   - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql`, `0017_intake_email_rate_limit.sql`, `0018_services_catalog.sql`, `0019_intake_analysis.sql` y `0020_intake_analysis_review.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
    - `0011` convierte `intake-files` en bucket **privado**: los adjuntos ya subidos siguen accesibles para la empresa
      dueña mediante URLs firmadas (el panel las genera al pulsar); las URLs públicas antiguas dejan de funcionar.
    - Opcional en desarrollo: `database/seed/0003_seed_onboarding_ralm.sql`.
@@ -46,10 +46,12 @@ supabase functions deploy send-otp
 supabase functions deploy send-intake-email                 # privada: JWT + sesión validada; solo formularios propios; requiere 0017 (límite de envíos, fail closed)
 supabase functions deploy integrations                       # privada: verificación de JWT activada
 supabase functions deploy integrations-oauth-callback --no-verify-jwt   # pública: solo el callback OAuth (state firmado)
+supabase functions deploy analizar-solicitud --no-verify-jwt # worker del análisis IA: la llama un programador, no un usuario. Requiere 0019 + 0020.
 
 supabase secrets set \
   RESEND_API_KEY=<…> OTP_FROM_EMAIL="Feblio <no-reply@tudominio>" INTAKE_FROM_EMAIL="Feblio <no-reply@tudominio>" \
   APP_ENCRYPTION_KEY=<cadena aleatoria de 32+ caracteres> \
+  WORKER_SECRET=<cadena aleatoria de 32+ caracteres, para autorizar al worker analizar-solicitud> \
   APP_URL=https://feblio-production.up.railway.app
 # Opcionales, por integración (si faltan, la UI muestra "Requiere configuración del administrador de Feblio"):
 #   GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REDIRECT_URI
@@ -66,6 +68,28 @@ URLs de callback OAuth a registrar en Google Cloud / Entra ID (y como `GOOGLE_RE
 https://<ref>.supabase.co/functions/v1/integrations-oauth-callback/google
 https://<ref>.supabase.co/functions/v1/integrations-oauth-callback/microsoft
 ```
+
+### 4.1 Worker del análisis inteligente (`analizar-solicitud`)
+
+El botón «Analizar» de una solicitud solo **encola** el análisis (`solicitud_analisis_ia.status = 'queued'`);
+el worker es quien lo procesa. La variante actual es un **stub determinista**: construye la propuesta a
+partir del formulario y de los documentos adjuntos **sin enviar nada a ningún proveedor externo** (útil para
+ver la pestaña de punta a punta; enchufar un LLM real será un cambio de proveedor, no de contrato).
+
+- Ejecuta la cola manualmente (drena hasta 10 trabajos):
+  ```bash
+  curl -X POST "$SUPABASE_URL/functions/v1/analizar-solicitud" -H "x-worker-secret: $WORKER_SECRET"
+  ```
+- Prográmalo cada minuto con `pg_cron` + `pg_net` (si están disponibles en el proyecto):
+  ```sql
+  select cron.schedule('feblio-analisis', '* * * * *', $$
+    select net.http_post(
+      url     := '<SUPABASE_URL>/functions/v1/analizar-solicitud',
+      headers := jsonb_build_object('x-worker-secret', '<WORKER_SECRET>'))$$);
+  ```
+  Si no hay `pg_cron`/`pg_net`, usa un cron externo o una Scheduled Function que haga el mismo POST.
+- **Antes de sustituir el stub por un LLM/OCR real** con documentos reales de clientes: documentar y verificar
+  DPA, residencia UE, retención y uso para entrenamiento (ver `docs/analisis-inteligente-solicitudes.md`).
 
 ## 5. Cuentas de prueba y rotación de credenciales
 
