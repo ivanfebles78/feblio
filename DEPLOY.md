@@ -11,14 +11,15 @@ Producción actual: `https://feblio-production.up.railway.app/` (el dominio `feb
    VITE_SUPABASE_ANON_KEY=<publishable/anon key>
    VITE_APP_URL=https://feblio-production.up.railway.app
    # NO definir VITE_DEMO_MODE en producción (los accesos demo quedan ocultos)
+   # VITE_BILLING_ENABLED=true solo cuando Stripe y la migración 0021 estén desplegados (ver §4.2)
    ```
 3. Deploy. No hace falta nada más para el frontend.
 
 ## 2. Base de datos (Supabase)
 
 1. **Antes de producción, prueba en una rama** (Supabase → Branches → New branch) o en un proyecto de desarrollo:
-   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql`, `0017_intake_email_rate_limit.sql`, `0018_services_catalog.sql`, `0019_intake_analysis.sql` y `0020_intake_analysis_review.sql` → Run (en ese orden).
-   - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql`, `0017_intake_email_rate_limit.sql`, `0018_services_catalog.sql`, `0019_intake_analysis.sql` y `0020_intake_analysis_review.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
+   - SQL Editor → `0009_onboarding_wizard.sql`, `0010_sync_profile_email.sql`, `0011_security_hardening.sql`, `0012_e2e_fixes.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql`, `0017_intake_email_rate_limit.sql`, `0018_services_catalog.sql`, `0019_intake_analysis.sql`, `0020_intake_analysis_review.sql` y `0021_stripe_billing.sql` → Run (en ese orden).
+   - SQL Editor → `database/tests/0009_rls_isolation.sql`, `0009_backfill.sql`, `0010_sync_profile_email.sql`, `0011_security_audit.sql`, `0011_signup_roles.sql`, `0013_registration_v2.sql`, `0014_solicitudes.sql`, `0015_i18n_public_language.sql`, `0016_i18n_server_messages.sql`, `0017_intake_email_rate_limit.sql`, `0018_services_catalog.sql`, `0019_intake_analysis.sql`, `0020_intake_analysis_review.sql` y `0021_stripe_billing.sql` → Run (terminan en `rollback`; deben imprimir «… han pasado»).
    - `0011` convierte `intake-files` en bucket **privado**: los adjuntos ya subidos siguen accesibles para la empresa
      dueña mediante URLs firmadas (el panel las genera al pulsar); las URLs públicas antiguas dejan de funcionar.
    - Opcional en desarrollo: `database/seed/0003_seed_onboarding_ralm.sql`.
@@ -90,6 +91,40 @@ ver la pestaña de punta a punta; enchufar un LLM real será un cambio de provee
   Si no hay `pg_cron`/`pg_net`, usa un cron externo o una Scheduled Function que haga el mismo POST.
 - **Antes de sustituir el stub por un LLM/OCR real** con documentos reales de clientes: documentar y verificar
   DPA, residencia UE, retención y uso para entrenamiento (ver `docs/analisis-inteligente-solicitudes.md`).
+
+### 4.2 Facturación con Stripe (prueba de 14 días → 29,99 €/mes)
+
+Requiere las migraciones **0021** y una cuenta de Stripe. Todo el frontend de facturación está tras el flag
+`VITE_BILLING_ENABLED` (apagado por defecto): mientras esté a `false` no hay banner ni muro de suscripción.
+
+1. En Stripe (empieza en **modo test**): crea un **producto** con un **precio recurrente** de 29,99 €/mes y
+   copia su `price_id` (`price_…`). Copia también la **clave secreta** (`sk_test_…`).
+2. Despliega las Edge Functions:
+   ```bash
+   supabase functions deploy stripe-checkout           # privada (verify_jwt)
+   supabase functions deploy stripe-portal             # privada (verify_jwt)
+   supabase functions deploy stripe-webhook --no-verify-jwt   # pública, verificada por firma
+   ```
+3. Registra el **webhook** en Stripe → Developers → Webhooks → Add endpoint:
+   `<SUPABASE_URL>/functions/v1/stripe-webhook`, eventos: `checkout.session.completed`,
+   `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`,
+   `invoice.payment_failed`. Copia el **signing secret** (`whsec_…`).
+4. Secrets de Supabase:
+   ```bash
+   supabase secrets set \
+     STRIPE_SECRET_KEY=sk_test_… \
+     STRIPE_PRICE_ID=price_… \
+     STRIPE_WEBHOOK_SECRET=whsec_…
+   # APP_URL ya está definido (§4); se usa para las URLs de éxito/cancelación y el portal.
+   ```
+5. En Railway → Variables: `VITE_BILLING_ENABLED=true` → redeploy. (Hazlo **después** de aplicar 0021 y
+   desplegar las funciones, para no mostrar el muro sin poder pagar.)
+6. Prueba con las **tarjetas de test** de Stripe (p. ej. `4242 4242 4242 4242`). Verifica: banner de prueba,
+   checkout, y que al completar el pago el webhook deja `subscription_status = 'active'` en la empresa.
+
+Notas: las tarjetas y el cobro viven en Stripe; Feblio solo guarda `stripe_customer_id`/`stripe_subscription_id`
+y el estado. El webhook escribe vía RPC de `service_role` (`billing_apply_subscription`); `authenticated`
+nunca cambia el estado a mano (guarda de 0013/0021).
 
 ## 5. Cuentas de prueba y rotación de credenciales
 

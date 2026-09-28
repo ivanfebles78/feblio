@@ -124,7 +124,7 @@ export const claimNativeVerification = () => rpc<{ ok: boolean; code?: string; e
 export async function getEmpresaAccessState(empresaId: string) {
   const [verificationRes, empresa] = await Promise.all([
     getVerificationState().then((v) => ({ ok: true as const, v })).catch((e: OnboardingApiError) => ({ ok: false as const, e })),
-    supabase.from('empresas').select('onboarding_status, onboarding_current_step, email_verified, onboarding_welcome_seen_at').eq('id', empresaId).single(),
+    supabase.from('empresas').select('onboarding_status, onboarding_current_step, email_verified, onboarding_welcome_seen_at, subscription_status, trial_ends_at').eq('id', empresaId).single(),
   ])
   if (empresa.error) {
     if (empresa.error.code === '42703') {
@@ -140,6 +140,8 @@ export async function getEmpresaAccessState(empresaId: string) {
     onboarding_current_step: string | null
     email_verified?: boolean
     onboarding_welcome_seen_at?: string | null
+    subscription_status?: 'trial' | 'active' | 'past_due' | 'canceled'
+    trial_ends_at?: string | null
   }
   const verification: VerificationState = verificationRes.ok
     ? verificationRes.v
@@ -150,6 +152,8 @@ export async function getEmpresaAccessState(empresaId: string) {
     onboarding_current_step: row.onboarding_current_step,
     /** Bienvenida de primera entrada ya mostrada (0013). Sin la columna, se considera vista. */
     welcome_seen: !('onboarding_welcome_seen_at' in row) || row.onboarding_welcome_seen_at != null,
+    /** Estado de suscripción (0008). Solo se usa si la facturación está activada por flag. */
+    billing: { subscription_status: row.subscription_status ?? 'trial', trial_ends_at: row.trial_ends_at ?? null, current_period_end: null },
   }
 }
 

@@ -1,0 +1,51 @@
+{
+  "plan": {
+    "name": "Feblio Pro",
+    "price": "€29.99",
+    "period": "/month",
+    "tagline": "All features. Cancel anytime."
+  },
+  "state": {
+    "active": "Active",
+    "trial": "Trial",
+    "trial_expired": "Trial ended",
+    "past_due": "Payment due",
+    "canceled": "Canceled"
+  },
+  "trialBanner": {
+    "title_one": "{{count}} day left in your trial",
+    "title_other": "{{count}} days left in your trial",
+    "body": "Subscribe so you don't lose access when it ends.",
+    "cta": "Subscribe"
+  },
+  "gate": {
+    "subscribe": "Subscribe for €29.99/month",
+    "redirecting": "Redirecting to secure checkout…",
+    "logout": "Sign out",
+    "error": "Couldn't start checkout. Please try again.",
+    "trialExpired": {
+      "title": "Your trial has ended",
+      "body": "Your 14-day free trial is over. Subscribe to keep managing your projects with Feblio."
+    },
+    "pastDue": {
+      "title": "There's a problem with your payment",
+      "body": "We couldn't charge your subscription. Update your payment method to restore access."
+    },
+    "canceled": {
+      "title": "Your subscription is canceled",
+      "body": "Subscribe again to restore access to Feblio."
+    }
+  },
+  "subscription": {
+    "title": "Subscription",
+    "trialUntil_one": "Trial until {{date}} · {{count}} day left",
+    "trialUntil_other": "Trial until {{date}} · {{count}} days left",
+    "activeInfo": "Your subscription is active.",
+    "inactiveInfo": "Subscribe to access all features.",
+    "subscribe": "Subscribe",
+    "manage": "Manage subscription"
+  },
+  "errors": {
+    "action": "Couldn't complete the action. Please try again."
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "plan": {
+    "name": "Feblio Pro",
+    "price": "29,99 €",
+    "period": "/mes",
+    "tagline": "Todas las funciones. Cancela cuando quieras."
+  },
+  "state": {
+    "active": "Activa",
+    "trial": "Prueba",
+    "trial_expired": "Prueba vencida",
+    "past_due": "Pago pendiente",
+    "canceled": "Cancelada"
+  },
+  "trialBanner": {
+    "title_one": "Te queda {{count}} día de prueba",
+    "title_other": "Te quedan {{count}} días de prueba",
+    "body": "Suscríbete para no perder el acceso cuando termine.",
+    "cta": "Suscribirme"
+  },
+  "gate": {
+    "subscribe": "Suscribirme por 29,99 €/mes",
+    "redirecting": "Redirigiendo al pago seguro…",
+    "logout": "Cerrar sesión",
+    "error": "No se pudo iniciar el pago. Inténtalo de nuevo.",
+    "trialExpired": {
+      "title": "Tu prueba ha terminado",
+      "body": "Han pasado tus 14 días de prueba gratuita. Suscríbete para seguir gestionando tus proyectos con Feblio."
+    },
+    "pastDue": {
+      "title": "Hay un problema con tu pago",
+      "body": "No hemos podido cobrar tu suscripción. Actualiza tu método de pago para recuperar el acceso."
+    },
+    "canceled": {
+      "title": "Tu suscripción está cancelada",
+      "body": "Vuelve a suscribirte para recuperar el acceso a Feblio."
+    }
+  },
+  "subscription": {
+    "title": "Suscripción",
+    "trialUntil_one": "Prueba hasta el {{date}} · queda {{count}} día",
+    "trialUntil_other": "Prueba hasta el {{date}} · quedan {{count}} días",
+    "activeInfo": "Tu suscripción está activa.",
+    "inactiveInfo": "Suscríbete para acceder a todas las funciones.",
+    "subscribe": "Suscribirme",
+    "manage": "Gestionar suscripción"
+  },
+  "errors": {
+    "action": "No se pudo completar la acción. Inténtalo de nuevo."
+  }
+}

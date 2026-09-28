@@ -43,3 +43,12 @@ export function demoAccounts(env: Record<string, string | undefined> = import.me
 export function appUrl(): string {
   return import.meta.env.VITE_APP_URL ?? window.location.origin
 }
+
+/**
+ * Facturación con Stripe (prueba de 14 días → suscripción). Apagada por defecto: mientras esté a
+ * false no hay banner ni muro de suscripción (comportamiento actual). Se activa en producción solo
+ * cuando Stripe y las migraciones 0021 están desplegadas.
+ */
+export function isBillingEnabled(env: Record<string, string | undefined> = import.meta.env): boolean {
+  return env.VITE_BILLING_ENABLED === 'true'
+}

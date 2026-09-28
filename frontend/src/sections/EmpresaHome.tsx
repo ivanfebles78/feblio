@@ -31,6 +31,8 @@ import { SetupProgressCard, useSetupProgress } from '../components/onboarding/Se
 import { supabase } from '../lib/supabase'
 import { cleanupTestData } from '../lib/onboarding/api'
 import { useAuth } from '../context/AuthContext'
+import { TrialBanner } from '../components/TrialBanner'
+import { useTrialBanner } from '../lib/billing/useTrialBanner'
 import { PENDING_FOR_EMPRESA } from '../lib/solicitudes/status'
 import { EMPRESA_PATHS } from '../lib/routing'
 import { formatCurrency, formatRelative } from '../lib/intl'
@@ -71,6 +73,7 @@ interface EmpresaHomeProps {
 export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: EmpresaHomeProps) {
   const { t } = useTranslation()
   const { profile } = useAuth()
+  const trialDaysLeft = useTrialBanner()
   const setup = useSetupProgress(empresaId, empresa?.onboarding_status ?? null)
   const firstName = (profile?.full_name ?? '').trim().split(/\s+/)[0] || ''
   const setupPending = empresa?.onboarding_status !== 'completed'
@@ -166,6 +169,7 @@ export function EmpresaHome({ empresaId, empresa, highlightSetup = false }: Empr
 
   return (
     <div className="space-y-6">
+      {trialDaysLeft != null && <TrialBanner daysLeft={trialDaysLeft} />}
       {/* Datos de prueba del asistente */}
       {(hasTestData || cleanupMsg) && (
         <div
