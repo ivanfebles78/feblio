@@ -70,6 +70,8 @@ export interface Profile {
   phone?: string | null
   job_title?: string | null
   is_onboarding_owner?: boolean
+  /** Rol interno dentro de la empresa (0018); NULL en cuentas que no son de empresa. */
+  company_role?: 'owner' | 'manager' | 'member' | null
 }
 
 export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed' | 'requires_attention'

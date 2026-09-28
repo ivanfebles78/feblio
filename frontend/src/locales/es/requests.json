@@ -216,6 +216,149 @@
     "missingDocs": "Documentos pendientes",
     "missingDocsEmpty": "Ningún documento pendiente."
   },
+  "ia": {
+    "title": "Análisis inteligente",
+    "loading": "Cargando análisis…",
+    "tabs": {
+      "label": "Secciones de la solicitud",
+      "summary": "Resumen",
+      "analysis": "Análisis IA"
+    },
+    "empty": {
+      "title": "Sin análisis todavía",
+      "desc": "Feblio puede analizar el mensaje, los datos del formulario y los documentos para proponer clasificación, plazos, información que falta y servicios aplicables. La propuesta siempre la revisa una persona.",
+      "notSubmitted": "El análisis se activa cuando el cliente ha enviado la solicitud.",
+      "section": "Nada en esta sección."
+    },
+    "obsolete": "Ha habido actividad en la solicitud después de este análisis: puede estar desactualizado. Puedes volver a analizar.",
+    "status": {
+      "queued": "En cola",
+      "running": "Procesando",
+      "generated": "Propuesta lista",
+      "in_review": "En revisión",
+      "approved": "Aprobado",
+      "corrected": "Corregido",
+      "rejected": "Rechazado",
+      "failed": "Error",
+      "partial": "Parcial",
+      "superseded": "Sustituido"
+    },
+    "queued": {
+      "title": "Análisis en cola",
+      "desc": "Se procesará en segundo plano. Vuelve en unos minutos y actualiza."
+    },
+    "running": {
+      "title": "Analizando…",
+      "desc": "El procesamiento está en curso. Actualiza para ver el resultado."
+    },
+    "failed": {
+      "desc": "El análisis no pudo completarse. Puedes volver a intentarlo."
+    },
+    "meta": {
+      "line": "Versión {{version}} · {{date}}",
+      "versionShort": "Versión {{version}}",
+      "confidence": "Confianza documental: {{value}}",
+      "requiresReview": "requiere revisión humana",
+      "formalRequirement": "Requerimiento formal"
+    },
+    "primaryType": {
+      "requerimiento_judicial": "Requerimiento judicial",
+      "requerimiento_administrativo": "Requerimiento administrativo",
+      "consulta": "Consulta",
+      "presupuesto": "Presupuesto",
+      "encargo": "Encargo",
+      "mixta": "Mixta",
+      "ambigua": "Ambigua"
+    },
+    "origin": {
+      "explicit": "Explícito",
+      "inferred": "Inferido",
+      "computed": "Calculado"
+    },
+    "humanState": {
+      "pending": "Pendiente",
+      "accepted": "Aceptado",
+      "edited": "Editado",
+      "rejected": "Descartado",
+      "added_by_human": "Añadido a mano"
+    },
+    "decision": {
+      "approved": "Aprobado",
+      "corrected": "Corregido",
+      "rejected": "Rechazado"
+    },
+    "actions": {
+      "analyze": "Analizar",
+      "reanalyze": "Volver a analizar",
+      "refresh": "Actualizar",
+      "approve": "Aprobar",
+      "correct": "Marcar como corregido",
+      "reject": "Rechazar",
+      "accept": "Aceptar",
+      "edit": "Editar",
+      "discard": "Descartar",
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    },
+    "sections": {
+      "summary": "Resumen",
+      "deadlinesExpress": "Plazos expresos",
+      "deadlinesExpressHint": "Indicados literalmente en el documento.",
+      "deadlinesComputed": "Plazos calculados",
+      "deadlinesComputedHint": "Estimados; verifica el cómputo.",
+      "missingInfo": "Información que falta",
+      "missingDocs": "Documentos que faltan",
+      "questions": "Preguntas sugeridas",
+      "services": "Servicios sugeridos",
+      "servicesHint": "Del catálogo de tu empresa. Sin precio: el presupuesto es un paso posterior.",
+      "actions": "Actuaciones",
+      "risks": "Riesgos",
+      "otherData": "Otros datos extraídos",
+      "warnings": "Avisos",
+      "history": "Versiones del análisis",
+      "reviewHistory": "Historial de revisión"
+    },
+    "item": {
+      "noLabel": "(sin etiqueta)",
+      "confidence": "Confianza: {{value}}"
+    },
+    "evidence": {
+      "document": "Documento",
+      "page": "pág. {{page}}"
+    },
+    "warnings": {
+      "service_not_matched": "Se propuso un servicio que no existe en tu catálogo y se descartó ({{value}}).",
+      "evidence_rejected": "Se descartó una evidencia que no correspondía a esta solicitud.",
+      "injection_suspected": "Un documento contiene instrucciones sospechosas; se tratan como texto, no como órdenes.",
+      "stub_provider": "Propuesta preliminar generada por reglas, sin modelo de IA. Revísala con criterio.",
+      "generic": "Aviso del análisis."
+    },
+    "review": {
+      "title": "Revisión",
+      "desc": "Aprobar habilita el paso a presupuesto; no cambia el estado de la solicitud. Los plazos y requerimientos siempre requieren tu revisión.",
+      "notePlaceholder": "Nota de la revisión (opcional)",
+      "approved": "Análisis aprobado.",
+      "rejected": "Análisis rechazado.",
+      "corrected": "Análisis marcado como corregido.",
+      "changedItems": "{{count}} ítems intervenidos"
+    },
+    "quota": {
+      "line": "Consumo del mes: {{used}} € de {{limit}} € · {{count}} análisis"
+    },
+    "notice": {
+      "queued": "Análisis encolado. Se procesará en segundo plano.",
+      "itemSaved": "Ítem actualizado.",
+      "approved": "Análisis aprobado.",
+      "corrected": "Análisis marcado como corregido.",
+      "rejected": "Análisis rechazado."
+    },
+    "errors": {
+      "load": "No se pudo cargar el análisis.",
+      "enqueue": "No se pudo encolar el análisis.",
+      "review": "No se pudo completar la revisión.",
+      "item": "No se pudo actualizar el ítem."
+    }
+  },
   "dialogs": {
     "link": {
       "title": "Enlace del cliente",
@@ -434,6 +577,20 @@
     "rate_limited": "Demasiadas solicitudes. Inténtalo en unos minutos.",
     "download_bad_request": "Petición no válida",
     "download_invalid": "Enlace no válido",
-    "download_rate_limited": "Demasiadas solicitudes. Inténtalo en unos minutos."
+    "download_rate_limited": "Demasiadas solicitudes. Inténtalo en unos minutos.",
+    "analysis_forbidden": "Solo el propietario o un gestor pueden lanzar o revisar análisis",
+    "no_company": "Tu cuenta no tiene una empresa asociada",
+    "analysis_not_submitted": "La solicitud aún no se ha enviado",
+    "analysis_too_many_documents": "Hay demasiados documentos para analizar",
+    "analysis_request_too_large": "Los documentos superan el tamaño máximo por solicitud",
+    "analysis_file_too_large": "Un documento supera el tamaño máximo",
+    "analysis_quota_exhausted": "Se ha alcanzado el límite mensual de análisis",
+    "analysis_not_found": "Análisis no encontrado",
+    "item_not_found": "Elemento del análisis no encontrado",
+    "invalid_item_state": "Estado de elemento no válido",
+    "analysis_closed": "El análisis ya está cerrado",
+    "invalid_decision": "Decisión no válida",
+    "analysis_not_reviewable": "El análisis no admite revisión en su estado actual",
+    "unauthenticated": "Sesión no válida. Vuelve a iniciar sesión."
   }
 }
