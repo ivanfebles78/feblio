@@ -10,6 +10,8 @@ import { OnboardingProvider, useOnboarding } from '../../lib/onboarding/Onboardi
 import { reopenOnboarding } from '../../lib/onboarding/api'
 import { STEP_REGISTRY } from '../../pages/onboarding/registry'
 import { IntegrationsSettings } from './IntegrationsSettings'
+import { SubscriptionCard } from './SubscriptionCard'
+import { isBillingEnabled } from '../../lib/env'
 import { ONBOARDING_BASE } from '../../lib/routing'
 
 import { settingsTabLabelKey, type SettingsTab } from './settingsTabs'
@@ -110,8 +112,11 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
   const map = { empresa: 'company', billing: 'billing', automation: 'automation', forms: 'forms', services: 'services' } as const
   const entry = STEP_REGISTRY[map[tab]]
   return (
-    <SectionCard title={t(settingsTabLabelKey(tab))} action={status}>
-      <entry.Component mode="settings" errors={entry.validate(ctx)} showErrors />
-    </SectionCard>
+    <div className="space-y-6">
+      {tab === 'billing' && isBillingEnabled() && <SubscriptionCard />}
+      <SectionCard title={t(settingsTabLabelKey(tab))} action={status}>
+        <entry.Component mode="settings" errors={entry.validate(ctx)} showErrors />
+      </SectionCard>
+    </div>
   )
 }

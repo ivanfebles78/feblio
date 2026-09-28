@@ -7,6 +7,9 @@ import { getEmpresaAccessState, claimNativeVerification } from '../lib/onboardin
 import { WELCOME_PATH, resolveEmpresaDestination, type OnboardingStatus } from '../lib/routing'
 import { VerifyEmailScreen } from '../sections/VerifyEmailScreen'
 import { LoadingScreen, ErrorScreen } from './LoadingScreen'
+import { BillingGate } from './BillingGate'
+import { isBillingEnabled } from '../lib/env'
+import { evaluateBilling, type BillingInfo } from '../lib/billing/logic'
 
 interface EmpresaGateProps {
   /** Qué pantalla envuelve: el dashboard (/empresa), el wizard (/onboarding) o la bienvenida (/bienvenida) */
@@ -20,6 +23,7 @@ interface AccessState {
   onboardingStatus: OnboardingStatus
   onboardingCurrentStep: string | null
   welcomeSeen: boolean
+  billing: BillingInfo
 }
 
 /**
@@ -66,6 +70,7 @@ export function EmpresaGate({ mode, children }: EmpresaGateProps) {
           onboardingStatus: res.onboarding_status ?? 'not_started',
           onboardingCurrentStep: res.onboarding_current_step,
           welcomeSeen: res.welcome_seen,
+          billing: res.billing ?? { subscription_status: 'trial', trial_ends_at: null, current_period_end: null },
         },
       })
     } catch (e) {
@@ -113,6 +118,12 @@ export function EmpresaGate({ mode, children }: EmpresaGateProps) {
   if (destination.kind === 'dashboard' && mode === 'onboarding' && access.onboardingStatus === 'completed') {
     // Configuración ya activada: el wizard solo se reabre desde Configuración (reopen)
     return <Navigate to="/empresa" replace />
+  }
+  // Muro de suscripción: solo al llegar al dashboard y solo si la facturación está activada por flag.
+  // La verificación, el onboarding y la bienvenida no se bloquean (deben poder completarse en prueba).
+  if (isBillingEnabled() && mode === 'dashboard' && destination.kind === 'dashboard') {
+    const bill = evaluateBilling(access.billing)
+    if (!bill.allowed) return <BillingGate state={bill.state} />
   }
   return <>{children}</>
 }
