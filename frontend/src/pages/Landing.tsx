@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
-import { Logo } from '../components/Logo'
+import { LandingLogo } from '../components/LandingLogo'
 import { HeroScene } from '../components/HeroScene'
 import { LoginForm } from '../components/auth/LoginForm'
 import { DemoAccess } from '../components/auth/DemoAccess'
@@ -72,8 +72,8 @@ export default function Landing() {
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-fuchsia-500 to-cyan-400 lg:hidden" />
         <div className="w-full max-w-sm">
           <div className="mb-7 flex items-center justify-between lg:justify-end">
-            <span className="lg:hidden">
-              <Logo size={34} />
+            <span className="min-w-0 lg:hidden">
+              <LandingLogo />
             </span>
             <LanguageSwitcher />
           </div>

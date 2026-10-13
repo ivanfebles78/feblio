@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { HeroMockup } from './HeroMockup'
-import { Logo } from './Logo'
+import { LandingLogo } from './LandingLogo'
 import { FileText, Users, BarChart3, Check } from 'lucide-react'
 
 /** Pills de color (etiquetas en auth.hero.pills.*). */
@@ -104,7 +104,7 @@ export function HeroScene() {
 
       {/* Cabecera: logo + título/subtítulo pequeños */}
       <div className="relative z-10">
-        <Logo size={38} tone="white" />
+        <LandingLogo tone="white" />
         <h1 className="mt-6 max-w-md text-2xl font-bold leading-tight tracking-tight text-white">{t('common.brand.tagline')}</h1>
         <p className="mt-2 max-w-sm text-sm text-brand-100">{t('auth.hero.subtitle')}</p>
       </div>
