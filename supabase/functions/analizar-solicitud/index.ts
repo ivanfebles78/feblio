@@ -31,7 +31,10 @@ function deps(): WorkerDeps {
     async takeJob() {
       const { data, error } = await admin.rpc('ia_analisis_tomar', { p_lease_seconds: 300 })
       if (error) throw new Error(`take_${error.code ?? 'failed'}`)
-      return (data as JobRow | null) ?? null
+      // PostgREST puede envolver el resultado de una función que devuelve una fila en un array
+      // ([] sin trabajo, [{…}] con trabajo). Normalizamos y exigimos un id válido.
+      const row = (Array.isArray(data) ? data[0] : data) as JobRow | null | undefined
+      return row && row.id ? row : null
     },
     async getSolicitud(id) {
       const { data } = await admin.from('solicitudes').select(SOL_COLS).eq('id', id).maybeSingle()

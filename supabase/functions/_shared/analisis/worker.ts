@@ -200,7 +200,7 @@ export async function processQueue(deps: WorkerDeps, opts: { max?: number; deadl
       deps.log('analysis.worker.done', { analisis_id: job.id, solicitud_id: job.solicitud_id, version: job.version })
     } catch (e) {
       failed++
-      deps.log('analysis.worker.error', { analisis_id: job.id, reason: e instanceof Error ? e.name : 'unknown' })
+      deps.log('analysis.worker.error', { analisis_id: job.id, reason: e instanceof Error ? e.message : 'unknown' })
       try {
         await deps.save(job.id, failurePayload('worker_error'))
       } catch {

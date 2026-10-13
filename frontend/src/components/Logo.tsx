@@ -4,43 +4,55 @@ interface LogoProps {
   tone?: 'brand' | 'white'
 }
 
-/** Isotipo Feblio: "F" de cintas plegadas en tres tonos de azul. */
+/**
+ * Isotipo Feblio: una "F" de trazos tipo circuito con nodos, en degradado azul → verde azulado.
+ * El degradado es de tono medio a propósito: se lee igual de bien sobre fondo claro y oscuro.
+ */
 export function LogoMark({ size = 34 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden="true">
       <defs>
-        <linearGradient id="fbTop" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#60a5fa" />
-          <stop offset="1" stopColor="#3b82f6" />
-        </linearGradient>
-        <linearGradient id="fbMid" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#3b82f6" />
-          <stop offset="1" stopColor="#2563eb" />
-        </linearGradient>
-        <linearGradient id="fbStem" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#2563eb" />
-          <stop offset="1" stopColor="#1e3a8a" />
+        <linearGradient id="fbGrad" x1="52" y1="10" x2="12" y2="54" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#2f6bff" />
+          <stop offset="0.55" stopColor="#23a7dd" />
+          <stop offset="1" stopColor="#17c79a" />
         </linearGradient>
       </defs>
-      {/* Brazo superior (cinta plegada) */}
-      <path d="M14 10 L54 10 L44 22 L24 22 Z" fill="url(#fbTop)" />
-      <path d="M24 22 L44 22 L40 30 L24 30 Z" fill="#1e40af" opacity="0.55" />
-      {/* Brazo central */}
-      <path d="M24 30 L48 30 L38 42 L24 42 Z" fill="url(#fbMid)" />
-      <path d="M24 42 L38 42 L34 48 L24 48 Z" fill="#1e40af" opacity="0.5" />
-      {/* Tallo vertical */}
-      <path d="M14 10 L24 22 L24 54 L14 54 Z" fill="url(#fbStem)" />
+      <g stroke="url(#fbGrad)" strokeWidth="7.5" strokeLinecap="round" strokeLinejoin="round">
+        {/* Cinta posterior, desplazada: da profundidad de "doble trazo" */}
+        <g opacity="0.22" transform="translate(3.6 3.6)">
+          <path d="M20 13 H48" />
+          <path d="M20 13 V44 L14 52" />
+          <path d="M20 30 H42" />
+        </g>
+        {/* F principal */}
+        <path d="M20 13 H48" />
+        <path d="M20 13 V44 L14 52" />
+        <path d="M20 30 H42" />
+      </g>
+      {/* Nodos: disco con centro claro (efecto anillo) */}
+      <g>
+        <circle cx="48" cy="13" r="6" fill="url(#fbGrad)" />
+        <circle cx="42" cy="30" r="5.5" fill="url(#fbGrad)" />
+        <circle cx="14" cy="52" r="6" fill="url(#fbGrad)" />
+        <circle cx="48" cy="13" r="2.3" fill="#fff" opacity="0.92" />
+        <circle cx="42" cy="30" r="2.1" fill="#fff" opacity="0.92" />
+        <circle cx="14" cy="52" r="2.3" fill="#fff" opacity="0.92" />
+      </g>
     </svg>
   )
 }
 
 export function Logo({ size = 34, withText = true, tone = 'brand' }: LogoProps) {
-  const text = tone === 'white' ? 'text-white' : 'text-slate-900'
+  const text = tone === 'white' ? 'text-white' : 'text-[#0f2344]'
   return (
     <span className="inline-flex items-center gap-2.5">
       <LogoMark size={size} />
       {withText && (
-        <span className={`text-[1.4rem] font-extrabold tracking-tight ${text}`}>
+        <span
+          className={`font-extrabold tracking-tight ${text}`}
+          style={{ fontFamily: "'Poppins', 'Inter', system-ui, sans-serif", fontSize: `${(size / 34) * 1.4}rem`, letterSpacing: '-0.01em' }}
+        >
           Feblio
         </span>
       )}
