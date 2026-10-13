@@ -25,6 +25,11 @@ export function Modal({ open, title, description, onClose, children, footer, siz
   const descId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
+  // `onClose` suele ser una función nueva en cada render del padre (p. ej. `() => setOpen(false)`).
+  // Se guarda en un ref para que el efecto de foco dependa SOLO de `open` y no se re-ejecute en cada
+  // pulsación (lo que robaba el foco y lo devolvía al primer campo: «se va a la otra celda»).
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return
@@ -38,7 +43,7 @@ export function Modal({ open, title, description, onClose, children, footer, siz
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
-        onClose()
+        onCloseRef.current()
         return
       }
       if (e.key !== 'Tab') return
@@ -62,7 +67,7 @@ export function Modal({ open, title, description, onClose, children, footer, siz
       document.body.style.overflow = prevOverflow
       previouslyFocused.current?.focus()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
