@@ -251,7 +251,7 @@ export default function SolicitudDetalle({ empresaId }: { empresaId: string }) {
 
       {tab === 'analisis' ? (
         <div role="tabpanel" id="tabpanel-analisis" aria-labelledby="tab-analisis">
-          <AnalisisIAPanel solicitudId={id} solicitudStatus={s.status} lastActivityAt={s.last_activity_at} canManage={canManage} />
+          <AnalisisIAPanel solicitudId={id} solicitudStatus={s.status} lastActivityAt={s.last_activity_at} canManage={canManage} onReviewed={() => void load()} />
         </div>
       ) : (
       <div role="tabpanel" id="tabpanel-resumen" aria-labelledby="tab-resumen" className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">

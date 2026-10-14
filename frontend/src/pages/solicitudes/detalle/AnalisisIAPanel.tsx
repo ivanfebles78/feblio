@@ -36,9 +36,11 @@ export interface AnalisisIAPanelProps {
   lastActivityAt: string
   /** El usuario es owner/manager de la empresa (o admin). */
   canManage: boolean
+  /** Se llama tras aprobar/corregir/rechazar: la revisión puede haber cambiado el estado de la solicitud. */
+  onReviewed?: () => void
 }
 
-export function AnalisisIAPanel({ solicitudId, solicitudStatus, lastActivityAt, canManage }: AnalisisIAPanelProps) {
+export function AnalisisIAPanel({ solicitudId, solicitudStatus, lastActivityAt, canManage, onReviewed }: AnalisisIAPanelProps) {
   const { t } = useTranslation()
   const [data, setData] = useState<api.IaOverview | null>(null)
   const [loading, setLoading] = useState(true)
@@ -168,7 +170,7 @@ export function AnalisisIAPanel({ solicitudId, solicitudStatus, lastActivityAt, 
               setNote={setNote}
               onOpenReview={() => void run(() => api.abrirRevisionIA(latest.id))}
               onItem={(id, estado, valor) => void run(() => api.marcarItemIA(id, estado, valor), t('requests.ia.notice.itemSaved'))}
-              onDecision={(d) => void run(() => api.revisarAnalisisIA(latest.id, d, note.trim() || undefined), t(`requests.ia.notice.${d}`))}
+              onDecision={(d) => void run(() => api.revisarAnalisisIA(latest.id, d, note.trim() || undefined), t(`requests.ia.notice.${d}`)).then(() => onReviewed?.())}
             />
           )}
         </Card>
