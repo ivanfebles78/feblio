@@ -94,7 +94,7 @@ function Skyline() {
 export function HeroScene() {
   const { t } = useTranslation()
   return (
-    <div className="relative flex min-h-[52vh] flex-col overflow-hidden bg-gradient-to-br from-brand-700 via-indigo-700 to-violet-800 p-8 lg:min-h-screen lg:p-12">
+    <div className="relative flex min-h-[52vh] flex-col overflow-hidden bg-gradient-to-br from-blue-950 via-indigo-800 to-violet-900 p-8 lg:min-h-screen lg:p-12">
       {/* Rejilla + glows de color */}
       <div className="blueprint absolute inset-0 opacity-[0.15]" />
       <div className="animate-glow pointer-events-none absolute -left-16 top-16 h-72 w-72 rounded-full bg-cyan-400/30 blur-3xl" />
