@@ -5,8 +5,8 @@ interface LogoProps {
 }
 
 /**
- * Isotipo Feblio: una "F" de trazos tipo circuito con nodos, en degradado azul → verde azulado.
- * El degradado es de tono medio a propósito: se lee igual de bien sobre fondo claro y oscuro.
+ * Isotipo Feblio: "F" de trazos tipo circuito con nodos (degradado azul → verde azulado).
+ * Se usa solo como respaldo cuando se pide el logo sin texto; el logo completo es una imagen.
  */
 export function LogoMark({ size = 34 }: { size?: number }) {
   return (
@@ -19,18 +19,15 @@ export function LogoMark({ size = 34 }: { size?: number }) {
         </linearGradient>
       </defs>
       <g stroke="url(#fbGrad)" strokeWidth="7.5" strokeLinecap="round" strokeLinejoin="round">
-        {/* Cinta posterior, desplazada: da profundidad de "doble trazo" */}
         <g opacity="0.22" transform="translate(3.6 3.6)">
           <path d="M20 13 H48" />
           <path d="M20 13 V44 L14 52" />
           <path d="M20 30 H42" />
         </g>
-        {/* F principal */}
         <path d="M20 13 H48" />
         <path d="M20 13 V44 L14 52" />
         <path d="M20 30 H42" />
       </g>
-      {/* Nodos: disco con centro claro (efecto anillo) */}
       <g>
         <circle cx="48" cy="13" r="6" fill="url(#fbGrad)" />
         <circle cx="42" cy="30" r="5.5" fill="url(#fbGrad)" />
@@ -43,19 +40,13 @@ export function LogoMark({ size = 34 }: { size?: number }) {
   )
 }
 
+/**
+ * Logo Feblio (icono + palabra), como imagen. Dos variantes para que se lea en cualquier fondo:
+ * `brand` (palabra azul marino) sobre fondos claros; `white` (palabra en blanco, icono a color)
+ * sobre fondos oscuros. `size` es la altura en píxeles.
+ */
 export function Logo({ size = 34, withText = true, tone = 'brand' }: LogoProps) {
-  const text = tone === 'white' ? 'text-white' : 'text-[#0f2344]'
-  return (
-    <span className="inline-flex items-center gap-2.5">
-      <LogoMark size={size} />
-      {withText && (
-        <span
-          className={`font-extrabold tracking-tight ${text}`}
-          style={{ fontFamily: "'Poppins', 'Inter', system-ui, sans-serif", fontSize: `${(size / 34) * 1.4}rem`, letterSpacing: '-0.01em' }}
-        >
-          Feblio
-        </span>
-      )}
-    </span>
-  )
+  if (!withText) return <LogoMark size={size} />
+  const src = `${import.meta.env.BASE_URL}feblio-logo${tone === 'white' ? '-white' : ''}.png`
+  return <img src={src} alt="Feblio" style={{ height: size, width: 'auto' }} className="block max-w-none select-none" draggable={false} />
 }
